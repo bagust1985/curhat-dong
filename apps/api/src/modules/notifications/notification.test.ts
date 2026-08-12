@@ -686,6 +686,36 @@ describeDb('notification (E12)', () => {
       const person = await user();
       const live = vi.spyOn(realtime, 'hasLiveSocket').mockResolvedValue(false);
 
+      // A quiet window that is *closed* right now, whenever the suite runs.
+      //
+      // Without this the device keeps the 22:00–07:00 default and the outcome
+      // is 'held' rather than 'sent' for nine hours a day — the assertion below
+      // is about the realtime-vs-push choice (E12-T08), so quiet hours have to
+      // be taken out of the picture rather than left to the wall clock.
+      const localHour = Number(
+        new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          hour12: false,
+        }).format(new Date()),
+      );
+      const start = (localHour + 2) % 24;
+      await prisma.userDevice.create({
+        data: {
+          userId: person.userId,
+          deviceId: `awake-${person.userId}`,
+          platform: 'android',
+          pushProvider: 'expo',
+          pushTokenEncrypted: 'x',
+          pushTokenHash: `hash-awake-${person.userId}`,
+          timezone: 'Asia/Jakarta',
+          quietHoursStart: start,
+          // Ends before the current hour comes round again, so `localHour` sits
+          // outside [start, end) no matter what time it is.
+          quietHoursEnd: (start + 9) % 24,
+        },
+      });
+
       try {
         const outcome = await fanout.notify({
           userId: person.userId,
