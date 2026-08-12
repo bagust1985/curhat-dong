@@ -175,6 +175,16 @@ describe.each(FIXTURES)('$name adapter contract', (fixture) => {
     expect(finalUsage).toEqual({ tokensIn: 11, tokensOut: 5 });
   });
 
+  it('summarises history through the same parsing path', async () => {
+    const provider = fixture.create(
+      jsonResponse(fixture.completion('{"summary":"dia bercerita soal pekerjaan"}')),
+    );
+
+    const result = await provider.summarize('...', options('chat.summarize'));
+
+    expect(result.value.summary).toBe('dia bercerita soal pekerjaan');
+  });
+
   it('sends no API key back to the caller', async () => {
     const provider = fixture.create(jsonResponse(fixture.completion('{"intent":"mau_cerita"}')));
 

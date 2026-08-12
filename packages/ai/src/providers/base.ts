@@ -15,6 +15,7 @@ import type {
   ModerationResult,
   RiskResult,
   RiskScores,
+  SummaryResult,
   TokenUsage,
 } from '../types.js';
 
@@ -77,6 +78,10 @@ const emotionSchema = z.object({
 const intentSchema = z.object({
   intent: z.string(),
   confidence: z.number().optional(),
+});
+
+const summarySchema = z.object({
+  summary: z.string(),
 });
 
 /**
@@ -145,6 +150,16 @@ export abstract class BaseAiProvider implements AIProvider {
 
     return {
       value: { intent: parsed.intent, confidence: clamp(parsed.confidence ?? 0) },
+      meta: this.meta(options, response, latencyMs),
+    };
+  }
+
+  async summarize(input: string, options: AiCallOptions): Promise<AiResult<SummaryResult>> {
+    const { response, latencyMs } = await this.runClassification(input, options);
+    const parsed = this.parseJson(response.text, summarySchema);
+
+    return {
+      value: { summary: parsed.summary },
       meta: this.meta(options, response, latencyMs),
     };
   }

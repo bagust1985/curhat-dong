@@ -8,13 +8,22 @@
 
 export type AiProviderName = 'anthropic' | 'openai' | 'local';
 
-/** The five operations the gateway exposes. Mirrors TECH-SPEC §4.4. */
+/**
+ * The operations the gateway exposes.
+ *
+ * The first five mirror TECH-SPEC §4.4 exactly. `summarize` is an addition
+ * (E09-T04): compacting a long conversation is a model call like any other,
+ * and giving it its own operation keeps it routed, budgeted and cost-logged
+ * instead of hiding inside `chat`, where it would consume a user's message
+ * quota for work the user never asked for.
+ */
 export type AiOperation =
   | 'moderate'
   | 'classify_emotion'
   | 'detect_intent'
   | 'assess_risk'
-  | 'chat';
+  | 'chat'
+  | 'summarize';
 
 export type ModelTier = 'cheap' | 'advanced';
 
@@ -52,6 +61,10 @@ export interface IntentResult {
   confidence: number;
 }
 
+export interface SummaryResult {
+  summary: string;
+}
+
 export interface RiskResult {
   riskScores: RiskScores;
   /**
@@ -85,6 +98,9 @@ export interface ChatChunk {
   /** Present only on the terminating chunk. */
   usage?: TokenUsage;
   done?: boolean;
+  /** Set by the gateway, not by adapters — which provider actually answered. */
+  provider?: AiProviderName;
+  model?: string;
 }
 
 /** Which prompt produced a result — see `prompts.ts` for why this is required. */
@@ -99,7 +115,13 @@ export type PromptKey =
   | 'safety.moderate'
   | 'classify.emotion'
   | 'classify.intent'
-  | 'chat.system';
+  | 'chat.system'
+  | 'chat.summarize'
+  | 'chat.persona.pendengar'
+  | 'chat.persona.pemikir'
+  | 'chat.persona.teman_hangat'
+  | 'chat.persona.teman_santai'
+  | 'chat.persona.journal_companion';
 
 export interface AiCallOptions {
   model: string;
@@ -136,5 +158,6 @@ export interface AIProvider {
   classifyEmotion(input: string, options: AiCallOptions): Promise<AiResult<EmotionResult>>;
   detectIntent(input: string, options: AiCallOptions): Promise<AiResult<IntentResult>>;
   assessRisk(input: string, options: AiCallOptions): Promise<AiResult<RiskResult>>;
+  summarize(input: string, options: AiCallOptions): Promise<AiResult<SummaryResult>>;
   chat(input: ChatInput, options: AiCallOptions): AsyncIterable<ChatChunk>;
 }

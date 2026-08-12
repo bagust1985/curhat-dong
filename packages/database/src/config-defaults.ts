@@ -26,6 +26,18 @@ export const APP_CONFIG_DEFAULTS = {
    */
   'ai.budget_stop_pct': 100,
 
+  /** TECH-SPEC §4.3 — DONG AI conversation */
+  'ai.context_token_budget': 3_000,
+  'ai.context_max_messages': 40,
+  /**
+   * PRD §10 — AI→Human bridge cadence.
+   *
+   * A bridge on every reply reads as being shown the door, so it waits a few
+   * turns and then keeps its distance. High-risk turns ignore both numbers.
+   */
+  'ai.bridge_min_turns': 4,
+  'ai.bridge_cooldown_turns': 6,
+
   /** TECH-SPEC §4.2, §4.4 — AI Gateway resilience */
   'ai.timeout_ms': 8_000,
   'ai.chat_timeout_ms': 30_000,

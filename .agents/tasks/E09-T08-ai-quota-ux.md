@@ -2,7 +2,7 @@
 id: E09-T08
 epic: E09
 title: Integrasi kuota harian di chat
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E08-T07, E09-T03]
 refs: [DESIGN-REF §2.8c, TECH-SPEC §4.7]

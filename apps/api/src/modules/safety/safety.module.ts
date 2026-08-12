@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { AiModule } from '../ai/ai.module.js';
 import { AuthModule } from '../auth/auth.module.js';
@@ -21,7 +21,7 @@ import { TrustScoreService } from './trust-score.service.js';
  * documented fail-safe path rather than a permissive one.
  */
 @Module({
-  imports: [AuthModule, ModerationModule, AiModule],
+  imports: [AuthModule, ModerationModule, forwardRef(() => AiModule)],
   controllers: [ReportsController, SupportResourcesController],
   providers: [
     LocalRulesService,

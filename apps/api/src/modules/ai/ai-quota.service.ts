@@ -70,6 +70,26 @@ export class AiQuotaService {
     return { limit, used, remaining: Math.max(0, limit - used), degraded };
   }
 
+  /**
+   * Pre-flight check that consumes nothing.
+   *
+   * Used before an SSE response opens: once headers are written a 429 can no
+   * longer be sent, and a quota message delivered as a stream error would land
+   * as a red event instead of the warm copy it is meant to be.
+   */
+  async assertAvailable(userId: string, at: Date = new Date()): Promise<QuotaStatus> {
+    const status = await this.status(userId, at);
+
+    if (status.remaining <= 0) {
+      throw ApiException.tooManyRequests(
+        'AI_QUOTA_EXCEEDED',
+        'Kuota harian habis — besok kita lanjut ya. Kalau butuh didengar sekarang, coba Cari Listener.',
+      );
+    }
+
+    return status;
+  }
+
   /** Gives a consumed message back when the call failed before producing anything. */
   async refund(userId: string, at: Date = new Date()): Promise<void> {
     await this.redis.decr(this.key(userId, at)).catch(() => undefined);

@@ -18,6 +18,7 @@ import {
   type ModerationResult,
   type ProviderResolver,
   type RiskResult,
+  type SummaryResult,
 } from '@curhat/ai';
 import type { ServerEnv } from '@curhat/config/env/server';
 import { createPrismaClient, type PrismaClient } from '@curhat/database';
@@ -74,6 +75,10 @@ class ScriptedProvider implements AIProvider {
 
   detectIntent(_input: string, options: AiCallOptions): Promise<AiResult<IntentResult>> {
     return this.answer('detect_intent', options, { intent: 'mau_cerita', confidence: 0.7 });
+  }
+
+  summarize(_input: string, options: AiCallOptions): Promise<AiResult<SummaryResult>> {
+    return this.answer('summarize', options, { summary: 'ringkasan uji' });
   }
 
   async *chat(_input: ChatInput, options: AiCallOptions): AsyncIterable<ChatChunk> {

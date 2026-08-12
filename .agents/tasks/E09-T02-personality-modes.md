@@ -2,7 +2,7 @@
 id: E09-T02
 epic: E09
 title: 5 personality mode + ganti mode mid-chat
-status: todo
+status: done
 estimate: 1d
 depends_on: [E09-T01]
 refs: [PRD §10, DESIGN-REF §2.8b]

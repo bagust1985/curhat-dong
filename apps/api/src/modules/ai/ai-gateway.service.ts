@@ -1,9 +1,8 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AiProviderError,
   CircuitBreaker,
   DEFAULT_RETRY_POLICY,
-  ProviderRegistry,
   isAmbiguousRisk,
   isSafetyOperation,
   mergeRoutingConfig,
@@ -26,14 +25,13 @@ import {
   type ProviderResolver,
   type RiskResult,
   type RoutingConfig,
+  type SummaryResult,
   type TokenUsage,
 } from '@curhat/ai';
-import type { ServerEnv } from '@curhat/config/env/server';
 import { AI_JSON_CONFIG_KEYS } from '@curhat/database';
 
 import { ApiException } from '../../common/api-error.js';
 import { AppConfigService } from '../../common/app-config.service.js';
-import { ENV } from '../../config/env.config.js';
 import { AiBudgetService } from './ai-budget.service.js';
 import { AiQuotaService } from './ai-quota.service.js';
 import { AiUsageService } from './ai-usage.service.js';
@@ -62,11 +60,11 @@ export interface CallContext {
 }
 
 /**
- * Optional override for provider selection.
+ * Provider selection, injected.
  *
- * Bound only in tests, so the gateway's own logic — routing, retry, budget,
- * usage logging — can be exercised against a scripted provider instead of a
- * live account.
+ * Built from environment in `AiModule`, which keeps credentials out of this
+ * service entirely and lets a test substitute a scripted provider through the
+ * ordinary DI seam rather than a back door.
  */
 export const AI_PROVIDER_RESOLVER = Symbol('CURHAT_AI_PROVIDER_RESOLVER');
 
@@ -91,19 +89,15 @@ export const AI_PROVIDER_RESOLVER = Symbol('CURHAT_AI_PROVIDER_RESOLVER');
 export class AiGatewayService {
   private readonly logger = new Logger(AiGatewayService.name);
   private readonly breakers = new Map<AiProviderName, CircuitBreaker>();
-  private registryInstance: ProviderResolver | null = null;
 
   constructor(
-    @Inject(ENV) private readonly env: ServerEnv,
     private readonly appConfig: AppConfigService,
     private readonly prompts: PromptRegistryService,
     private readonly usage: AiUsageService,
     private readonly budget: AiBudgetService,
     private readonly quota: AiQuotaService,
-    @Optional() @Inject(AI_PROVIDER_RESOLVER) resolver?: ProviderResolver,
-  ) {
-    this.registryInstance = resolver ?? null;
-  }
+    @Inject(AI_PROVIDER_RESOLVER) private readonly providers: ProviderResolver,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Operations
@@ -188,6 +182,21 @@ export class AiGatewayService {
   }
 
   /**
+   * Compacts conversation history — E09-T04.
+   *
+   * Its own operation rather than a `chat` call: this is work the product does
+   * for itself, so it must not consume the user's daily message quota.
+   */
+  async summarize(text: string, context: CallContext = {}): Promise<GatewayResult<SummaryResult>> {
+    return this.execute({
+      operation: 'summarize',
+      promptKey: 'chat.summarize',
+      context,
+      invoke: (provider, options) => provider.summarize(text, options),
+    });
+  }
+
+  /**
    * Streams a DONG AI reply.
    *
    * Quota and budget are checked here and only here: when the money runs out,
@@ -206,7 +215,7 @@ export class AiGatewayService {
     const promptVersion = promptVersionLabel(prompt);
     const timeoutMs = await this.appConfig.getNumber('ai.chat_timeout_ms');
 
-    const providers = this.registry().order();
+    const providers = this.providers.order();
     let emitted = false;
     let lastError: unknown;
 
@@ -216,7 +225,7 @@ export class AiGatewayService {
       const startedAt = Date.now();
 
       try {
-        const provider = this.registry().get(name);
+        const provider = this.providers.get(name);
         const options: AiCallOptions = {
           model,
           tier: decision.tier,
@@ -227,7 +236,9 @@ export class AiGatewayService {
         for await (const chunk of provider.chat(input, options)) {
           if (chunk.text) emitted = true;
           if (chunk.usage) Object.assign(usage, chunk.usage);
-          yield chunk;
+          // The adapter knows the text; only the gateway knows which provider
+          // and model the routing landed on.
+          yield chunk.done ? { ...chunk, provider: name, model } : chunk;
         }
 
         const cost = await this.usage.record({
@@ -311,7 +322,7 @@ export class AiGatewayService {
       this.appConfig.getNumber('ai.max_attempts'),
     ]);
 
-    const providers = this.registry().order();
+    const providers = this.providers.order();
     let lastError: unknown;
 
     for (const [index, name] of providers.entries()) {
@@ -319,7 +330,7 @@ export class AiGatewayService {
       const startedAt = Date.now();
 
       try {
-        const provider = this.registry().get(name);
+        const provider = this.providers.get(name);
         const options: AiCallOptions = { model, tier: decision.tier, prompt, timeoutMs };
 
         const result = await runWithRetry(() => params.invoke(provider, options), {
@@ -381,25 +392,6 @@ export class AiGatewayService {
       : new AiProviderError('server_error', 'gateway', 'All AI providers failed', {
           cause: lastError,
         });
-  }
-
-  private registry(): ProviderResolver {
-    if (this.registryInstance) return this.registryInstance;
-
-    this.registryInstance = new ProviderRegistry({
-      primary: this.env.AI_DEFAULT_PROVIDER,
-      fallback: this.env.AI_FALLBACK_PROVIDER,
-      credentials: {
-        anthropicApiKey: this.env.ANTHROPIC_API_KEY,
-        anthropicBaseUrl: this.env.ANTHROPIC_BASE_URL,
-        openaiApiKey: this.env.OPENAI_API_KEY,
-        openaiBaseUrl: this.env.OPENAI_BASE_URL,
-        localBaseUrl: this.env.AI_LOCAL_BASE_URL,
-        localApiKey: this.env.AI_LOCAL_API_KEY,
-      },
-    });
-
-    return this.registryInstance;
   }
 
   private async breakerFor(name: AiProviderName): Promise<CircuitBreaker> {

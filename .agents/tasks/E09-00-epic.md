@@ -1,7 +1,7 @@
 ---
 id: E09
 title: DONG AI
-status: todo
+status: done
 tasks: 8
 depends_on: [E07, E08]
 ---

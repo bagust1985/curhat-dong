@@ -2,7 +2,7 @@
 id: E09-T04
 epic: E09
 title: Context builder + batas jendela
-status: todo
+status: done
 estimate: 1d
 depends_on: [E09-T03]
 refs: [TECH-SPEC §4.3]

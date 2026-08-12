@@ -2,7 +2,7 @@
 id: E09-T06
 epic: E09
 title: AI→Human Bridge (CTA Cari Listener)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E09-T05]
 refs: [PRD §10, DESIGN-REF §2.8c]

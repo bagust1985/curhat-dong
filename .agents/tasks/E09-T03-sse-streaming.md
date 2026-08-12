@@ -2,7 +2,7 @@
 id: E09-T03
 epic: E09
 title: SSE streaming balasan
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E09-T02]
 refs: [TECH-SPEC §3.3]

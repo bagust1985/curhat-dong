@@ -35,6 +35,15 @@ model AiConversation {
   /// Generated from context without echoing sensitive content.
   title           String?
 
+  /// Compacted history, written when the window no longer fits (E09-T04).
+  ///
+  /// Kept on the conversation rather than recomputed per turn: summarising is
+  /// itself a paid model call, and re-running it every message would make a
+  /// long conversation cost more the longer someone stays.
+  contextSummary      String? @map("context_summary")
+  /// Newest message already covered by `contextSummary`.
+  summarizedThroughId String? @map("summarized_through_id") @db.Uuid
+
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)

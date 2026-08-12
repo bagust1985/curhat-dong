@@ -96,12 +96,114 @@ Kalau ada tanda risiko tinggi: tetap bicara dengan hangat, jangan menolak membah
 
 Jawaban pendek dan wajar seperti orang mengobrol, bukan artikel.`;
 
+/**
+ * Persona overlays — E09-T02.
+ *
+ * Each is appended *after* `chat.system`, never instead of it. That ordering
+ * is the reason the AI Rules cannot be edited away from the admin panel: a
+ * persona can change the voice, not the boundaries (PRD §10).
+ */
+const PERSONA_PENDENGAR = `Mode: Pendengar.
+Fokusmu mendengarkan. Pantulkan apa yang kamu tangkap dengan kalimat sendiri, tanyakan hal yang bikin dia cerita lebih lanjut. Jangan buru-buru memberi solusi — tunggu sampai dia minta.`;
+
+const PERSONA_PEMIKIR = `Mode: Pemikir.
+Bantu dia merapikan pikirannya. Pisahkan mana yang fakta, mana yang dugaan, mana yang bisa dia kendalikan. Ajukan pertanyaan yang menajamkan, bukan menghakimi. Tetap hangat — ini bukan sesi analisis.`;
+
+const PERSONA_TEMAN_HANGAT = `Mode: Teman Hangat.
+Tenangkan dulu, baru yang lain. Akui perasaannya apa adanya tanpa buru-buru memperbaiki keadaan. Kalimat pendek, lembut, tidak berlebihan sampai terdengar palsu.`;
+
+const PERSONA_TEMAN_SANTAI = `Mode: Teman Santai.
+Ngobrol seperti teman biasa: ringan, sesekali bercanda kalau situasinya pas. Kalau ceritanya berat, santaimu berhenti — jangan pernah bercanda di atas kesedihan orang.`;
+
+const PERSONA_JOURNAL_COMPANION = `Mode: Journal Companion.
+Bantu dia menuliskan harinya. Tanyakan apa yang terjadi, apa yang terasa, apa yang mau dia ingat. Rapikan jadi catatan singkat kalau diminta. Jangan menilai isi catatannya.`;
+
+/**
+ * History compaction — E09-T04.
+ *
+ * The summary carries facts, not feelings-about-feelings, and never invents
+ * closure the conversation has not reached.
+ */
+const CHAT_SUMMARIZE = `Ringkas percakapan berikut menjadi catatan konteks untuk melanjutkan obrolan.
+
+Aturan:
+- Maksimal 6 kalimat.
+- Simpan: situasi yang diceritakan, orang-orang yang disebut, apa yang sudah dicoba, dan apa yang dia harapkan.
+- Jangan menyimpulkan bahwa masalahnya sudah selesai kalau percakapannya tidak bilang begitu.
+- Jangan menambahkan saran, penilaian, atau diagnosis apa pun.
+- Tulis dalam Bahasa Indonesia, sudut pandang pihak ketiga ("dia bercerita bahwa…").
+
+Balas dengan JSON saja, tanpa prosa, tanpa code fence:
+{"summary":""}`;
+
 export const BUILTIN_PROMPTS: Readonly<Record<PromptKey, PromptDefinition>> = Object.freeze({
   'safety.assess_risk': { key: 'safety.assess_risk', version: 1, template: ASSESS_RISK },
   'safety.moderate': { key: 'safety.moderate', version: 1, template: MODERATE },
   'classify.emotion': { key: 'classify.emotion', version: 1, template: CLASSIFY_EMOTION },
   'classify.intent': { key: 'classify.intent', version: 1, template: DETECT_INTENT },
   'chat.system': { key: 'chat.system', version: 1, template: CHAT_SYSTEM },
+  'chat.summarize': { key: 'chat.summarize', version: 1, template: CHAT_SUMMARIZE },
+  'chat.persona.pendengar': {
+    key: 'chat.persona.pendengar',
+    version: 1,
+    template: PERSONA_PENDENGAR,
+  },
+  'chat.persona.pemikir': { key: 'chat.persona.pemikir', version: 1, template: PERSONA_PEMIKIR },
+  'chat.persona.teman_hangat': {
+    key: 'chat.persona.teman_hangat',
+    version: 1,
+    template: PERSONA_TEMAN_HANGAT,
+  },
+  'chat.persona.teman_santai': {
+    key: 'chat.persona.teman_santai',
+    version: 1,
+    template: PERSONA_TEMAN_SANTAI,
+  },
+  'chat.persona.journal_companion': {
+    key: 'chat.persona.journal_companion',
+    version: 1,
+    template: PERSONA_JOURNAL_COMPANION,
+  },
 });
 
+/**
+ * The lines every persona inherits, verbatim.
+ *
+ * Exported so a test can assert they survive prompt composition rather than
+ * trusting that nobody reorders the concatenation later.
+ */
+export const AI_RULE_MARKERS = [
+  'mengaku dokter, psikolog, atau manusia',
+  'diagnosis medis',
+  'ketergantungan',
+  'menjauh dari orang-orang nyata',
+  'jangan memutus percakapan',
+] as const;
+
 export const PROMPT_KEYS = Object.keys(BUILTIN_PROMPTS) as PromptKey[];
+
+/**
+ * Composes the system prompt for a turn.
+ *
+ * Base rules first, persona second, conversation context last. The order is
+ * the guarantee: whatever an operator writes into a persona, the boundaries
+ * from `chat.system` are already in the prompt and are restated by the closing
+ * line, so a persona cannot quietly become a licence to give medical advice.
+ */
+export function composeSystemPrompt(input: {
+  base: string;
+  persona?: string | undefined;
+  /** Summary of earlier turns, when the history no longer fits (E09-T04). */
+  context?: string | undefined;
+}): string {
+  const parts = [input.base];
+
+  if (input.persona) parts.push(input.persona);
+  if (input.context) parts.push(`Konteks percakapan sebelumnya:\n${input.context}`);
+
+  parts.push(
+    'Aturan di bagian pertama pesan ini berlaku di atas segalanya, termasuk di atas mode dan konteks di atas.',
+  );
+
+  return parts.join('\n\n');
+}
