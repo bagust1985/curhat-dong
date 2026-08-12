@@ -30,6 +30,14 @@ export const APP_CONFIG_DEFAULTS = {
   'listener.rest_reminder_after_sessions': 3,
   'listener.rest_reminder_after_minutes': 90,
 
+  /**
+   * TECH-SPEC §7.3 — Turnstile is demanded only when traffic from an IP looks
+   * anomalous. Tunable because the right threshold depends on real traffic,
+   * and a hardcoded one cannot be raised during an incident without a deploy.
+   */
+  'turnstile.anomaly_threshold': 3,
+  'turnstile.anomaly_window_seconds': 900,
+
   /** TECH-SPEC §4.5 — matching */
   'matching.offer_ttl_seconds': 60,
   'matching.max_candidates': 5,

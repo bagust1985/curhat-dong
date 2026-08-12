@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E02 selesai.
+> Terakhir: **12 Agustus 2026** — E03 selesai.
 
 ## Status Keseluruhan
 
@@ -9,7 +9,7 @@
 |---|---|---|---|
 | **E01** | Foundation & Tooling | 10/10 | ✅ **Selesai** |
 | **E02** | Database & Prisma | 9/9 | ✅ **Selesai** |
-| E03 | Auth & Session | 0/12 | ⬜ Belum |
+| **E03** | Auth & Session | 12/12 | ✅ **Selesai** |
 | E04 | Onboarding, Consent & Identity | 0/8 | ⬜ Belum |
 | E05 | Post & Feed | 0/12 | ⬜ Belum |
 | E06 | Interaction & Felt Heard | 0/8 | ⬜ Belum |
@@ -25,7 +25,103 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 19 / 182 task (10,4%).**
+**Progres: 31 / 182 task (17,0%).**
+
+---
+
+## E03 — Auth & Session ✅
+
+Email OTP, Google OAuth, JWT 15 menit, rotating refresh dengan reuse detection,
+Turnstile, rate limit, block dua arah.
+
+| Task | Hasil |
+|---|---|
+| E03-T01 | `EmailProvider` interface + Resend + console adapter |
+| E03-T02 | OTP TTL 10 mnt, hash-only, rate limit, response generik |
+| E03-T03 | Access token 15 mnt + guard global |
+| E03-T04 | Rotating refresh + **reuse detection** cabut satu family |
+| E03-T05 | Cookie HttpOnly (web) vs body (mobile) |
+| E03-T06 | Google ID token diverifikasi server-side |
+| E03-T07 | Turnstile, dipicu saat anomaly |
+| E03-T08 | Rate limit Redis, fail-closed untuk endpoint auth |
+| E03-T09 | Logout & logout-all + bersihkan push token |
+| E03-T10 | `/me`, `PATCH /me`, profil publik allow-list |
+| E03-T11 | Block/unblock dua arah |
+| E03-T12 | Security suite 15 kasus terhadap server sungguhan |
+
+### Hasil verifikasi
+
+```
+pnpm lint       13/13 workspace  hijau
+pnpm typecheck  13/13 workspace  hijau
+pnpm test       118 test         hijau
+```
+
+Pemecahan: auth 33 · api 23 · web 17 · database 14 · types 10 · config 9 ·
+notifications 8 · admin 4.
+
+### Keputusan besar: JWT ditulis sendiri di atas `node:crypto`
+
+`jose` (dan sebagian besar library JWT yang masih dirawat) sekarang **ESM-only**,
+sementara API berjalan sebagai CommonJS — NestJS butuh `emitDecoratorMetadata`
+untuk DI. `require('jose')` gagal dengan `MODULE_NOT_FOUND`; ini terbukti, bukan
+dugaan.
+
+Pilihannya: mengubah seluruh backend jadi ESM, atau menulis HS256 sendiri.
+HS256 itu HMAC atas dua segmen base64url — pendek dan bisa dibaca utuh.
+
+Yang membuat verifier JWT aman bukan library-nya, tapi penolakan terhadap
+serangan yang sudah dikenal. Semuanya ditangani **dan diuji**:
+
+| Serangan | Ditolak karena |
+|---|---|
+| `alg: none` | algoritma di-pin server-side, tidak dibaca dari token |
+| Algorithm confusion (`RS256`) | sama — token tidak boleh memilih cara dirinya diperiksa |
+| Payload ditukar, signature asli | signature dihitung atas header+payload |
+| Signature dipotong | perbandingan constant-time, panjang dicek |
+| Token tanpa `exp` | ditolak sebagai malformed — kalau tidak, berlaku selamanya |
+| `aud` / `iss` orang lain | keduanya diverifikasi |
+| `iat` di masa depan | ditolak |
+| Timing attack | `timingSafeEqual`, bukan `===` |
+
+Untuk Google ID token (RS256 + JWKS + rotasi kunci) gue **tidak** menulis
+sendiri — dipakai `google-auth-library` resmi dari Google, yang CommonJS.
+Batasnya jelas: yang sederhana dan sepenuhnya kita kontrol ditulis sendiri, yang
+melibatkan infrastruktur kunci pihak lain diserahkan ke pemiliknya.
+
+### Reuse detection
+
+Aturannya: tiap refresh mencetak token baru dan mencabut yang lama. Kalau token
+yang **sudah dirotasi** dipakai lagi — entah bocor atau replay, dan tidak ada
+cara membedakannya — **seluruh family dicabut**. Kehilangan sesi jauh lebih kecil
+kerugiannya daripada membiarkan token curian tetap hidup.
+
+Termasuk kasus balapan: dua refresh bersamaan atas token yang sama, yang kalah
+diperlakukan sebagai reuse. Diuji end-to-end, bukan diasumsikan.
+
+### Aturan yang ditegakkan, bukan sekadar didokumentasikan
+
+- **Autentikasi menyala secara default.** Route opt-out dengan `@Public()`.
+  Kebalikannya — opt-in per route — adalah cara endpoint rilis tanpa proteksi
+  karena ada yang lupa satu dekorator. Diuji: `/v1/me` tanpa token → 401.
+- **Access token dicek sesinya, bukan cuma signature-nya.** Tanpa itu, user yang
+  sudah logout tetap punya token yang bekerja sampai 15 menit. Diuji.
+- **Web tidak pernah menerima refresh token di body.** `localStorage` dilarang
+  TECH-SPEC §5.1, dan browser tidak punya tempat aman lain — jadi token-nya
+  ditahan, bukan dikirim lalu diharapkan disimpan dengan benar.
+- **Profil publik pakai allow-list**, bukan menghapus field. Kolom baru di
+  `user_profiles` tidak otomatis terlihat publik hanya karena tidak ada yang
+  ingat mengecualikannya.
+- **Response OTP identik** untuk email terdaftar dan tidak. Diuji dengan
+  membandingkan body-nya langsung.
+
+### Catatan
+
+- Threshold anomaly Turnstile dipindah ke `app_configs` — nilai keamanan yang
+  di-hardcode tidak bisa dinaikkan saat insiden tanpa deploy.
+- Test suite membaca kode OTP dengan mem-brute-force ruang 6 digit terhadap
+  hash tersimpan. Itu memang lambat (~20 detik), dan justru membuktikan properti
+  yang diuji: kode plaintext-nya memang tidak ada di database.
 
 ---
 
@@ -252,11 +348,12 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E03 — Auth & Session** (12 task): Email OTP, Google OAuth, JWT 15 menit,
-rotating refresh dengan reuse detection, Turnstile, rate limit.
+**E04 — Onboarding, Consent & Identity** (8 task): age gate 18+, consent 3 jenis
+tercatat terpisah, alias anonim, anonymous identity per post, data export,
+delete/anonymize account.
 
 Urutan setelahnya mengikuti jalur kritis:
-`E03 → E05 → E07 → E10 → E11`.
+`E04 → E05 → E07 → E10 → E11`.
 
 Catatan urutan: **E07 (Safety) wajib selesai sebelum E09 (DONG AI) dirilis** —
 AI yang jalan tanpa safety engine melanggar aturan non-negotiable #1.

@@ -2,7 +2,7 @@
 id: E03-T11
 epic: E03
 title: Block / unblock user
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T10]
 refs: [PRD §15, TECH-SPEC §4.7]

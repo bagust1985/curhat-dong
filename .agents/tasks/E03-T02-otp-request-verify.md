@@ -2,7 +2,7 @@
 id: E03-T02
 epic: E03
 title: Endpoint OTP request & verify
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E03-T01]
 refs: [TECH-SPEC §3.1]

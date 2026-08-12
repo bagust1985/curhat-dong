@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 
+import { AppConfigModule } from './common/app-config.service.js';
+import { PrismaModule } from './common/prisma.service.js';
+import { RedisModule } from './common/redis.service.js';
 import { EnvModule } from './config/env.config.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AiModule } from './modules/ai/ai.module.js';
@@ -30,6 +33,9 @@ import { UsersModule } from './modules/users/users.module.js';
 @Module({
   imports: [
     EnvModule,
+    PrismaModule,
+    RedisModule,
+    AppConfigModule,
     HealthModule,
 
     AuthModule,

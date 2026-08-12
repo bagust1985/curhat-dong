@@ -2,7 +2,7 @@
 id: E03-T10
 epic: E03
 title: Endpoint /me dan profil publik
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T03]
 refs: [TECH-SPEC §3.1, PRD §16]

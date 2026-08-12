@@ -2,7 +2,7 @@
 id: E03-T05
 epic: E03
 title: Penyimpanan token — cookie HttpOnly (web) & SecureStore (mobile)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T04]
 refs: [TECH-SPEC §5.1]

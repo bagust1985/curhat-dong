@@ -2,7 +2,7 @@
 id: E03-T03
 epic: E03
 title: JWT access token + auth guard
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T02]
 refs: [TECH-SPEC §5.1]

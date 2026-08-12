@@ -2,7 +2,7 @@
 id: E03-T07
 epic: E03
 title: Cloudflare Turnstile — verifikasi server-side
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T02]
 refs: [TECH-SPEC §7.3, TECH-SPEC §3.1]

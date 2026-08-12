@@ -2,7 +2,7 @@
 id: E03-T06
 epic: E03
 title: Google OAuth (web + mobile)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E03-T04]
 refs: [TECH-SPEC §5.3, PRD §4]

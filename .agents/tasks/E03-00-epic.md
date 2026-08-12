@@ -1,7 +1,7 @@
 ---
 id: E03
 title: Auth & Session
-status: todo
+status: done
 tasks: 12
 depends_on: [E02]
 ---

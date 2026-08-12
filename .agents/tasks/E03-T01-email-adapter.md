@@ -2,7 +2,7 @@
 id: E03-T01
 epic: E03
 title: Email provider adapter (Resend)
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E02-T02]
 refs: [TECH-SPEC §5.2]

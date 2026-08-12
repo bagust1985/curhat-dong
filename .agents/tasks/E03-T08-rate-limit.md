@@ -2,7 +2,7 @@
 id: E03-T08
 epic: E03
 title: Distributed rate limit (Redis)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E01-T08, E03-T03]
 refs: [TECH-SPEC §4.7, §7.3, CLAUDE.md test minimal]

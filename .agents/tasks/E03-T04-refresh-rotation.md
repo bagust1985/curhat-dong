@@ -2,7 +2,7 @@
 id: E03-T04
 epic: E03
 title: Rotating refresh token + reuse detection
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E03-T03]
 refs: [TECH-SPEC §5.1, CLAUDE.md test minimal]

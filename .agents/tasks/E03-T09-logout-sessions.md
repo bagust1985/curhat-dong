@@ -2,7 +2,7 @@
 id: E03-T09
 epic: E03
 title: Logout, logout-all & manajemen sesi
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E03-T04]
 refs: [TECH-SPEC §3.1, DESIGN-REF §2.16]

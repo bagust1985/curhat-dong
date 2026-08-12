@@ -1,9 +1,10 @@
 import 'reflect-metadata';
 
 import { Logger } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { loadServerEnv } from '@curhat/config/env/server';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,6 +12,9 @@ import { dirname, join } from 'node:path';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { ResponseInterceptor } from './common/response.interceptor.js';
+import { ENV } from './config/env.config.js';
+import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
+import { SessionService } from './modules/auth/session.service.js';
 
 /**
  * Loads .env for local development using Node's built-in loader (no dotenv
@@ -48,6 +52,8 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('v1');
   app.use(helmet());
   app.use(compression());
+  // Web clients carry the refresh token in an HttpOnly cookie (TECH-SPEC §5.1).
+  app.use(cookieParser());
 
   app.enableCors({
     origin: [env.APP_URL, env.ADMIN_URL],
@@ -56,6 +62,13 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Authentication is on by default; a route opts out with @Public().
+  // The reverse — opt in per route — is how an endpoint ends up unprotected
+  // because someone forgot a decorator.
+  app.useGlobalGuards(
+    new JwtAuthGuard(app.get(ENV), app.get(Reflector), app.get(SessionService)),
+  );
 
   // No global ValidationPipe: CLAUDE.md specifies Zod at the API boundary, so
   // controllers apply ZodValidationPipe per route. Registering Nest's

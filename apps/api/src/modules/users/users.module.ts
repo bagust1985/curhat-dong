@@ -1,9 +1,20 @@
 import { Module } from '@nestjs/common';
 
+import { AuthModule } from '../auth/auth.module.js';
+import { UsersController } from './users.controller.js';
+import { UsersService } from './users.service.js';
+
 /**
- * Account lifecycle, block/unblock, delete/anonymize (E03, E04)
+ * Account lifecycle, public profile and block (E03-T10, E03-T11).
  *
- * Scaffolded in E01-T05. Controllers and providers land in the epic noted above.
+ * UsersService is exported because feed, comments and listener matching all
+ * need the block filter — the two-way rule must be applied identically
+ * everywhere (PRD §15), not reimplemented per module.
  */
-@Module({})
+@Module({
+  imports: [AuthModule],
+  controllers: [UsersController],
+  providers: [UsersService],
+  exports: [UsersService],
+})
 export class UsersModule {}
