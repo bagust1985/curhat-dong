@@ -60,6 +60,18 @@ model User {
 
   adminRole AdminRole? @map("admin_role")
 
+  /// TOTP secret for admin MFA (E14-T01, TECH-SPEC §7.4).
+  ///
+  /// Encrypted at rest with the same key as every other readable secret: it
+  /// must be read back to verify a code, so hashing is not an option, and a
+  /// database dump alone must not yield working second factors.
+  mfaSecretEncrypted String?   @map("mfa_secret_encrypted")
+  /// Set when the first code is confirmed. Until then the secret is only
+  /// enrolled, and MFA is not yet satisfied.
+  mfaEnabledAt       DateTime? @map("mfa_enabled_at") @db.Timestamptz(6)
+  /// Last consumed TOTP step, so a code cannot be replayed inside its window.
+  mfaLastStep        Int?      @map("mfa_last_step")
+
   deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz(6)
   deletionMode DeletionMode? @map("deletion_mode")
 
@@ -262,6 +274,14 @@ model UserSession {
   refreshTokenHash String @unique @map("refresh_token_hash")
   /// Rotation chain. Reusing a rotated token revokes the whole family.
   familyId         String @map("family_id") @db.Uuid
+
+  /// When MFA was last satisfied on this session (E14-T01).
+  ///
+  /// Held per session rather than per user: an admin logged in on two machines
+  /// has proved possession of the second factor on one of them, not both. Also
+  /// what step-up re-authentication reads — a sensitive action requires this
+  /// to be recent, not merely present.
+  mfaVerifiedAt DateTime? @map("mfa_verified_at") @db.Timestamptz(6)
 
   deviceId  String?  @map("device_id")
   ipHash    String?  @map("ip_hash")

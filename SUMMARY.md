@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E13 selesai.
+> Terakhir: **12 Agustus 2026** — E13 selesai, E14 berjalan (4/15).
 
 ## Status Keseluruhan
 
@@ -20,7 +20,7 @@
 | **E11** | Private Chat Room | 9/9 | ✅ **Selesai** |
 | **E12** | Notification | 9/9 | ✅ **Selesai** |
 | **E13** | Search | 4/4 | ✅ **Selesai** |
-| E14 | Admin Panel | 0/15 | ⬜ Belum |
+| E14 | Admin Panel | 4/15 | 🟡 **Berjalan** (T01–T04) |
 | E15 | Web UI | 0/17 | ⬜ Belum |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |

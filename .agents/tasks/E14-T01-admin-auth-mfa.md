@@ -2,7 +2,7 @@
 id: E14-T01
 epic: E14
 title: Login admin + MFA TOTP
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E03-T04]
 refs: [TECH-SPEC §7.4, DESIGN-REF §3.1]

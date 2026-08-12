@@ -2,7 +2,7 @@
 id: E14-T04
 epic: E14
 title: Akses konten privat — hanya via case + banner audit
-status: todo
+status: done
 estimate: 1d
 depends_on: [E14-T03]
 refs: [PRD §15, §25.6, DESIGN-REF §3.4]

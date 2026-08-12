@@ -2,7 +2,7 @@
 id: E14-T02
 epic: E14
 title: RBAC admin
-status: todo
+status: done
 estimate: 1d
 depends_on: [E14-T01]
 refs: [PRD §2, TECH-SPEC §3.6, DESIGN-REF §3.12]

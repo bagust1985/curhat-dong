@@ -2,7 +2,7 @@
 id: E14-T03
 epic: E14
 title: Audit log + halaman /audit
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E14-T02]
 refs: [PRD §25.6, TECH-SPEC §3.6, DESIGN-REF §3.11]
