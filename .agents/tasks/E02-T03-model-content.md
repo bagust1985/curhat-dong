@@ -2,7 +2,7 @@
 id: E02-T03
 epic: E02
 title: Model konten — posts, comments, reactions, categories
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T02]
 refs: [TECH-SPEC §2.2, §2.3, PRD §7, §9]

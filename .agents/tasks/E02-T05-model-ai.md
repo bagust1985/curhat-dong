@@ -2,7 +2,7 @@
 id: E02-T05
 epic: E02
 title: Model AI — conversations, messages, classifications, usage
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E02-T02]
 refs: [TECH-SPEC §2.2, §10.3, PRD §10]

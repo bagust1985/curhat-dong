@@ -2,7 +2,7 @@
 id: E02-T01
 epic: E02
 title: Setup packages/database — Prisma 7 + adapter-pg
-status: todo
+status: done
 estimate: 1d
 depends_on: [E01-T08]
 refs: [TECH-SPEC §1.1, TECH-SPEC §2.1, CLAUDE.md stack]

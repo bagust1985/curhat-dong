@@ -19,6 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # The schema constraints in packages/database are safety guarantees
+    # (appeal reviewer separation, listener burnout caps, Felt Heard
+    # answer/dismiss split). Without a real database the tests covering them
+    # skip silently, which is worse than not having them.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: curhat
+          POSTGRES_PASSWORD: curhat
+          POSTGRES_DB: curhat_dong_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U curhat"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://curhat:curhat@localhost:5432/curhat_dong_test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +65,16 @@ jobs:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
+
+      # The Prisma client is generated output, not committed source.
+      - name: Generate Prisma client
+        run: pnpm --filter @curhat/database generate
+
+      - name: Apply migrations
+        run: pnpm --filter @curhat/database migrate:deploy
+
+      - name: Seed
+        run: pnpm --filter @curhat/database seed
 
       # Shared packages emit dist/ that the apps typecheck against.
       - name: Build packages

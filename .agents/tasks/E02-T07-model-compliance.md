@@ -2,7 +2,7 @@
 id: E02-T07
 epic: E02
 title: Model compliance — consent, support resources, export, retention
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T02]
 refs: [TECH-SPEC BAGIAN 18, PRD §25.2, §25.3, §25.4, §15.2]

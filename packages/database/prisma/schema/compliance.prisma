@@ -1,0 +1,203 @@
+// Compliance, notifications and runtime config — TECH-SPEC BAGIAN 18. PRD §25.
+
+enum ConsentType {
+  tos_privacy          // required
+  sensitive_processing // required
+  analytics            // OPTIONAL — must never gate a core feature
+}
+
+enum ConsentMethod {
+  onboarding
+  settings
+  reconsent
+}
+
+enum SupportChannel {
+  phone
+  chat
+  whatsapp
+  web
+}
+
+enum ExportStatus {
+  pending
+  processing
+  ready
+  failed
+  expired
+}
+
+enum NotificationType {
+  social
+  response
+  listener
+  ai
+  safety
+  account
+}
+
+enum RetentionRunStatus {
+  running
+  completed
+  failed
+}
+
+/// Consent records — PRD §25.3.
+///
+/// One row per (user, type, document version). Revocation sets `revokedAt`
+/// rather than deleting: the history is the compliance evidence, and a refusal
+/// is just as much a record as a grant.
+model ConsentRecord {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  consentType     ConsentType   @map("consent_type")
+  documentVersion String        @map("document_version")
+  granted         Boolean
+  method          ConsentMethod @default(onboarding)
+
+  grantedAt DateTime  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, consentType, documentVersion])
+  @@index([userId, consentType])
+  @@map("consent_records")
+}
+
+/// Crisis support resources — PRD §15.2, TECH-SPEC §18.5.
+///
+/// A dedicated table rather than a blob in app_configs because the runtime
+/// query filters on region AND freshness. `verifiedAt` and `sourceUrl` are
+/// mandatory: a dead hotline is worse than showing nothing, because someone in
+/// crisis tries it, fails, and feels more alone.
+model SupportResource {
+  id       String         @id @default(uuid()) @db.Uuid
+  region   String         @default("ID")
+  name     String
+  channel  SupportChannel
+  value    String
+  hours    String
+  language String         @default("id")
+
+  isActive Boolean @default(false) @map("is_active")
+
+  /// Entries older than the re-verification window are hidden from users
+  /// automatically (PRD §15.2: re-verify every 3 months).
+  verifiedAt DateTime @map("verified_at") @db.Timestamptz(6)
+  /// Official source. Required — no entry goes live on hearsay.
+  sourceUrl  String   @map("source_url")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([region, isActive, verifiedAt])
+  @@map("support_resources")
+}
+
+/// Right to portability — PRD §25.2.
+model DataExportRequest {
+  id     String       @id @default(uuid()) @db.Uuid
+  userId String       @map("user_id") @db.Uuid
+  status ExportStatus @default(pending)
+
+  fileKey   String?   @map("file_key")
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  requestedAt DateTime  @default(now()) @map("requested_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, requestedAt(sort: Desc)])
+  @@map("data_export_requests")
+}
+
+/// Proof that retention actually ran — PRD §25.4, TECH-SPEC §18.2.
+///
+/// A `deletedCount` of zero run after run is a sign the job is broken, not a
+/// sign that everything is fine.
+model RetentionRun {
+  id      String @id @default(uuid()) @db.Uuid
+  jobName String @map("job_name")
+  entity  String
+
+  deletedCount Int                @default(0) @map("deleted_count")
+  status       RetentionRunStatus @default(running)
+  error        String?            @db.Text
+
+  startedAt  DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
+
+  @@index([jobName, startedAt(sort: Desc)])
+  @@map("retention_runs")
+}
+
+/// In-app notification.
+///
+/// `payload` holds a template key and target ids only. Notification copy comes
+/// from a closed template set — curhat content never reaches a notification,
+/// in-app or push (CLAUDE.md non-negotiable #3).
+model Notification {
+  id     String           @id @default(uuid()) @db.Uuid
+  userId String           @map("user_id") @db.Uuid
+  type   NotificationType
+
+  payload Json
+
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+/// Granular per-type × per-channel preferences (PRD §14).
+model NotificationSetting {
+  userId String @id @map("user_id") @db.Uuid
+
+  /// { "social": { "push": true, "inApp": true }, ... }
+  perTypeToggles Json @default("{}") @map("per_type_toggles")
+
+  /// Quiet hours are honoured for everything except safety and account
+  /// notifications (PRD §14).
+  quietHoursEnabled Boolean @default(true) @map("quiet_hours_enabled")
+
+  /// User can switch off the Felt Heard prompt permanently (PRD §9).
+  feltHeardPromptEnabled Boolean @default(true) @map("felt_heard_prompt_enabled")
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+/// Runtime flags — changed without a redeploy (TECH-SPEC §1.1).
+model FeatureFlag {
+  key         String  @id
+  value       Json
+  description String?
+
+  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("feature_flags")
+}
+
+/// Operational configuration: rate limits, moderation SLA, AI quota, quiet
+/// hours, feed ranking weights. Values default to the proposals recapped in
+/// PRD §25.7 so they can be tuned without a deploy.
+model AppConfig {
+  key         String  @id
+  value       Json
+  description String?
+
+  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_configs")
+}

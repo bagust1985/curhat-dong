@@ -1,0 +1,20 @@
+// CURHAT DONG — data model root.
+//
+// TECH-SPEC §2. PostgreSQL 16 + Prisma ORM 7.
+// Models are split across this folder by domain; see the sibling *.prisma files.
+//
+// Guiding principle (TECH-SPEC §2.1):
+//   Email, provider ID, device token and auth data are NEVER public identifiers.
+//   Identity data is separated from social content by internal user id.
+
+generator client {
+  provider = "prisma-client"
+  // Generated client kept out of src/ — it is build output, not source
+  // (TECH-SPEC §1.6).
+  output   = "../../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // URL is supplied by prisma.config.ts (Prisma 7 convention).
+}

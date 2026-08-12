@@ -2,7 +2,7 @@
 id: E02-T09
 epic: E02
 title: Seed data — kategori, feature flags, app configs
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E02-T07, E02-T08]
 refs: [PRD §16, §25.7, TECH-SPEC §18.5]

@@ -1,0 +1,289 @@
+// Identity & auth — TECH-SPEC §2.2, §7.5. PRD §4, §25.5.
+//
+// Privacy architecture (PRD §20): identity data is deliberately kept in its own
+// tables, joined to social content only by internal user id. Nothing here is
+// ever serialised to a public API response.
+
+enum UserStatus {
+  active
+  muted
+  suspended
+  banned
+  deleted
+}
+
+enum DeletionMode {
+  purge     // content removed after a 30-day grace period
+  anonymize // author link severed — IRREVERSIBLE (PRD §25.4)
+}
+
+enum AuthProvider {
+  email_otp
+  google
+}
+
+enum Platform {
+  web
+  android
+  ios
+}
+
+enum PushProvider {
+  expo
+  fcm
+  webpush
+}
+
+enum OtpPurpose {
+  login
+  email_change
+}
+
+enum AdminRole {
+  super_admin
+  moderator
+  customer_support
+  content_manager
+  finance
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  status    UserStatus @default(active)
+
+  /// Internal only. Never leaves the server (CLAUDE.md non-negotiable #4).
+  trustScoreInternal Int @default(50) @map("trust_score_internal")
+
+  /// Self-declared 18+ (PRD §25.5). MVP does not verify identity — asking an
+  /// anonymous platform for an ID card would destroy its own premise.
+  ageDeclaredAt DateTime? @map("age_declared_at") @db.Timestamptz(6)
+
+  adminRole AdminRole? @map("admin_role")
+
+  deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  deletionMode DeletionMode? @map("deletion_mode")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  authAccounts        AuthAccount[]
+  profile             UserProfile?
+  devices             UserDevice[]
+  sessions            UserSession[]
+  anonymousIdentities AnonymousIdentity[]
+  consents            ConsentRecord[]
+  dataExports         DataExportRequest[]
+
+  posts             CurhatPost[]
+  comments          Comment[]
+  reactions         Reaction[]
+  feltHeardFeedback FeltHeardFeedback[]
+  feltHeardPrompts  FeltHeardPrompt[]
+  moodEntries       MoodEntry[]
+
+  listenerProfile     ListenerProfile?
+  listenerAvailability ListenerAvailability?
+  listenerRequests    ListenerRequest[]
+  listenerSessionsAsRequester ListenerSession[] @relation("SessionRequester")
+  listenerSessionsAsListener  ListenerSession[] @relation("SessionListener")
+  sessionCounters     ListenerSessionCounter[]
+  matchesAsRequester  ListenerMatch[] @relation("MatchRequester")
+  matchesAsListener   ListenerMatch[] @relation("MatchListener")
+
+  roomMemberships RoomMember[]
+  messages        Message[]
+
+  aiConversations AiConversation[]
+  aiUsageEvents   AiUsageEvent[]
+
+  safetyEvents      SafetyEvent[]
+  reportsFiled      Report[]            @relation("ReportReporter")
+  moderationActions ModerationAction[]  @relation("ActionModerator")
+  moderationCases   ModerationCase[]    @relation("CaseAssignee")
+  appeals           ModerationAppeal[]  @relation("AppealUser")
+  appealsReviewed   ModerationAppeal[]  @relation("AppealReviewer")
+  trustScore        TrustScore?
+  blocksMade        BlockedUser[]       @relation("Blocker")
+  blocksReceived    BlockedUser[]       @relation("Blocked")
+
+  notifications        Notification[]
+  notificationSettings NotificationSetting?
+  auditLogs            AuditLog[] @relation("AuditActor")
+
+  @@index([status, createdAt])
+  @@map("users")
+}
+
+/// Credentials and provider identity. Private table — never joined into a
+/// public response.
+model AuthAccount {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  provider   AuthProvider
+  /// Provider subject id (e.g. Google `sub`). Never exposed (PRD §20).
+  providerId String?      @map("provider_id")
+
+  /// Deterministic hash for lookup and dedup. Plaintext email is never stored.
+  emailHash      String  @map("email_hash")
+  /// Reversible only with a key held outside the database (TECH-SPEC §7.5).
+  emailEncrypted String? @map("email_encrypted")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@unique([provider, emailHash])
+  @@index([emailHash])
+  @@map("auth_accounts")
+}
+
+/// Short-lived OTP challenges. Retention: 24 hours (PRD §25.4).
+model OtpChallenge {
+  id        String     @id @default(uuid()) @db.Uuid
+  emailHash String     @map("email_hash")
+  /// Hash only — a leaked table must not hand out working codes.
+  codeHash  String     @map("code_hash")
+  purpose   OtpPurpose @default(login)
+
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([emailHash, createdAt])
+  @@index([expiresAt])
+  @@map("otp_challenges")
+}
+
+/// Public-safe profile. Everything in this model may appear in a public API
+/// response; nothing else about a user may.
+model UserProfile {
+  userId String @id @map("user_id") @db.Uuid
+
+  alias     String  @unique
+  /// Case-insensitive uniqueness guard (PRD §4).
+  aliasLower String @unique @map("alias_lower")
+  avatar    String?
+  bio       String? @db.VarChar(280)
+
+  isListener Boolean @default(false) @map("is_listener")
+  joinedAt   DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  /// Denormalised counter for "helpful reactions" shown on the profile.
+  helpfulCount Int @default(0) @map("helpful_count")
+
+  onboardingReason String?  @map("onboarding_reason")
+  topics           String[] @default([])
+
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+/// Per-post anonymous identity (PRD §4).
+///
+/// `displayCode` is unique per post so two anonymous posts by the same author
+/// cannot be correlated by anyone reading the feed. The `userId` link stays for
+/// moderation and legal obligations and is never exposed.
+model AnonymousIdentity {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  postId String @unique @map("post_id") @db.Uuid
+
+  displayCode String @map("display_code")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post CurhatPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("anonymous_identities")
+}
+
+/// Registered push targets.
+///
+/// Provider-agnostic by design (TECH-SPEC §6.1): there is deliberately no
+/// column named `fcm_token`, so moving from Expo Push to direct FCM needs no
+/// migration.
+model UserDevice {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  platform     Platform
+  pushProvider PushProvider @map("push_provider")
+  /// Encrypted at rest (TECH-SPEC §7.5).
+  pushTokenEncrypted String @map("push_token_encrypted")
+  deviceId           String @map("device_id")
+
+  /// Quiet hours are per-device because the timezone is (PRD §14).
+  timezone        String  @default("Asia/Jakarta")
+  quietHoursStart Int?    @default(22) @map("quiet_hours_start")
+  quietHoursEnd   Int?    @default(7) @map("quiet_hours_end")
+
+  lastSeen  DateTime @default(now()) @map("last_seen") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([userId, lastSeen])
+  @@map("user_devices")
+}
+
+/// Refresh-token sessions with family-based reuse detection (TECH-SPEC §5.1).
+model UserSession {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  /// Hashed — a database dump must not yield usable refresh tokens.
+  refreshTokenHash String @unique @map("refresh_token_hash")
+  /// Rotation chain. Reusing a rotated token revokes the whole family.
+  familyId         String @map("family_id") @db.Uuid
+
+  deviceId  String?  @map("device_id")
+  ipHash    String?  @map("ip_hash")
+  userAgent String?  @map("user_agent")
+
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+  @@map("user_sessions")
+}
+
+/// Two-way block (PRD §15). Enforced on feed, comments, matching and DMs.
+model BlockedUser {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocked_users")
+}
+
+/// Internal reputation. Drives adaptive rate limits and Turnstile triggers —
+/// never social ranking, and never leaves the server.
+model TrustScore {
+  userId     String   @id @map("user_id") @db.Uuid
+  score      Int      @default(50)
+  /// Factor breakdown, kept so a decision can be explained during an audit.
+  factors    Json     @default("{}")
+  computedAt DateTime @default(now()) @map("computed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trust_scores")
+}

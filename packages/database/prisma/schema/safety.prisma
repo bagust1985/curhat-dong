@@ -1,0 +1,251 @@
+// Safety, moderation and appeals — TECH-SPEC §2.2, BAGIAN 19. PRD §15, §15.4.
+
+enum ReportCategory {
+  bullying
+  harassment
+  sexual
+  hate
+  threat
+  scam
+  doxxing
+  spam
+  dangerous_content
+  other
+}
+
+enum ReportStatus {
+  open
+  triaged
+  resolved
+  dismissed
+}
+
+enum ModerationQueue {
+  critical
+  high
+  medium
+  low
+}
+
+enum CaseStatus {
+  open
+  in_review
+  resolved
+  escalated
+}
+
+enum CaseSource {
+  ai
+  report
+  system
+  listener_escalate
+}
+
+enum ModerationActionType {
+  approve
+  remove
+  warn
+  mute
+  suspend
+  ban
+  escalate
+}
+
+enum AppealStatus {
+  pending
+  under_review
+  upheld
+  overturned
+  reduced
+}
+
+enum SafetyTarget {
+  post
+  comment
+  message
+  ai_message
+  user
+}
+
+/// Audit trail of every safety decision, including what was shown to the user.
+model SafetyEvent {
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+
+  targetType SafetyTarget @map("target_type")
+  targetId   String       @map("target_id") @db.Uuid
+
+  level       SafetyLevel
+  /// What the system did — never a punishment at L3 (PRD §15.1).
+  actionTaken String      @map("action_taken")
+  /// Which support resources were surfaced, for later follow-up.
+  resourceShown Json?     @map("resource_shown")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([level, createdAt])
+  @@index([createdAt])
+  @@map("safety_events")
+}
+
+model Report {
+  id         String       @id @default(uuid()) @db.Uuid
+  reporterId String       @map("reporter_id") @db.Uuid
+  targetType SafetyTarget @map("target_type")
+  targetId   String       @map("target_id") @db.Uuid
+
+  category ReportCategory
+  note     String?        @db.Text
+
+  /// Threat, dangerous_content and sexual jump the queue (PRD §15).
+  priority ModerationQueue @default(medium)
+  status   ReportStatus    @default(open)
+
+  caseId String? @map("case_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reporter       User            @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  moderationCase ModerationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([reporterId, createdAt])
+  @@index([status, priority, createdAt])
+  @@map("reports")
+}
+
+model ModerationCase {
+  id     String          @id @default(uuid()) @db.Uuid
+  source CaseSource
+  queue  ModerationQueue
+  status CaseStatus      @default(open)
+
+  targetType SafetyTarget @map("target_type")
+  targetId   String       @map("target_id") @db.Uuid
+
+  assignedTo String? @map("assigned_to") @db.Uuid
+
+  /// Computed at creation from PRD §15.3, with a wider window overnight.
+  /// A critical case past this fires an ops alert (TECH-SPEC §18.7).
+  slaDueAt DateTime @map("sla_due_at") @db.Timestamptz(6)
+
+  /// Repeat reports on the same target raise this instead of opening
+  /// duplicate cases.
+  reportCount Int @default(0) @map("report_count")
+
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  assignee User?              @relation("CaseAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  reports  Report[]
+  actions  ModerationAction[]
+
+  @@index([queue, status, createdAt])
+  @@index([status, slaDueAt])
+  @@index([targetType, targetId])
+  @@map("moderation_cases")
+}
+
+model ModerationAction {
+  id          String @id @default(uuid()) @db.Uuid
+  caseId      String @map("case_id") @db.Uuid
+  moderatorId String @map("moderator_id") @db.Uuid
+  /// The user this action was taken against.
+  targetUserId String @map("target_user_id") @db.Uuid
+
+  action ModerationActionType
+  /// Mandatory. An action nobody can explain cannot be reviewed on appeal.
+  reason String               @db.Text
+  /// For mute and suspend.
+  durationHours Int?          @map("duration_hours")
+
+  /// True for remove/warn/mute/suspend/ban; false for approve/escalate
+  /// (PRD §15.4). Level 3 never produces a punitive action, so nothing from
+  /// the crisis path lands here.
+  isAppealable Boolean @default(true) @map("is_appealable")
+  appealed     Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  moderationCase ModerationCase    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  moderator      User              @relation("ActionModerator", fields: [moderatorId], references: [id])
+  appeal         ModerationAppeal?
+
+  @@index([caseId])
+  @@index([targetUserId, createdAt(sort: Desc)])
+  @@index([moderatorId])
+  @@map("moderation_actions")
+}
+
+/// Appeal against a moderation action — PRD §15.4, TECH-SPEC BAGIAN 19.
+///
+/// A platform that can remove content and ban accounts needs a correction
+/// path. v1.0 had seven punitive actions and no way to contest any of them.
+model ModerationAppeal {
+  id       String @id @default(uuid()) @db.Uuid
+  actionId String @unique @map("action_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+
+  reason String       @db.Text
+  status AppealStatus @default(pending)
+
+  /// Copied from the action at appeal creation.
+  ///
+  /// Denormalised on purpose: "the reviewer must not be the moderator who
+  /// decided" spans two tables, and a CHECK constraint cannot reference
+  /// another table. Carrying the decider here turns the fairness rule into a
+  /// constraint the database enforces, instead of a convention the service
+  /// layer is trusted to remember.
+  deciderId String @map("decider_id") @db.Uuid
+
+  /// MUST differ from `deciderId` — enforced by a CHECK constraint, not only
+  /// in the service layer.
+  reviewerId   String?   @map("reviewer_id") @db.Uuid
+  decidedAt    DateTime? @map("decided_at") @db.Timestamptz(6)
+  decisionNote String?   @map("decision_note") @db.Text
+
+  /// Window closes 14 days after the action (PRD §15.4).
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  action   ModerationAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  user     User             @relation("AppealUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User?            @relation("AppealReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("moderation_appeals")
+}
+
+/// Admin and security audit log.
+///
+/// Every access to private content produces a row here (PRD §25.6). Rows are
+/// append-only: there is no update path exposed anywhere in the admin UI.
+model AuditLog {
+  id      String  @id @default(uuid()) @db.Uuid
+  actorId String? @map("actor_id") @db.Uuid
+
+  action     String
+  targetType String  @map("target_type")
+  targetId   String? @map("target_id")
+
+  /// Config diffs and action context. Never curhat content.
+  diff   Json?
+  ipHash String? @map("ip_hash")
+  /// Set when the access was justified by an open moderation case.
+  caseId String? @map("case_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

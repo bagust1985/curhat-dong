@@ -1,0 +1,141 @@
+// DONG AI and AI Gateway observability — TECH-SPEC §2.2, §4.4, §10.3. PRD §10.
+
+enum AiPersonality {
+  pendengar
+  pemikir
+  teman_hangat
+  teman_santai
+  journal_companion // Phase 2 — behind a feature flag
+}
+
+enum AiRole {
+  user
+  assistant
+  system
+}
+
+enum AiProvider {
+  anthropic
+  openai
+  local
+}
+
+enum ClassificationTarget {
+  post
+  comment
+  message
+  ai_message
+}
+
+model AiConversation {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  personalityMode AiPersonality @default(pendengar) @map("personality_mode")
+  /// Generated from context without echoing sensitive content.
+  title           String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("ai_conversations")
+}
+
+/// Retention: 6 months (PRD §25.4).
+model AiMessage {
+  id             String @id @default(uuid()) @db.Uuid
+  conversationId String @map("conversation_id") @db.Uuid
+
+  role AiRole
+  body String @db.Text
+
+  tokensIn  Int?        @map("tokens_in")
+  tokensOut Int?        @map("tokens_out")
+  model     String?
+  provider  AiProvider?
+
+  safetyLevel SafetyLevel @default(pending) @map("safety_level")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([createdAt])
+  @@map("ai_messages")
+}
+
+/// Output of the safety classifier.
+///
+/// `promptVersion` is mandatory context: without knowing which prompt produced
+/// a verdict, threshold calibration is guesswork and rollback is blind
+/// (TECH-SPEC §4.4).
+model AiClassification {
+  id         String               @id @default(uuid()) @db.Uuid
+  targetType ClassificationTarget @map("target_type")
+  targetId   String               @map("target_id") @db.Uuid
+
+  emotion String?
+  topic   String?
+  intent  String?
+  urgency String?
+
+  /// Per-category scores: toxicity, hate, threat, self_harm, sexual, scam, ...
+  riskScores Json @default("{}") @map("risk_scores")
+
+  safetyLevel SafetyLevel @map("safety_level")
+
+  provider      AiProvider
+  model         String
+  promptVersion String     @map("prompt_version")
+  /// True when a fallback provider or the local rule engine decided this.
+  fallbackUsed  Boolean    @default(false) @map("fallback_used")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([targetType, targetId])
+  @@index([safetyLevel, createdAt])
+  @@index([createdAt])
+  @@map("ai_classifications")
+}
+
+/// Cost observability — PRD §10, TECH-SPEC §10.3.
+///
+/// Deliberately holds no conversation content: raw private conversation must
+/// never become a generic analytics log (CLAUDE.md non-negotiable #3).
+model AiUsageEvent {
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+
+  /// moderate | classify_emotion | detect_intent | assess_risk | chat
+  operation String
+  provider  AiProvider
+  model     String
+
+  tokensIn      Int   @default(0) @map("tokens_in")
+  tokensOut     Int   @default(0) @map("tokens_out")
+  costEstimate  Float @default(0) @map("cost_estimate")
+  latencyMs     Int   @map("latency_ms")
+
+  status        String
+  fallbackUsed  Boolean @default(false) @map("fallback_used")
+  promptVersion String? @map("prompt_version")
+  /// True when the request ran on the cheap model because the daily budget was
+  /// nearly exhausted. Safety classification is never degraded this way
+  /// (PRD §10, CLAUDE.md non-negotiable #1).
+  degraded      Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([operation, createdAt])
+  @@map("ai_usage_events")
+}

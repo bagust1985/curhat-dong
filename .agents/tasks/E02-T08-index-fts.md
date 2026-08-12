@@ -2,7 +2,7 @@
 id: E02-T08
 epic: E02
 title: Index strategy + full-text search
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T03, E02-T04, E02-T06]
 refs: [TECH-SPEC §2.4]

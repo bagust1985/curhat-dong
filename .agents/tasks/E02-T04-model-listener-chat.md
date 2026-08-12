@@ -2,7 +2,7 @@
 id: E02-T04
 epic: E02
 title: Model listener & chat
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T02]
 refs: [TECH-SPEC §2.2, PRD §11, §11.2]

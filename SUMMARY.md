@@ -1,14 +1,14 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E01 selesai.
+> Terakhir: **12 Agustus 2026** — E02 selesai.
 
 ## Status Keseluruhan
 
 | Epic | Nama | Task | Status |
 |---|---|---|---|
 | **E01** | Foundation & Tooling | 10/10 | ✅ **Selesai** |
-| E02 | Database & Prisma | 0/9 | ⬜ Belum |
+| **E02** | Database & Prisma | 9/9 | ✅ **Selesai** |
 | E03 | Auth & Session | 0/12 | ⬜ Belum |
 | E04 | Onboarding, Consent & Identity | 0/8 | ⬜ Belum |
 | E05 | Post & Feed | 0/12 | ⬜ Belum |
@@ -25,7 +25,91 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 10 / 182 task (5,5%).**
+**Progres: 19 / 182 task (10,4%).**
+
+---
+
+## E02 — Database & Prisma ✅
+
+Skema PostgreSQL 16 lengkap lewat Prisma ORM 7, dengan constraint yang menegakkan
+aturan produk di level database.
+
+| Task | Hasil |
+|---|---|
+| E02-T01 | `prisma.config.ts` + `@prisma/adapter-pg` — konvensi Prisma 7 |
+| E02-T02 | Identity & auth — 9 model |
+| E02-T03 | Konten — post, comment, reaction, Felt Heard, mood |
+| E02-T04 | Listener & chat — 9 model termasuk counter burnout |
+| E02-T05 | AI — conversation, message, classification, usage event |
+| E02-T06 | Safety, moderation & **banding** |
+| E02-T07 | Compliance — consent, support resource, export, retention run |
+| E02-T08 | 136 index, 8 partial index, full-text search |
+| E02-T09 | Seed idempoten: 15 kategori, 43 app config, 6 feature flag |
+
+### Hasil verifikasi
+
+```
+44 tabel · 42 enum · 136 index · 53 foreign key
+8 check constraint · 1 trigger
+
+pnpm lint       8/8 workspace  hijau
+pnpm typecheck  8/8 workspace  hijau
+pnpm test       62 test        hijau
+migrate deploy  2 migration    applied
+seed 2×         hitungan tidak berubah (idempoten)
+```
+
+Pemecahan test: web 17 · database 14 · types 10 · config 9 · api 8 · admin 4.
+
+### Aturan produk yang sekarang dijaga database, bukan cuma kode
+
+Prisma tidak bisa mendeklarasikan CHECK constraint, jadi semuanya ditulis tangan
+di migration dan **diuji benar-benar menolak**:
+
+| Constraint | Menjaga |
+|---|---|
+| `moderation_appeals_reviewer_not_decider` | PRD §15.4 — moderator tidak boleh meninjau banding atas keputusannya sendiri |
+| `listener_profiles_max_concurrent_range` | PRD §11.2 — listener boleh **menurunkan** batas sesi, tidak boleh menaikkan |
+| `felt_heard_prompts_answer_xor_dismiss` | PRD §9 — dismiss tidak bisa tercatat sebagai "Belum" |
+| `support_resources_verified_when_active` | PRD §15.2 — hotline tidak bisa tayang tanpa sumber resmi |
+| `blocked_users_no_self_block` | PRD §15 |
+| `listener_matches_no_self_match` | TECH-SPEC §4.5 |
+| trigger `comments_single_nesting` | PRD §9 — reply ke reply ditolak |
+
+Aturan "reviewer ≠ pemutus" melintasi dua tabel, dan CHECK constraint tidak bisa
+membaca tabel lain. `decider_id` sengaja didenormalisasi ke `moderation_appeals`
+supaya aturan keadilan ini jadi **jaminan database**, bukan konvensi yang service
+layer dipercaya untuk mengingat.
+
+### Keputusan yang diambil saat implementasi
+
+1. **Full-text search pakai konfigurasi `simple`, bukan `indonesian`.**
+   PostgreSQL tidak punya stemmer Bahasa Indonesia, dan `english` akan
+   men-stem kata Indonesia secara keliru. `simple` menjaga token utuh; imbuhan
+   ditangani prefix matching di query layer. Ini kompromi sadar — dicatat di
+   migration supaya bisa ditinjau ulang kalau kualitas pencarian kurang.
+2. **`packages/database` CommonJS, bukan ESM.** Client Prisma 7 yang di-generate
+   adalah CJS; menandai package sebagai `type: module` membuat Node menolak
+   file generated-nya (`exports is not defined`). Konsisten juga dengan API
+   (NestJS CJS).
+3. **`generated/` ikut dikompilasi ke `dist/`.** File-nya bertanda `@ts-nocheck`
+   dari Prisma, jadi tidak mengurangi ketatnya typecheck.
+4. **CI sekarang menjalankan Postgres 16 sebagai service.** Tanpa itu, 10 test
+   constraint akan **ter-skip diam-diam** — dan yang mereka jaga adalah jaminan
+   keselamatan, bukan detail teknis. Test yang skip tanpa suara lebih buruk
+   daripada test yang tidak ada.
+5. **Seed sengaja tidak menanam nomor hotline.** Seed mencetak peringatan bahwa
+   layar krisis L3 kosong dan menunjuk ke E17-T12. Nomor karangan yang mati
+   lebih berbahaya daripada tidak menampilkan apa pun.
+6. **Seed tidak menimpa `app_configs` yang sudah ada.** Nilai-nilai itu
+   dikalibrasi dari admin panel; re-seed tidak boleh diam-diam mengembalikannya.
+
+### Catatan
+
+- 43 `app_configs` diisi dari nilai usulan PRD §25.7 — semuanya bisa diubah
+  tanpa deploy, dan masih menunggu sign-off.
+- Infra dev berjalan di port khusus (Postgres `54329`, Redis `63799`) dan sudah
+  diverifikasi tidak mengganggu proyek lain di VPS ini.
 
 ---
 
@@ -138,12 +222,10 @@ dengan exit 1.
 
 ### Catatan & keterbatasan
 
-- **Docker belum terpasang dan belum bisa dipasang.** `sudo` di VPS ini butuh
-  password, dan rootless Docker juga tidak memungkinkan (`newuidmap` tidak ada,
-  paket `uidmap` butuh sudo). `docker-compose.dev.yml` sudah ditulis dan
-  port-nya sudah aman, tapi **belum pernah dijalankan**. Ini satu-satunya
-  kriteria E01 yang belum diverifikasi langsung, dan **E02 diblokir** olehnya
-  (Prisma butuh Postgres hidup).
+- **Docker 29.7.2 terpasang** (oleh user — `sudo` butuh password). Container
+  `curhat-postgres-dev` dan `curhat-redis-dev` sudah jalan dan healthy.
+  `/v1/health/ready` yang tadinya 503 sekarang **200** dengan Postgres 64ms dan
+  Redis 28ms — kriteria E01 terakhir tertutup.
 - `.env` lokal berisi nilai dev dummy — **bukan** kredensial asli, dan tidak
   ter-track git.
 - Halaman `/` di web sekarang halaman token sementara; diganti landing page
@@ -170,11 +252,11 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E02 — Database & Prisma** (9 task). Prasyarat: Docker jalan supaya Postgres
-16 hidup untuk `prisma migrate dev`.
+**E03 — Auth & Session** (12 task): Email OTP, Google OAuth, JWT 15 menit,
+rotating refresh dengan reuse detection, Turnstile, rate limit.
 
 Urutan setelahnya mengikuti jalur kritis:
-`E02 → E03 → E05 → E07 → E10 → E11`.
+`E03 → E05 → E07 → E10 → E11`.
 
 Catatan urutan: **E07 (Safety) wajib selesai sebelum E09 (DONG AI) dirilis** —
 AI yang jalan tanpa safety engine melanggar aturan non-negotiable #1.

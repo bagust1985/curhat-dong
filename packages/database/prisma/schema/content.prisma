@@ -1,0 +1,262 @@
+// Posts, comments, reactions, Felt Heard — TECH-SPEC §2.2, §2.3. PRD §7, §9.
+
+enum PostStatus {
+  draft
+  pending_analysis
+  published
+  held
+  removed
+  deleted
+}
+
+/// L0 normal · L1 sensitive · L2 potential harm · L3 immediate risk.
+///
+/// `pending` is not a level — it means analysis has not concluded while the
+/// local rule engine flagged high risk, so the content is held (TECH-SPEC §4.2).
+enum SafetyLevel {
+  L0
+  L1
+  L2
+  L3
+  pending
+}
+
+enum AnonymityMode {
+  alias
+  anonymous
+}
+
+enum Mood {
+  sedih
+  marah
+  cemas
+  capek
+  patah_hati
+  kosong
+  overthinking
+  lega
+  senang
+  bersyukur
+  bingung
+}
+
+enum Intent {
+  cuma_didengar
+  butuh_saran
+  butuh_dukungan
+  pernah_ngalamin
+}
+
+/// Empathy words, not likes (PRD §9). No reaction outranks another.
+enum ReactionType {
+  aku_ngerti
+  peluk_virtual
+  aku_dengerin
+  aku_pernah_di_situ
+  tetap_kuat
+  cerita_lagi
+}
+
+enum ReactionTarget {
+  post
+  comment
+}
+
+enum FeltHeardAnswer {
+  yes
+  somewhat
+  no
+}
+
+enum FeltHeardTarget {
+  post
+  session
+}
+
+enum CommentStatus {
+  published
+  held
+  removed
+  deleted
+}
+
+model PostCategory {
+  id           String  @id @default(uuid()) @db.Uuid
+  slug         String  @unique
+  name         String
+  icon         String?
+  displayOrder Int     @default(0) @map("display_order")
+  /// Archived rather than deleted, so old posts keep a valid category.
+  isActive     Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  posts CurhatPost[]
+
+  @@index([isActive, displayOrder])
+  @@map("post_categories")
+}
+
+model CurhatPost {
+  id         String @id @default(uuid()) @db.Uuid
+  authorId   String @map("author_id") @db.Uuid
+  categoryId String @map("category_id") @db.Uuid
+
+  title String? @db.VarChar(160)
+  body  String  @db.Text
+
+  mood          Mood
+  intent        Intent
+  anonymityMode AnonymityMode @default(alias) @map("anonymity_mode")
+  allowComments Boolean       @default(true) @map("allow_comments")
+  requestListener Boolean     @default(false) @map("request_listener")
+
+  status      PostStatus  @default(pending_analysis)
+  safetyLevel SafetyLevel @default(pending) @map("safety_level")
+  /// Set when AI analysis timed out and the post was published as L1 pending a
+  /// re-check (TECH-SPEC §4.2).
+  needsReanalysis Boolean @default(false) @map("needs_reanalysis")
+
+  /// Human responses only. Reactions do not count — they are too cheap to
+  /// signal that someone was actually heard, and this drives "Butuh Didengar".
+  responseCount Int @default(0) @map("response_count")
+
+  /// Always true for curhat pages (CLAUDE.md non-negotiable #5). Column exists
+  /// so curated content can opt in explicitly rather than by omission.
+  noindex Boolean @default(true)
+
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author            User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category          PostCategory       @relation(fields: [categoryId], references: [id])
+  anonymousIdentity AnonymousIdentity?
+  comments          Comment[]
+  feltHeardFeedback FeltHeardFeedback[]
+  listenerRequests  ListenerRequest[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([categoryId, createdAt(sort: Desc)])
+  @@index([responseCount, createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([needsReanalysis])
+  @@map("curhat_posts")
+}
+
+/// Comments and replies, nested exactly one level (PRD §9).
+///
+/// The depth limit is enforced in the service layer: a comment with a
+/// `parentId` must itself have `parentId = null`.
+model Comment {
+  id       String  @id @default(uuid()) @db.Uuid
+  postId   String  @map("post_id") @db.Uuid
+  authorId String  @map("author_id") @db.Uuid
+  parentId String? @map("parent_id") @db.Uuid
+
+  body String @db.Text
+
+  status      CommentStatus @default(published)
+  safetyLevel SafetyLevel   @default(pending) @map("safety_level")
+
+  /// Set by the post author only (PRD §9). Feeds recommendation signals and
+  /// listener helpful score.
+  isMarkedHelpful Boolean @default(false) @map("is_marked_helpful")
+
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  post    CurhatPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?   @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]  @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+/// Polymorphic reactions over posts and comments.
+model Reaction {
+  id         String         @id @default(uuid()) @db.Uuid
+  targetType ReactionTarget @map("target_type")
+  targetId   String         @map("target_id") @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  type       ReactionType
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// One user may leave several different reactions, but not the same one twice.
+  @@unique([targetType, targetId, userId, type])
+  @@index([targetType, targetId])
+  @@map("reactions")
+}
+
+/// Felt Heard prompt lifecycle — PRD §9, §19.1. North Star input.
+///
+/// `dismissed` is stored separately from `answer` on purpose: counting a
+/// dismissal as "no" would make the North Star measure annoyance rather than
+/// whether anyone felt heard.
+model FeltHeardPrompt {
+  id         String          @id @default(uuid()) @db.Uuid
+  userId     String          @map("user_id") @db.Uuid
+  targetType FeltHeardTarget @map("target_type")
+  targetId   String          @map("target_id") @db.Uuid
+
+  shownAt    DateTime         @default(now()) @map("shown_at") @db.Timestamptz(6)
+  answeredAt DateTime?        @map("answered_at") @db.Timestamptz(6)
+  answer     FeltHeardAnswer?
+  dismissed  Boolean          @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Anti-fatigue: at most one prompt per target (PRD §9).
+  @@unique([userId, targetType, targetId])
+  /// Supports the "max 3 per day" check.
+  @@index([userId, shownAt])
+  @@map("felt_heard_prompts")
+}
+
+model FeltHeardFeedback {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  postId    String? @map("post_id") @db.Uuid
+  sessionId String? @map("session_id") @db.Uuid
+
+  answer FeltHeardAnswer
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    CurhatPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  session ListenerSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([postId])
+  @@index([sessionId])
+  @@map("felt_heard_feedback")
+}
+
+/// Minimal mood history for MVP. Full journal and 7/30/90-day charts are
+/// Phase 2 (PRD §12).
+model MoodEntry {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  mood   Mood
+  /// Where the signal came from: `post`, `ai`, `manual`.
+  source String
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("mood_entries")
+}

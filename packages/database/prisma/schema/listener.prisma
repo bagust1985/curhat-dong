@@ -1,0 +1,243 @@
+// Listener, matching and private rooms — TECH-SPEC §2.2, §4.5. PRD §11.
+
+enum ListenerSafetyStatus {
+  ok
+  under_review
+  suspended
+}
+
+enum ListenerRequestStatus {
+  searching
+  matched
+  failed
+  cancelled
+}
+
+enum MatchStatus {
+  offered
+  accepted
+  declined
+  expired
+  superseded
+}
+
+enum RoomType {
+  listener_session
+}
+
+enum RoomStatus {
+  open
+  closed
+}
+
+enum RoomRole {
+  requester
+  listener
+}
+
+enum SessionEndReason {
+  requester_ended
+  listener_ended
+  idle_timeout
+  moderation
+  blocked
+}
+
+model ListenerProfile {
+  userId String @id @map("user_id") @db.Uuid
+
+  topics    String[] @default([])
+  /// MVP is Indonesian only (PRD §11). Kept as an array so regional expansion
+  /// in Phase 4 needs no migration.
+  languages String[] @default(["id"])
+
+  /// Default 3. A listener may lower this but never raise it (PRD §11.2).
+  maxConcurrent Int @default(3) @map("max_concurrent")
+
+  sessionCount    Int   @default(0) @map("session_count")
+  helpfulScore    Float @default(0) @map("helpful_score")
+  feltHeardScore  Float @default(0) @map("felt_heard_score")
+
+  safetyStatus ListenerSafetyStatus @default(ok) @map("safety_status")
+
+  /// Listener mode cannot be activated without accepting the guidelines
+  /// (PRD §11.1). A new guidelines version requires accepting again.
+  guidelinesVersionAccepted String?   @map("guidelines_version_accepted")
+  guidelinesAcceptedAt      DateTime? @map("guidelines_accepted_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([safetyStatus])
+  @@map("listener_profiles")
+}
+
+/// Mirrored into a Redis set for fast candidate lookup. Postgres stays the
+/// source of truth (CLAUDE.md non-negotiable #5).
+model ListenerAvailability {
+  userId      String   @id @map("user_id") @db.Uuid
+  isAvailable Boolean  @default(false) @map("is_available")
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isAvailable])
+  @@map("listener_availability")
+}
+
+/// Daily counters behind the burnout caps (PRD §11.2): 8 completed sessions
+/// per day and a 10-minute cooldown between sessions.
+model ListenerSessionCounter {
+  userId String   @map("user_id") @db.Uuid
+  /// Local date for the listener's timezone, not UTC — a cap that resets at
+  /// the wrong hour is not a cap.
+  date   DateTime @db.Date
+
+  completedCount    Int       @default(0) @map("completed_count")
+  lastSessionEndedAt DateTime? @map("last_session_ended_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, date])
+  @@map("listener_session_counters")
+}
+
+model ListenerRequest {
+  id          String @id @default(uuid()) @db.Uuid
+  requesterId String @map("requester_id") @db.Uuid
+
+  topic   String
+  emotion String
+  postId  String? @map("post_id") @db.Uuid
+
+  status       ListenerRequestStatus @default(searching)
+  attemptCount Int                   @default(0) @map("attempt_count")
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt  DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  requester User        @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  post      CurhatPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  matches   ListenerMatch[]
+
+  @@index([requesterId, status])
+  @@index([status, createdAt])
+  @@map("listener_requests")
+}
+
+/// One offer to one candidate. TTL 60s, at most 5 candidates per request
+/// (TECH-SPEC §4.5).
+model ListenerMatch {
+  id          String @id @default(uuid()) @db.Uuid
+  requestId   String @map("request_id") @db.Uuid
+  requesterId String @map("requester_id") @db.Uuid
+  listenerId  String @map("listener_id") @db.Uuid
+
+  status    MatchStatus @default(offered)
+  /// Enforced server-side; the client countdown is display only.
+  expiresAt DateTime    @map("expires_at") @db.Timestamptz(6)
+
+  respondedAt DateTime? @map("responded_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  request   ListenerRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requester User             @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  listener  User             @relation("MatchListener", fields: [listenerId], references: [id], onDelete: Cascade)
+  session   ListenerSession?
+
+  @@index([requestId, status])
+  @@index([listenerId, status])
+  @@index([expiresAt])
+  @@map("listener_matches")
+}
+
+model ListenerSession {
+  id          String  @id @default(uuid()) @db.Uuid
+  matchId     String  @unique @map("match_id") @db.Uuid
+  roomId      String  @unique @map("room_id") @db.Uuid
+  requesterId String  @map("requester_id") @db.Uuid
+  listenerId  String  @map("listener_id") @db.Uuid
+
+  startedAt DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+  endReason SessionEndReason? @map("end_reason")
+
+  /// Listener answer to "Percakapan berjalan aman?" (PRD §11). A "no" opens a
+  /// moderation review.
+  listenerFeltSafe Boolean? @map("listener_felt_safe")
+  listenerNote     String?  @map("listener_note") @db.Text
+
+  match     ListenerMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  room      ChatRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  requester User          @relation("SessionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  listener  User          @relation("SessionListener", fields: [listenerId], references: [id], onDelete: Cascade)
+
+  feltHeardFeedback FeltHeardFeedback[]
+
+  @@index([listenerId, endedAt])
+  @@index([requesterId, endedAt])
+  @@map("listener_sessions")
+}
+
+model ChatRoom {
+  id     String     @id @default(uuid()) @db.Uuid
+  type   RoomType   @default(listener_session)
+  status RoomStatus @default(open)
+
+  closedAt  DateTime? @map("closed_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  members  RoomMember[]
+  messages Message[]
+  session  ListenerSession?
+
+  @@index([status, createdAt])
+  @@map("chat_rooms")
+}
+
+/// Membership is the authorisation source for every sensitive WebSocket event
+/// (TECH-SPEC §3.5) — checked per event, not once at join.
+model RoomMember {
+  roomId String   @map("room_id") @db.Uuid
+  userId String   @map("user_id") @db.Uuid
+  role   RoomRole
+
+  joinedAt DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  leftAt   DateTime? @map("left_at") @db.Timestamptz(6)
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, userId])
+  @@index([userId, leftAt])
+  @@map("room_members")
+}
+
+model Message {
+  id       String @id @default(uuid()) @db.Uuid
+  roomId   String @map("room_id") @db.Uuid
+  senderId String @map("sender_id") @db.Uuid
+
+  body String @db.Text
+
+  /// Classified asynchronously so delivery stays under the 2s target
+  /// (TECH-SPEC §8.3). Actions at every level are additive — a message is
+  /// never withheld, including at L3 (PRD §15.5).
+  safetyLevel     SafetyLevel @default(pending) @map("safety_level")
+  needsReanalysis Boolean     @default(false) @map("needs_reanalysis")
+
+  /// Client-supplied id for dedup across reconnects.
+  clientMessageId String? @map("client_message_id")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, clientMessageId])
+  @@index([roomId, createdAt])
+  @@index([createdAt])
+  @@map("messages")
+}

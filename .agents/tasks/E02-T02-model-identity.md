@@ -2,7 +2,7 @@
 id: E02-T02
 epic: E02
 title: Model identity & auth
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T01]
 refs: [TECH-SPEC §2.2, TECH-SPEC §7.5, PRD §25.5]

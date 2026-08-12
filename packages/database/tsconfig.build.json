@@ -1,0 +1,18 @@
+{
+  "extends": "../config/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    // Package root, not src/: the Prisma client lives in generated/ and is
+    // imported by src/. Prisma marks those files @ts-nocheck, so compiling
+    // them costs nothing in strictness.
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "generated/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "node_modules", "dist"]
+}
