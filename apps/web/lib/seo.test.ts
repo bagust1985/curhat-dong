@@ -17,12 +17,22 @@ describe('noindex enforcement', () => {
   const nextConfig = read('next.config.ts');
   const layout = read('app/layout.tsx');
 
-  it('sends X-Robots-Tag on every route', () => {
+  it('sends X-Robots-Tag on every route except the landing page', () => {
     expect(nextConfig).toContain('X-Robots-Tag');
     expect(nextConfig).toContain('noindex');
-    // Applied to /:path* so a new route is covered by default rather than
-    // needing to be remembered.
-    expect(nextConfig).toContain('/:path*');
+    // `/:path+` is one-or-more segments: still a catch-all, so a new route is
+    // covered by default rather than needing to be remembered, but it does not
+    // match `/`. The landing page opts into indexing in app/page.tsx (E15-T05).
+    expect(nextConfig).toContain('/:path+');
+    // `/:path*` would match `/` as well and cancel the exception.
+    expect(nextConfig).not.toContain('/:path*');
+  });
+
+  it('keeps the landing page as the only carve-out', () => {
+    // One rule, one source. A second rule setting `index` for some other path
+    // is how "just this page too" quietly becomes the whole app.
+    expect(nextConfig.match(/source:/g) ?? []).toHaveLength(1);
+    expect(nextConfig).not.toMatch(/value:\s*'index/);
   });
 
   it('declares noindex in the root metadata as well', () => {

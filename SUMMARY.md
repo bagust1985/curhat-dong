@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E15 berjalan (4/17). E01–E14 selesai.
+> Terakhir: **12 Agustus 2026** — E15 berjalan (5/17). E01–E14 selesai.
 
 ## Status Keseluruhan
 
@@ -21,7 +21,7 @@
 | **E12** | Notification | 9/9 | ✅ **Selesai** |
 | **E13** | Search | 4/4 | ✅ **Selesai** |
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
-| E15 | Web UI | 4/17 | 🟡 **Berjalan** (T01–T04: fondasi + 19 komponen) |
+| E15 | Web UI | 5/17 | 🟡 **Berjalan** (T01–T04 fondasi + 19 komponen, T05 landing) |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
@@ -29,9 +29,9 @@
 
 ---
 
-## E15 — Web UI 🟡 (4/17)
+## E15 — Web UI 🟡 (5/17)
 
-Fondasi visual dan pustaka komponen. Halaman-halamannya (T05–T17) belum
+Fondasi visual, pustaka komponen, dan halaman pertama. Sisanya (T06–T17) belum
 dikerjakan.
 
 | Task | Hasil |
@@ -40,6 +40,52 @@ dikerjakan.
 | E15-T02 | CurhatCard (4 varian), ReactionBar/Picker, MoodChip/Picker, IntentBadge/Selector, CategoryChip/Sheet |
 | E15-T03 | CommentItem, ChatBubble, ListenerCard, EmptyState, BottomNav + FAB |
 | E15-T04 | FeltHeardSheet, ReportSheet, BlockDialog, SafetyResourceCard, DestructiveConfirm |
+| E15-T05 | Landing page — satu-satunya halaman yang boleh terindeks |
+
+### Landing page: satu-satunya pintu keluar dari `noindex`
+
+Seluruh app `noindex` sejak E05-T11 lewat header `X-Robots-Tag` di
+`/:path*` — yang juga mencakup `/`. Pengecualian untuk landing page **tidak**
+dibuat dengan menambah aturan kedua yang menyetel `index`: kalau dua aturan
+header cocok di path yang sama, crawler bisa melihat dua-duanya, dan `noindex`
+yang menang. Sumbernya diubah jadi `/:path+` — satu segmen atau lebih, jadi
+`/` tidak pernah cocok sejak awal. Tetap catch-all: rute baru besok tetap
+`noindex` tanpa perlu diingat siapa pun.
+
+Dibuktikan dengan `next start` sungguhan, bukan diasumsikan:
+
+```
+/                 200, tanpa X-Robots-Tag, <meta name="robots" content="index, follow">
+/legal/privacy    200, X-Robots-Tag: noindex, nofollow
+/dev/tokens       200, X-Robots-Tag: noindex, nofollow
+/feed (404)       X-Robots-Tag: noindex, nofollow
+robots.txt        Allow: /$  ·  Disallow: /
+```
+
+Preview feed-nya **kami tulis sendiri** dan halaman ini tidak memanggil API sama
+sekali — ada test yang menggagalkan build kalau `fetch` dipanggil saat render.
+Preview yang diambil dari feed asli adalah perubahan yang gampang dan masuk akal
+dilakukan nanti, dan hasilnya curhat orang tampil di halaman publik yang
+terindeks tanpa login.
+
+Yang sengaja tidak ada di halaman ini: **nomor hotline apa pun** (E17-T12 belum
+punya daftar terverifikasi — ada test yang menolak pola nomor telepon), dan
+**tombol APK** kalau `NEXT_PUBLIC_ANDROID_APK_URL` kosong; yang muncul kalimat
+jujur, bukan tombol mati.
+
+**Bonus temuan: satu test E12 gagal tergantung jam.** `notification.test.ts`
+"takes the push path when the user is not connected" tidak mengatur quiet hours,
+jadi device-nya pakai default 22:00–07:00 Asia/Jakarta dan hasilnya `held`, bukan
+`sent`, **setiap suite dijalankan antara 15:00–00:00 UTC**. Tetangganya di
+E12-T05 sudah benar ("a window that is open right now, whenever the suite runs");
+yang ini kelewatan. Diperbaiki dengan jendela yang pasti tertutup sekarang, dan
+diverifikasi pada 01:22 WIB — persis di dalam rentang yang tadi bikin merah.
+Bukan flake: CI malam hari akan selalu merah.
+
+Tiga halaman legal dibuat sebagai placeholder yang mengaku placeholder —
+naskahnya E17-T10 dan butuh review hukum. Rutenya ada supaya footer tidak
+menunjuk 404, dan **tetap noindex** sampai isinya nyata. Halaman token E01-T06
+pindah ke `/dev/tokens`.
 
 ### Hasil verifikasi
 
@@ -150,9 +196,9 @@ Assertion "konsekuensi di atas tombol" mencari string `"Hapus"`, yang juga cocok
 dengan judul dialog di indeks 0 — jadi dia membandingkan elemen yang salah dan
 akan **lolos untuk alasan yang salah**. Diganti `compareDocumentPosition`.
 
-### Sisa E15 (13 task)
+### Sisa E15 (12 task)
 
-T05 landing · T06 auth · T07 onboarding · T08 home feed · T09 create curhat ·
+T06 auth · T07 onboarding · T08 home feed · T09 create curhat ·
 T10 supportive intervention · T11 post detail · T12 DONG AI · T13 listener ·
 T14 request + room · T15 explore/search/notif · T16 profil & settings ·
 T17 audit aksesibilitas.

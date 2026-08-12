@@ -5,6 +5,10 @@ import './globals.css';
 import { ThemeScript } from '../components/theme-script';
 
 export const metadata: Metadata = {
+  // Needed so the landing page's canonical URL resolves to an absolute one
+  // (E15-T05). Falls back to the production domain when the env var is absent,
+  // which is the only value that would be correct in a real deployment anyway.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://curhatdong.com'),
   title: 'CURHAT DONG',
   description: 'Kadang kita nggak butuh solusi. Kita cuma butuh didengar.',
   // CLAUDE.md non-negotiable #5: curhat pages are never indexed. The landing

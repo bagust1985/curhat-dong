@@ -121,6 +121,12 @@ export const clientEnvSchema = z.object({
   /** Turnstile *site* key is public by design; the secret key is not. */
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: nonEmpty,
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  /**
+   * Where the Android build is downloaded from (E15-T05). Optional: before the
+   * first APK ships there is nothing to link to, and the landing page says so
+   * rather than rendering a dead button.
+   */
+  NEXT_PUBLIC_ANDROID_APK_URL: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
