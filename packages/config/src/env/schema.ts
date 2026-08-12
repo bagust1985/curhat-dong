@@ -58,8 +58,19 @@ export const serverEnvSchema = z.object({
 
   // --- AI ---
   AI_DEFAULT_PROVIDER: z.enum(['anthropic', 'openai', 'local']).default('anthropic'),
+  /**
+   * Used when the primary provider is exhausted or its circuit is open
+   * (E08-T08). Left unset means "no fallback" — the gateway then surfaces a
+   * timeout, which the safety engine already knows how to handle.
+   */
+  AI_FALLBACK_PROVIDER: z.enum(['anthropic', 'openai', 'local']).optional(),
   OPENAI_API_KEY: z.string().optional(),
+  OPENAI_BASE_URL: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_BASE_URL: z.string().optional(),
+  /** Self-hosted, OpenAI-compatible endpoint. */
+  AI_LOCAL_BASE_URL: z.string().optional(),
+  AI_LOCAL_API_KEY: z.string().optional(),
   /** Daily spend ceiling in USD. PRD §10 alerts at 70% / 90% of this. */
   AI_DAILY_BUDGET: z.coerce.number().positive(),
 

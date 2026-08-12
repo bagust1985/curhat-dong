@@ -1,7 +1,7 @@
 ---
 id: E08
 title: AI Gateway
-status: todo
+status: done
 tasks: 9
 depends_on: [E02]
 ---

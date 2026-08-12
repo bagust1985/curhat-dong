@@ -125,6 +125,8 @@ model AiUsageEvent {
   status        String
   fallbackUsed  Boolean @default(false) @map("fallback_used")
   promptVersion String? @map("prompt_version")
+  /// cheap | advanced — the routing decision for this call (E08-T03).
+  routingTier   String? @map("routing_tier")
   /// True when the request ran on the cheap model because the daily budget was
   /// nearly exhausted. Safety classification is never degraded this way
   /// (PRD §10, CLAUDE.md non-negotiable #1).
@@ -138,4 +140,44 @@ model AiUsageEvent {
   @@index([userId, createdAt])
   @@index([operation, createdAt])
   @@map("ai_usage_events")
+}
+
+/// Which prompt version is live for a given prompt key — E08-T04, PRD §18.
+///
+/// The pointer is separate from the versions so a rollback is a single-row
+/// update rather than a rewrite of history: every version ever activated stays
+/// readable, which is what lets an old classification be traced to the exact
+/// instructions that produced it.
+model AiPrompt {
+  key String @id
+
+  activeVersion Int     @map("active_version")
+  description   String?
+
+  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  versions AiPromptVersion[]
+
+  @@map("ai_prompts")
+}
+
+/// Immutable prompt revision. Never updated in place — a change is a new row.
+model AiPromptVersion {
+  id  String @id @default(uuid()) @db.Uuid
+  key String
+
+  version  Int
+  template String @db.Text
+  /// Why it changed. Paired with the audit_logs entry written on activation.
+  changeNote String? @map("change_note")
+
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  prompt AiPrompt @relation(fields: [key], references: [key], onDelete: Cascade)
+
+  @@unique([key, version])
+  @@index([key, createdAt(sort: Desc)])
+  @@map("ai_prompt_versions")
 }

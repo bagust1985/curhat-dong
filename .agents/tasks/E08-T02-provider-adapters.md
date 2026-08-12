@@ -2,7 +2,7 @@
 id: E08-T02
 epic: E08
 title: Adapter provider (Anthropic, OpenAI, local-compatible)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E08-T01]
 refs: [TECH-SPEC §1.1, §4.4]

@@ -131,6 +131,13 @@ model CurhatPost {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  /// Generated `tsvector` maintained by PostgreSQL (E02-T08 migration).
+  ///
+  /// Declared here only so `prisma migrate diff` stops proposing to drop a
+  /// column it cannot express. Prisma never reads or writes `Unsupported`
+  /// fields; search queries it through raw SQL (E13).
+  searchVector Unsupported("tsvector")? @default(dbgenerated()) @map("search_vector")
+
   author            User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
   category          PostCategory       @relation(fields: [categoryId], references: [id])
   anonymousIdentity AnonymousIdentity?

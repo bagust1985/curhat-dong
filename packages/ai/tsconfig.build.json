@@ -1,0 +1,17 @@
+{
+  "extends": "../config/tsconfig/base.json",
+  "compilerOptions": {
+    // CommonJS for the same reason as the other shared packages: NestJS runs as
+    // CJS and cannot resolve an `exports` map that points at TypeScript.
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "node_modules", "dist"]
+}

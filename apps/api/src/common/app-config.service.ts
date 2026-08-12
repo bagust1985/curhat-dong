@@ -25,6 +25,23 @@ export class AppConfigService {
     return typeof value === 'number' ? value : APP_CONFIG_DEFAULTS[key];
   }
 
+  /**
+   * Reads a JSON-valued row (routing table, model prices).
+   *
+   * Untyped by design: the shape belongs to the module that owns the key, and
+   * each of those validates what it reads rather than trusting the row.
+   */
+  async getJson<T>(key: string, fallback: T): Promise<T> {
+    const cached = this.cache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return (cached.value as T) ?? fallback;
+
+    const row = await this.prisma.appConfig.findUnique({ where: { key } });
+    const value = row?.value ?? null;
+
+    this.cache.set(key, { value, expiresAt: Date.now() + AppConfigService.CACHE_TTL_MS });
+    return (value as T | null) ?? fallback;
+  }
+
   private async get(key: AppConfigKey): Promise<unknown> {
     const cached = this.cache.get(key);
     if (cached && cached.expiresAt > Date.now()) return cached.value;

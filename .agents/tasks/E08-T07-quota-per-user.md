@@ -2,7 +2,7 @@
 id: E08-T07
 epic: E08
 title: Kuota AI harian per user
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E08-T06]
 refs: [TECH-SPEC §4.7, DESIGN-REF §2.8c]

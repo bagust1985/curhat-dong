@@ -13,6 +13,7 @@ export default defineConfig({
     // client is CJS, and NestJS runs as CJS), which Vitest cannot load as ESM.
     // Resolving to source also means a test never runs against a stale dist.
     alias: {
+      '@curhat/ai': pkg('ai', 'src/index.ts'),
       '@curhat/database': pkg('database', 'src/index.ts'),
       '@curhat/auth': pkg('auth', 'src/index.ts'),
       '@curhat/notifications': pkg('notifications', 'src/index.ts'),

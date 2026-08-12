@@ -2,7 +2,7 @@
 id: E08-T04
 epic: E08
 title: Prompt versioning + rollback
-status: todo
+status: done
 estimate: 1d
 depends_on: [E08-T03]
 refs: [TECH-SPEC §4.4, PRD §18]

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AiModule } from '../ai/ai.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { ModerationModule } from '../moderation/moderation.module.js';
 import { ContentAnalyzerService } from './content-analyzer.service.js';
@@ -14,13 +15,13 @@ import { TrustScoreService } from './trust-score.service.js';
 /**
  * Safety engine — PRD §8, §15; TECH-SPEC §4.1, §4.2, BAGIAN 16.
  *
- * The classifier itself is bound in E08 through SAFETY_CLASSIFIER. Until then
- * ContentAnalyzerService falls back to the stand-in, which always reports
- * unavailable so content takes the documented fail-safe path rather than a
- * permissive one.
+ * The classifier arrives through SAFETY_CLASSIFIER, bound by AiModule (E08).
+ * ContentAnalyzerService still treats that provider as optional and falls back
+ * to the stand-in when it is absent, so a misconfigured deployment takes the
+ * documented fail-safe path rather than a permissive one.
  */
 @Module({
-  imports: [AuthModule, ModerationModule],
+  imports: [AuthModule, ModerationModule, AiModule],
   controllers: [ReportsController, SupportResourcesController],
   providers: [
     LocalRulesService,

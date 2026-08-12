@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@curhat/ai": "workspace:*",
     "@curhat/auth": "workspace:*",
     "@curhat/config": "workspace:*",
     "@curhat/database": "workspace:*",

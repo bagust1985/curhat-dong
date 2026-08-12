@@ -2,7 +2,7 @@
 id: E08-T01
 epic: E08
 title: Interface AIProvider + registry
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T05]
 refs: [TECH-SPEC §4.4]

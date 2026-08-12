@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E07 selesai.
+> Terakhir: **12 Agustus 2026** — E08 selesai.
 
 ## Status Keseluruhan
 
@@ -14,7 +14,7 @@
 | **E05** | Post & Feed | 11/12 | ✅ **Selesai** (1 ditunda ke E15/E16) |
 | **E06** | Interaction & Felt Heard | 8/8 | ✅ **Selesai** |
 | **E07** | Safety Engine & Moderation Core | 14/14 | ✅ **Selesai** |
-| E08 | AI Gateway | 0/9 | ⬜ Belum |
+| **E08** | AI Gateway | 9/9 | ✅ **Selesai** |
 | E09 | DONG AI | 0/8 | ⬜ Belum |
 | E10 | Listener & Matching | 0/11 | ⬜ Belum |
 | E11 | Private Chat Room | 0/9 | ⬜ Belum |
@@ -25,7 +25,181 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 72 / 182 task (39,6%).**
+**Progres: 81 / 182 task (44,5%).**
+
+---
+
+## E08 — AI Gateway ✅
+
+Lapisan yang membuat provider AI bisa diganti tanpa menyentuh domain code —
+dan yang memastikan tekanan biaya tidak pernah sampai ke kode yang menilai
+risiko.
+
+| Task | Hasil |
+|---|---|
+| E08-T01 | Interface `AIProvider` + registry; batas paket dijaga test |
+| E08-T02 | Adapter Anthropic & OpenAI-compatible (termasuk lokal), error diseragamkan |
+| E08-T03 | Routing cheap/advanced dari config; safety ambigu **naik**, tidak pernah turun |
+| E08-T04 | Prompt berversi + rollback tanpa deploy + audit trail |
+| E08-T05 | `ai_usage_events` lengkap, tanpa satu pun isi percakapan |
+| E08-T06 | Alert 70%/90%, degradasi non-safety, stop chat saat budget habis |
+| E08-T07 | Kuota 50/hari (25 saat degradasi), reset di tengah malam **WIB** |
+| E08-T08 | Retry + backoff + circuit breaker + fallback provider |
+| E08-T09 | Klasifikasi risiko = panggilan sendiri, bukan turunan model percakapan |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm build      9/9              hijau
+pnpm test       294 test         hijau
+```
+
+Pemecahan: api 137 · @curhat/ai 43 · auth 33 · notifications 23 · web 21 ·
+database 14 · types 10 · config 9 · admin 4.
+
+### Aturan non-negotiable #1, ditegakkan bukan didokumentasikan
+
+PRD §10 melarang klasifikasi safety didegradasi demi biaya. Larangan seperti
+itu gampang ditulis dan gampang bocor enam bulan kemudian. Jadi jalurnya dibuat
+supaya **cabangnya tidak ada**:
+
+```ts
+// resolveTier() — safety diputus sebelum `degraded` dibaca sama sekali
+if (isSafetyOperation(operation)) {
+  if (ambiguous) return { tier: 'advanced', reason: 'safety_escalation' };
+  return { tier: ..., reason: 'operation_default' };
+}
+if (degraded) return { tier: 'cheap', reason: 'budget_degraded' };
+```
+
+Tiga test menjaganya, satu di antaranya menjalankan skenario penuh dengan
+budget harian benar-benar habis:
+
+| Kondisi | DONG AI | `assessRisk` |
+|---|---|---|
+| Budget ≥ 90% | cheap model | tidak berubah |
+| Budget habis | `503` + copy hangat | tidak berubah |
+| Budget habis + input ambigu | berhenti | **naik ke advanced model** |
+
+Baris terakhir itu intinya: saat uang habis, jalur mahal tetap terbuka untuk
+input yang meragukan.
+
+### Klasifikasi safety terpisah dari model percakapan
+
+TECH-SPEC §4.3 menuntut classifier tidak menumpang output model percakapan.
+Alasannya sederhana kalau diucapkan: **model yang sedang berempati bukan alat
+ukur risiko yang netral.** `assessRisk` punya prompt sendiri, panggilan sendiri,
+dan tier sendiri — dibuktikan test yang mematikan model chat lalu memastikan
+klasifikasi risiko tetap jalan.
+
+### Prompt berversi, karena kalibrasi tanpa itu cuma tebakan
+
+Setiap klasifikasi menyimpan label seperti `safety.assess_risk@v2`. Tanpa itu,
+menyetel threshold berarti membandingkan vonis yang mungkin lahir dari instruksi
+berbeda. Perubahan prompt = baris baru (immutable) + pointer pindah + audit log;
+rollback = pointer balik. Nol deploy, nol data hilang.
+
+Kalau tidak ada baris di database, gateway memakai prompt bawaan. Instalasi baru
+mengklasifikasi dengan benar sebelum siapa pun membuka admin panel.
+
+### Cost log yang tidak bisa dijadikan arsip curhat
+
+`UsageEventInput` sengaja **tidak punya field untuk teks**. Bukan "jangan
+di-log", tapi tidak ada tempatnya. Test memverifikasi satu panggilan = tepat
+satu event, dan isinya tidak memuat potongan teks user.
+
+Panggilan gagal juga dicatat. Provider yang timeout seharian tidak menghabiskan
+biaya, jadi tanpa ini ia tidak meninggalkan jejak apa pun di metrik.
+
+### Tanpa SDK provider, dijaga test
+
+Adapter ditulis di atas `fetch`, bukan SDK vendor. Alasannya: satu-satunya
+tempat format wire sebuah provider boleh dikenali adalah adapter, dan menarik
+satu SDK per provider berarti menaruh dependency pihak ketiga persis di balik
+batas yang tujuannya bisa diganti.
+
+`packages/ai/src/boundary.test.ts` memindai seluruh workspace: import SDK
+provider dan endpoint `api.anthropic.com`/`api.openai.com` di luar
+`packages/ai` membuat CI merah. Test-nya juga menghitung jumlah file yang
+dipindai — supaya path yang rusak tidak lolos sebagai "tidak ada pelanggaran".
+
+Contract test yang sama dijalankan ke dua adapter (Anthropic dan
+OpenAI-compatible): parsing JSON, toleransi code fence, clamping skor,
+normalisasi HTTP 429/500/401/400, streaming, dan token usage.
+
+### Reset harian pakai WIB, bukan UTC
+
+Kuota dan budget reset tengah malam **waktu Jakarta**. Kalau pakai UTC, reset
+jatuh pukul 07.00 pagi WIB: user yang kehabisan kuota jam 23.00 baru dapat lagi
+setelah sarapan. WIB tidak punya DST sejak 1964, jadi offset tetap benar di sini
+— bukan sekadar praktis.
+
+### Keputusan yang diambil saat implementasi
+
+1. **Eskalasi gagal → vonis cheap tetap dipakai.** Kalau model advanced mati
+   saat eskalasi, hasil cheap tetap dikembalikan. Membuangnya berarti menukar
+   sinyal nyata dengan jalur fail-safe — itu jawaban yang lebih buruk, bukan
+   lebih aman.
+2. **Adapter tidak pernah mengirim flag "matikan thinking".** Field itu ada di
+   sebagian model dan menghasilkan 400 di model lain. Gateway harus tetap
+   agnostik, jadi budget output klasifikasi dilebihkan (2048 token) — membayar
+   sedikit sisa lebih murah daripada vonis terpotong di tengah JSON.
+3. **Retry hanya untuk kegagalan transien.** `invalid_response` tidak di-retry:
+   model yang menjawab ngawur biasanya mengulanginya, dan setiap percobaan
+   berbiaya uang sungguhan.
+4. **Redis menghitung, Postgres yang benar.** Counter belanja harian ada di
+   Redis; kalau hilang atau dingin, angkanya dibangun ulang dari
+   `sum(cost_estimate)` hari itu — bukan dimulai lagi dari nol.
+5. **Kuota fail-open, budget fail-open.** Counter mati tidak boleh membungkam
+   DONG AI untuk semua orang. Batas kerugiannya tetap dijaga budget guard.
+6. **Harga model yang tidak dikenal dilaporkan keras.** Model tanpa baris harga
+   menghasilkan `error` di log, bukan biaya nol yang diam-diam. Diam di sini
+   akan terbaca sebagai "model gratis" dan budget guard membiarkannya jalan
+   seharian.
+
+### Insiden migrasi yang wajib dicatat
+
+`prisma migrate dev` mengusulkan `DROP COLUMN "search_vector"` pada
+`curhat_posts` — kolom tsvector generated buatan tangan dari E02-T08 yang tidak
+bisa diekspresikan Prisma, jadi terbaca sebagai drift. Kalau lolos, **search
+mati tanpa satu pun test merah**.
+
+Ditangani sesuai aturan #7 (migrasi destruktif wajib review manual): DROP
+dihapus dari file migrasi, kolom + index GIN dipulihkan, dan `CurhatPost`
+sekarang mendeklarasikan kolom itu sebagai
+`Unsupported("tsvector")? @default(dbgenerated())` supaya diff berhenti
+mengusulkannya. `prisma migrate diff` sekarang bersih.
+
+Catatan jujur: karena file migrasi yang sudah ter-apply diedit, checksum di
+`_prisma_migrations` disinkronkan ulang (`prisma migrate reset` diblokir dan
+memang tidak diperlukan). Di lingkungan lain migrasi ini belum pernah jalan,
+jadi tidak ada dampak.
+
+### Yang berubah untuk E07
+
+`SAFETY_CLASSIFIER` sekarang terikat ke gateway sungguhan. Tidak ada satu baris
+pun di `apps/api/src/modules/safety/` yang berubah untuk itu — port-nya memang
+dibuat lebih dulu supaya perubahan ini hanya soal wiring.
+
+Semua kegagalan provider (timeout, circuit terbuka, key tidak diset) menjadi
+`ClassifierUnavailableError`, bukan skor kosong. Skor kosong akan terbaca
+"tidak ada risiko" lalu dipublikasikan — persis kegagalan yang seluruh desain
+fail-safe TECH-SPEC §4.2 ada untuk mencegah.
+
+### Catatan & keterbatasan
+
+- **Kredensial AI belum ada di `.env` dev.** Konsekuensinya benar dan disengaja:
+  classifier melapor `not_configured`, post masuk jalur fail-safe. Tidak ada
+  panggilan jaringan, tidak ada bypass.
+- **Harga OpenAI di tabel default harus diverifikasi** ke halaman harga provider
+  sebelum provider itu memikul trafik produksi. Baris Anthropic memakai harga
+  list resmi. Seluruh tabel bisa diubah lewat `app_configs` tanpa rilis.
+- **Endpoint admin untuk prompt** (publish/rollback/history) baru service-nya;
+  UI dan controller-nya bagian E14-T12.
+- Baris `ai.routing` dan `ai.pricing` sengaja tidak di-seed — tidak ada baris
+  berarti pakai bawaan kode.
 
 ---
 
@@ -714,14 +888,19 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E08 — AI Gateway** (9 task): provider abstraction, model routing cheap vs
-advanced, prompt versioning, `ai_usage_events`, dan budget guard.
+**E09 — DONG AI** (8 task): percakapan, personality mode, SSE streaming,
+context builder, in-chat safety, AI→Human bridge, dan UX kuota.
 
-Port classifier-nya (`SAFETY_CLASSIFIER`) sudah menunggu — E08 tinggal
-mengikatnya, dan seluruh jalur safety langsung memakai classifier sungguhan
-tanpa perubahan di E07.
+Fondasinya sudah berdiri: `AiGatewayService.chat()` sudah melakukan streaming,
+routing, kuota, budget guard, dan pencatatan biaya. E09 menambah lapisan
+percakapan di atasnya — bukan menyentuh provider lagi.
 
-Setelahnya: `E09 (DONG AI) → E10 → E11`.
+Satu hal yang harus dipegang di E09: klasifikasi risiko pesan dijalankan
+**paralel** dengan generasi balasan (§4.3), bukan setelahnya. Gateway sudah
+menyediakan panggilan terpisah untuk itu; yang belum ada adalah yang
+memanggilnya.
+
+Setelahnya: `E10 (Listener & Matching) → E11 (Private Room)`.
 
 **Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
 punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.

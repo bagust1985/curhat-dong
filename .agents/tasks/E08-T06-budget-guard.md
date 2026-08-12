@@ -2,7 +2,7 @@
 id: E08-T06
 epic: E08
 title: Budget alert & degradasi bertahap
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E08-T05]
 refs: [PRD §10, TECH-SPEC §4.7]

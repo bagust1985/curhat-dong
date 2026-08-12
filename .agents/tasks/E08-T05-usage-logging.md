@@ -2,7 +2,7 @@
 id: E08-T05
 epic: E08
 title: Logging ai_usage_events
-status: todo
+status: done
 estimate: 1d
 depends_on: [E08-T02]
 refs: [TECH-SPEC §10.3, PRD §10]

@@ -2,7 +2,7 @@
 id: E08-T08
 epic: E08
 title: Retry, backoff & fallback provider
-status: todo
+status: done
 estimate: 1d
 depends_on: [E08-T02]
 refs: [TECH-SPEC §4.2, §4.4]

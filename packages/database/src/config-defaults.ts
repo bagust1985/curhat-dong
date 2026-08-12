@@ -17,6 +17,21 @@ export const APP_CONFIG_DEFAULTS = {
   'ai.messages_per_day_degraded': 25,
   'ai.budget_alert_warn_pct': 70,
   'ai.budget_alert_critical_pct': 90,
+  /**
+   * The point at which DONG AI conversation stops entirely (PRD §10).
+   *
+   * Only conversation stops. `analyze-post` and `analyze-message` keep running
+   * past this line at full routing, because switching safety off to save money
+   * is a safety bypass through the back door (non-negotiable #1).
+   */
+  'ai.budget_stop_pct': 100,
+
+  /** TECH-SPEC §4.2, §4.4 — AI Gateway resilience */
+  'ai.timeout_ms': 8_000,
+  'ai.chat_timeout_ms': 30_000,
+  'ai.max_attempts': 3,
+  'ai.circuit_breaker_threshold': 5,
+  'ai.circuit_breaker_cooldown_seconds': 30,
 
   /** PRD §9 — Felt Heard anti-fatigue */
   'felt_heard.max_per_target': 1,
@@ -89,6 +104,20 @@ export const APP_CONFIG_DEFAULTS = {
 } as const satisfies Record<string, number>;
 
 export type AppConfigKey = keyof typeof APP_CONFIG_DEFAULTS;
+
+/**
+ * `app_configs` rows whose value is a JSON object rather than a number.
+ *
+ * Kept out of `APP_CONFIG_DEFAULTS` so that map stays a plain number table —
+ * the defaults themselves live in `@curhat/ai`, next to the code that reads
+ * them. Absent rows fall back to those built-ins (E08-T03, E08-T05).
+ */
+export const AI_JSON_CONFIG_KEYS = {
+  /** Cheap/advanced model ids and the ambiguity band. */
+  routing: 'ai.routing',
+  /** USD per million tokens, per model. */
+  pricing: 'ai.pricing',
+} as const;
 
 export const FEATURE_FLAG_DEFAULTS = {
   /** PRD §12 — Phase 2 */

@@ -2,7 +2,7 @@
 id: E08-T09
 epic: E08
 title: Klasifikasi safety independen dari model percakapan
-status: todo
+status: done
 estimate: 1d
 depends_on: [E08-T03]
 refs: [TECH-SPEC §4.3, PRD §10]

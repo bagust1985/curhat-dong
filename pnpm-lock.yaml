@@ -147,6 +147,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@curhat/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@curhat/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -275,6 +278,22 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12))
+
+  packages/ai:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
