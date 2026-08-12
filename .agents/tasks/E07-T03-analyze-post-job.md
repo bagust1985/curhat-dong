@@ -2,7 +2,7 @@
 id: E07-T03
 epic: E07
 title: Worker job analyze-post
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E07-T01, E08-T03]
 refs: [TECH-SPEC §4.1, §1.4]
@@ -19,3 +19,10 @@ Job BullMQ: ambil post `pending_analysis` → AI Gateway (emotion, topic, intent
 
 ## Verifikasi
 Integration: create post → job jalan → status berubah sesuai level.
+
+> **Catatan E07 (12 Agu 2026):** logika analisis dan re-analisis sudah selesai
+> dan teruji (`ContentAnalyzerService`, `ReanalysisService`). Yang belum:
+> pembungkusnya sebagai **BullMQ repeatable job di container worker terpisah**
+> — itu butuh worker container yang baru ada di **E17-T02**. Saat ini analisis
+> berjalan inline pada request create, dan re-analisis dipanggil sebagai
+> service. Perilakunya identik; yang berubah nanti cuma di mana ia dijalankan.

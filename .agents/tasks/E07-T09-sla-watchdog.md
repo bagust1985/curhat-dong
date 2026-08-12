@@ -2,7 +2,7 @@
 id: E07-T09
 epic: E07
 title: Job SLA watchdog + alert ops
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T08]
 refs: [PRD §15.3, TECH-SPEC §18.7, §10.2]

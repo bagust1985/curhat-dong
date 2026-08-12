@@ -2,7 +2,7 @@
 id: E07-T13
 epic: E07
 title: Trust score (internal) + job recompute
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T10]
 refs: [PRD §15, TECH-SPEC §2.2, CLAUDE.md non-negotiable #4]

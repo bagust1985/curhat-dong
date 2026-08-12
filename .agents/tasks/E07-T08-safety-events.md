@@ -2,7 +2,7 @@
 id: E07-T08
 epic: E07
 title: Safety events & moderation case creation
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T04]
 refs: [TECH-SPEC §2.2, §18.7, PRD §15.3]

@@ -5,8 +5,13 @@ import { ApiException } from '../../common/api-error.js';
 import { AppConfigService } from '../../common/app-config.service.js';
 import { PRISMA } from '../../common/prisma.service.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
+import { ModerationService } from '../moderation/moderation.service.js';
 import { AnonymousIdentityService } from '../profiles/anonymous-identity.service.js';
-import { PostSafetyService } from '../safety/post-safety.service.js';
+import { ContentAnalyzerService } from '../safety/content-analyzer.service.js';
+import {
+  SupportResourcesService,
+  type SupportiveIntervention,
+} from '../safety/support-resources.service.js';
 import { UsersService } from '../users/users.service.js';
 import { CategoriesService } from './categories.service.js';
 import type { CreatePostDto } from './posts.dto.js';
@@ -42,7 +47,7 @@ export interface CreatePostResult {
   postId: string;
   status: 'published' | 'held';
   /** Present when the content triggered a supportive intervention (PRD §8). */
-  intervention?: { message: string };
+  intervention?: SupportiveIntervention;
   /** Set when personal data was detected and not yet acknowledged. */
   personalDataWarning?: string;
 }
@@ -52,7 +57,9 @@ export class PostsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly categories: CategoriesService,
-    private readonly safety: PostSafetyService,
+    private readonly analyzer: ContentAnalyzerService,
+    private readonly moderation: ModerationService,
+    private readonly supportResources: SupportResourcesService,
     private readonly anonymousIdentities: AnonymousIdentityService,
     private readonly users: UsersService,
     private readonly rateLimit: RateLimitService,
@@ -76,14 +83,9 @@ export class PostsService {
     // Anti-doxxing warning happens before anything is written (PRD §15). It
     // informs rather than blocks — sharing your own number is your choice, and
     // the product's job is only to make sure you noticed.
-    const rules = this.safety.evaluate(text);
-    if (rules.containsPersonalData && !input.acknowledgedPersonalDataWarning) {
-      return {
-        postId: '',
-        status: 'held',
-        personalDataWarning:
-          'Sepertinya curhatanmu berisi informasi pribadi. Kamu yakin ingin membagikannya?',
-      };
+    const personalData = this.analyzer.detectPersonalData(text);
+    if (personalData.found && !input.acknowledgedPersonalDataWarning) {
+      return { postId: '', status: 'held', personalDataWarning: personalData.warning };
     }
 
     const post = await this.prisma.curhatPost.create({
@@ -106,29 +108,56 @@ export class PostsService {
       await this.anonymousIdentities.createForPost(userId, post.id);
     }
 
-    const outcome = await this.safety.decide({ userId, postId: post.id, text });
+    // One decision point for every piece of content. Two code paths that both
+    // decide safety is how they end up disagreeing.
+    const outcome = await this.analyzer.analyze({
+      targetType: 'post',
+      targetId: post.id,
+      userId,
+      text,
+    });
 
     await this.prisma.curhatPost.update({
       where: { id: post.id },
       data: {
         status: outcome.status,
-        safetyLevel: outcome.safetyLevel,
+        safetyLevel: outcome.level,
         needsReanalysis: outcome.needsReanalysis,
         ...(outcome.status === 'published' ? { publishedAt: new Date() } : {}),
       },
     });
 
+    await this.prisma.safetyEvent.create({
+      data: {
+        userId,
+        targetType: 'post',
+        targetId: post.id,
+        level: outcome.level,
+        actionTaken: outcome.usedFallback
+          ? `fallback_${outcome.status}`
+          : `classified_${outcome.status}`,
+        ...(outcome.triggeredBy.length > 0
+          ? { resourceShown: { signals: outcome.triggeredBy } }
+          : {}),
+      },
+    });
+
+    if (outcome.queue) {
+      await this.moderation.openCase({
+        source: outcome.usedFallback ? 'system' : 'ai',
+        queue: outcome.queue,
+        targetType: 'post',
+        targetId: post.id,
+      });
+    }
+
     return {
       postId: post.id,
       status: outcome.status,
+      // Support resources are looked up per region and never include a stale
+      // entry (PRD §15.2). No score and no level ever reach the client.
       ...(outcome.showIntervention
-        ? {
-            intervention: {
-              message:
-                'Makasih udah cerita. Kelihatannya kamu lagi berat banget. ' +
-                'Kamu nggak sendirian — ada orang yang siap dengerin.',
-            },
-          }
+        ? { intervention: await this.supportResources.buildIntervention() }
         : {}),
     };
   }

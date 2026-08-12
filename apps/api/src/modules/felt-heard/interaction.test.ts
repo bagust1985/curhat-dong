@@ -408,6 +408,34 @@ describeDb('interaction & felt heard', () => {
       expect(prompts).toBe(1);
     });
 
+    it('survives concurrent replies without failing the comment', async () => {
+      // Several replies landing at once can all pass the "already prompted?"
+      // check. Losing that race must not surface as an error on someone's
+      // comment — they wrote a reply, and a prompt they never see is not their
+      // problem.
+      const author = await user();
+      const responder = await user();
+      const postId = await postBy(author.token);
+
+      const responses = await Promise.all(
+        Array.from({ length: 10 }, (_, i) =>
+          http
+            .post(`/v1/posts/${postId}/comments`)
+            .set('authorization', `Bearer ${responder.token}`)
+            .send({ body: `Balasan bersamaan Felt Heard nomor ${i}.` }),
+        ),
+      );
+
+      for (const response of responses) {
+        expect(response.status, 'a comment failed because of a prompt race').toBe(201);
+      }
+
+      const prompts = await prisma.feltHeardPrompt.count({
+        where: { userId: author.userId, targetType: 'post', targetId: postId },
+      });
+      expect(prompts).toBe(1);
+    });
+
     it('caps prompts per day', async () => {
       const author = await user();
       const responder = await user();

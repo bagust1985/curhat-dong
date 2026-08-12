@@ -25,6 +25,8 @@ export interface LocalRuleResult {
   highRisk: boolean;
   /** Personal data detected — a pre-submit warning, never a block (PRD §15). */
   containsPersonalData: boolean;
+  /** Spam or scam shape — raises review priority, never blocks on its own. */
+  abuseSuspected: boolean;
   /** Which detectors fired. Stored on the safety event, never shown to the user. */
   signals: string[];
 }
@@ -44,6 +46,22 @@ const HIGH_RISK_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'self_harm_intent_en', pattern: /\b(want|going)\s+to\s+(kill\s+myself|end\s+(my\s+life|it\s+all))\b/i },
   { id: 'self_harm_method', pattern: /\b(overdosis|gantung\s+diri|potong\s+nadi|loncat\s+dari)\b/i },
   { id: 'threat_to_others', pattern: /\b(gue|aku|saya)\s+(akan|mau|bakal)\s+(bunuh|habisi)\s+(dia|lo|kamu|mereka)\b/i },
+];
+
+/**
+ * Spam and scam patterns — PRD §15, E07-T14.
+ *
+ * These raise a *review* signal, never an automatic block. A curhat about
+ * being scammed contains all the same words as a scam, and silencing someone
+ * describing what happened to them would be the exact opposite of the point.
+ */
+const ABUSE_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
+  { id: 'scam_investment', pattern: /\b(profit|untung)\s+(pasti|dijamin|100%)\b/i },
+  { id: 'scam_contact', pattern: /\b(hubungi|chat|wa)\s+(saya|admin)\s+.*\b(sekarang|buruan)\b/i },
+  { id: 'scam_money', pattern: /\b(transfer|kirim)\s+(uang|dana|dp)\s+.*\b(dulu|sekarang)\b/i },
+  { id: 'spam_link_shortener', pattern: /\b(bit\.ly|tinyurl|s\.id|cutt\.ly)\/\S+/i },
+  { id: 'spam_repeated_url', pattern: /(https?:\/\/\S+[\s\S]*){4,}/i },
+  { id: 'spam_all_caps', pattern: /\b[A-Z]{15,}\b/ },
 ];
 
 /**
@@ -71,6 +89,7 @@ export class LocalRulesService {
     const signals: string[] = [];
     let highRisk = false;
     let containsPersonalData = false;
+    let abuseSuspected = false;
 
     for (const rule of HIGH_RISK_PATTERNS) {
       if (rule.pattern.test(text)) {
@@ -86,7 +105,49 @@ export class LocalRulesService {
       }
     }
 
-    return { highRisk, containsPersonalData, signals };
+    for (const rule of ABUSE_PATTERNS) {
+      if (rule.pattern.test(text)) {
+        abuseSuspected = true;
+        signals.push(`abuse:${rule.id}`);
+      }
+    }
+
+    return { highRisk, containsPersonalData, abuseSuspected, signals };
+  }
+
+  /**
+   * Near-duplicate detection for repeated posting (PRD §15 anti-spam).
+   *
+   * Jaccard over word sets — crude, but it catches copy-paste flooding without
+   * flagging someone who writes about the same subject twice. Deliberately
+   * lenient: people in distress often circle the same thing, and treating that
+   * as spam would punish exactly the wrong person.
+   */
+  isNearDuplicate(candidate: string, recent: readonly string[], threshold = 0.9): boolean {
+    const tokenise = (text: string) =>
+      new Set(
+        text
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .split(/\s+/)
+          .filter((word) => word.length > 2),
+      );
+
+    const candidateTokens = tokenise(candidate);
+    if (candidateTokens.size < 5) return false;
+
+    for (const previous of recent) {
+      const previousTokens = tokenise(previous);
+      let shared = 0;
+      for (const token of candidateTokens) {
+        if (previousTokens.has(token)) shared += 1;
+      }
+
+      const union = candidateTokens.size + previousTokens.size - shared;
+      if (union > 0 && shared / union >= threshold) return true;
+    }
+
+    return false;
   }
 
   /** Copy for the pre-submit anti-doxxing warning (DESIGN-REF §2.6). */

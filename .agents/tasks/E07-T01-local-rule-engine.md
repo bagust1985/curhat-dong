@@ -2,7 +2,7 @@
 id: E07-T01
 epic: E07
 title: Local rule engine (pre-AI)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E05-T02]
 refs: [TECH-SPEC §4.1, §4.2]

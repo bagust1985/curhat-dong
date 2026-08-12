@@ -2,7 +2,7 @@
 id: E07-T11
 epic: E07
 title: Banding moderasi — API user
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E07-T10]
 refs: [PRD §15.4, TECH-SPEC BAGIAN 19, DESIGN-REF §2.19]

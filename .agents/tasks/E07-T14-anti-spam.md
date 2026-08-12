@@ -2,7 +2,7 @@
 id: E07-T14
 epic: E07
 title: Anti-spam & device risk
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T13]
 refs: [PRD §15, TECH-SPEC §7.3]

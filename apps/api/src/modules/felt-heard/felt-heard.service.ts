@@ -58,40 +58,61 @@ export class FeltHeardService {
     await this.maybeCreatePrompt(requesterId, 'session', sessionId);
   }
 
+  /**
+   * Creates a prompt if every anti-fatigue rule allows it.
+   *
+   * Never throws. This is a side effect of someone leaving a comment, and a
+   * failure here must not fail their comment — a user who writes a reply,
+   * sees an error, and cannot tell whether it saved is a worse outcome than a
+   * missing prompt.
+   */
   private async maybeCreatePrompt(
     userId: string,
     targetType: FeltHeardTarget,
     targetId: string,
   ): Promise<void> {
-    const settings = await this.prisma.notificationSetting.findUnique({
-      where: { userId },
-      select: { feltHeardPromptEnabled: true },
-    });
+    try {
+      const settings = await this.prisma.notificationSetting.findUnique({
+        where: { userId },
+        select: { feltHeardPromptEnabled: true },
+      });
 
-    // Switched off permanently from Settings (PRD §9).
-    if (settings && !settings.feltHeardPromptEnabled) return;
+      // Switched off permanently from Settings (PRD §9).
+      if (settings && !settings.feltHeardPromptEnabled) return;
 
-    const existing = await this.prisma.feltHeardPrompt.findUnique({
-      where: { userId_targetType_targetId: { userId, targetType, targetId } },
-      select: { id: true },
-    });
+      const existing = await this.prisma.feltHeardPrompt.findUnique({
+        where: { userId_targetType_targetId: { userId, targetType, targetId } },
+        select: { id: true },
+      });
 
-    // One prompt per target, ever. Asking twice about the same post is the
-    // fastest way to make the answer meaningless.
-    if (existing) return;
+      // One prompt per target, ever. Asking twice about the same post is the
+      // fastest way to make the answer meaningless.
+      if (existing) return;
 
-    const maxPerDay = await this.appConfig.getNumber('felt_heard.max_per_day');
+      const maxPerDay = await this.appConfig.getNumber('felt_heard.max_per_day');
 
-    const since = new Date(Date.now() - 86_400_000);
-    const todayCount = await this.prisma.feltHeardPrompt.count({
-      where: { userId, shownAt: { gte: since } },
-    });
+      const since = new Date(Date.now() - 86_400_000);
+      const todayCount = await this.prisma.feltHeardPrompt.count({
+        where: { userId, shownAt: { gte: since } },
+      });
 
-    if (todayCount >= maxPerDay) return;
+      if (todayCount >= maxPerDay) return;
 
-    await this.prisma.feltHeardPrompt.create({
-      data: { userId, targetType, targetId },
-    });
+      // Several replies can land at once, so two callers can both pass the
+      // check above. `createMany` with skipDuplicates lets the unique index
+      // settle it — the desired end state is one prompt either way, and losing
+      // that race is not an error.
+      await this.prisma.feltHeardPrompt.createMany({
+        data: [{ userId, targetType, targetId }],
+        skipDuplicates: true,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `could not create Felt Heard prompt for ${targetType} ${targetId}: ${
+          (error as Error).message
+        }`,
+      );
+    }
   }
 
   /**

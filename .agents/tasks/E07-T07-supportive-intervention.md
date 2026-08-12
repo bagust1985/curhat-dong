@@ -2,7 +2,7 @@
 id: E07-T07
 epic: E07
 title: Supportive intervention L3 + support resources
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E07-T04, E02-T07]
 refs: [PRD §8, §15.1, §15.2, TECH-SPEC §18.5, §18.6, DESIGN-REF §2.7]

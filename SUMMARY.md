@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E06 selesai.
+> Terakhir: **12 Agustus 2026** — E07 selesai.
 
 ## Status Keseluruhan
 
@@ -13,7 +13,7 @@
 | **E04** | Onboarding, Consent & Identity | 8/8 | ✅ **Selesai** |
 | **E05** | Post & Feed | 11/12 | ✅ **Selesai** (1 ditunda ke E15/E16) |
 | **E06** | Interaction & Felt Heard | 8/8 | ✅ **Selesai** |
-| E07 | Safety Engine & Moderation Core | 0/14 | ⬜ Belum |
+| **E07** | Safety Engine & Moderation Core | 14/14 | ✅ **Selesai** |
 | E08 | AI Gateway | 0/9 | ⬜ Belum |
 | E09 | DONG AI | 0/8 | ⬜ Belum |
 | E10 | Listener & Matching | 0/11 | ⬜ Belum |
@@ -25,7 +25,114 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 58 / 182 task (31,9%).**
+**Progres: 72 / 182 task (39,6%).**
+
+---
+
+## E07 — Safety Engine & Moderation Core ✅
+
+Epik paling kritis di produk ini. Dua dari delapan aturan non-negotiable
+bergantung sepenuhnya padanya.
+
+| Task | Hasil |
+|---|---|
+| E07-T01 | Rule engine lengkap: high-risk, doxxing, scam/spam, near-duplicate |
+| E07-T02 | Deteksi data pribadi format Indonesia (NIK, HP, rekening, alamat) |
+| E07-T03 | Analisis + re-analisis (job wrapper menyusul di E17 — lihat catatan) |
+| E07-T04 | Mapping L0–L3 dengan threshold dari config |
+| E07-T05 | **Fallback AI timeout** — cabang low-risk vs high-risk |
+| E07-T06 | Alur HOLD + pemberitahuan ke user |
+| E07-T07 | Supportive intervention + support resources per region |
+| E07-T08 | Safety event + pembuatan case + dedup |
+| E07-T09 | SLA watchdog + alert ops (tanpa isi konten) |
+| E07-T10 | 7 aksi moderasi + audit log wajib |
+| E07-T11 | **Banding** — API user |
+| E07-T12 | Reviewer ≠ pemutus, ditegakkan sistem |
+| E07-T13 | Trust score internal + faktor tersimpan |
+| E07-T14 | Anti-spam & deteksi duplikat |
+
+### Hasil verifikasi
+
+```
+pnpm lint       13/13 workspace  hijau
+pnpm typecheck  13/13 workspace  hijau
+pnpm test       236 test         hijau
+```
+
+Pemecahan: api 121 · auth 33 · notifications 23 · web 21 · database 14 ·
+types 10 · config 9 · admin 4.
+
+### Fallback AI: 18 unit test yang menjaga non-negotiable #1
+
+CLAUDE.md mewajibkan unit test untuk safety mapping. Fungsinya dibuat **murni,
+tanpa I/O**, supaya batas-batasnya bisa diuji langsung:
+
+```
+local rules diam         → publish L1, needs_reanalysis
+local high-risk signal   → HELD, case Critical, intervention tetap tampil
+```
+
+Satu test ditulis khusus untuk mencegah regresi yang paling mungkin terjadi:
+seseorang "menyederhanakan" fallback jadi satu jalur fail-open. Test itu
+memeriksa **setiap cabang** — kalau statusnya `published`, level-nya wajib L1
+dan `needsReanalysis` wajib true.
+
+Test lain memastikan threshold `self_harm` **selalu lebih rendah** dari kategori
+L3 lain. Asimetri itu disengaja: false positive berarti seseorang melihat pesan
+dukungan yang tidak ia butuhkan; false negative berarti sinyal krisis lolos dan
+terlewat begitu saja. Dua biaya itu tidak sebanding.
+
+### Classifier bukan kata terakhir
+
+Local rules bisa **menaikkan** verdict. Model yang menilai pernyataan niat
+eksplisit sebagai tidak berbahaya tidak boleh jadi penentu akhir. Diuji: skor
+toxicity 0.01 + kalimat "aku mau bunuh diri" → tetap **L3**.
+
+Sebaliknya, local rules tidak pernah *menurunkan* verdict classifier.
+
+### Utang teknis E05 lunas
+
+`ReanalysisService` mengantre ulang seluruh konten dengan
+`needs_reanalysis = true`. Diuji end-to-end: post yang terbit saat classifier
+mati, lalu **ditarik jadi `held`** setelah re-analisis menemukan masalah —
+konten yang terbit selama outage ditinjau, bukan dianggap sah otomatis.
+
+Kalau classifier masih mati saat re-analisis jalan, flag-nya **tetap** — dua
+kegagalan berturut-turut bukan verdict.
+
+### Banding: yang v1.0 sama sekali tidak punya
+
+Reviewer ≠ pemutus ditegakkan di tiga lapis: query queue **menyembunyikan**
+banding atas keputusan sendiri, service menolak, dan CHECK constraint database
+menolak. Ini jaminan keadilan, bukan konvensi UI.
+
+Rasio `overturned` per kategori tersedia sebagai input kalibrasi threshold:
+kategori yang sering dibatalkan berarti **thresholdnya yang salah**, bukan
+usernya.
+
+### Bug yang ditemukan lewat log test
+
+Log test memunculkan `PrismaClientKnownRequestError` dari race Felt Heard: dua
+balasan bersamaan sama-sama lolos cek "sudah pernah?", lalu bentrok unique
+constraint — dan errornya **menggagalkan request komentar yang sebenarnya sudah
+tersimpan**. User menulis balasan, melihat error, dan tidak tahu apakah
+tersimpan.
+
+Diperbaiki: pembuatan prompt tidak pernah melempar, dan race-nya diselesaikan
+unique index lewat `skipDuplicates` — hasil akhirnya tetap satu prompt.
+Ditambahkan test dengan 10 balasan paralel yang memastikan semuanya `201`.
+
+### Catatan
+
+- **E07-T03**: logika analisis & re-analisis selesai dan teruji. Yang belum:
+  membungkusnya sebagai **BullMQ repeatable job di container worker terpisah** —
+  itu butuh worker container dari **E17-T02**. Saat ini analisis jalan inline;
+  perilakunya identik, yang berubah nanti cuma di mana ia dijalankan.
+- Alert SLA membawa id case, queue, dan keterlambatan — **tidak pernah isi
+  konten**. Channel ops bukan tempat curhat orang.
+- Log test menampilkan `no verified support resources for region ID` berulang
+  kali. Itu **perilaku yang benar**: belum ada hotline terverifikasi, dan
+  sistem berteriak tentang itu. Lihat blocker rilis.
 
 ---
 
@@ -607,15 +714,14 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E07 — Safety Engine & Moderation Core** (14 task) — epik paling kritis di
-produk ini. Melengkapi local rule engine, mapping L0–L3 penuh, fallback AI
-timeout, supportive intervention, aksi moderasi, **banding**, dan trust score.
+**E08 — AI Gateway** (9 task): provider abstraction, model routing cheap vs
+advanced, prompt versioning, `ai_usage_events`, dan budget guard.
 
-Urutan setelahnya: `E07 → E10 → E11`.
+Port classifier-nya (`SAFETY_CLASSIFIER`) sudah menunggu — E08 tinggal
+mengikatnya, dan seluruh jalur safety langsung memakai classifier sungguhan
+tanpa perubahan di E07.
 
-**E07 juga melunasi utang teknis E05:** seluruh post dengan
-`needs_reanalysis = true` harus diantre ulang lewat `analyze-post` begitu
-classifier tersedia.
+Setelahnya: `E09 (DONG AI) → E10 → E11`.
 
 **Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
 punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.

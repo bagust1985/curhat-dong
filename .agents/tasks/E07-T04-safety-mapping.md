@@ -2,7 +2,7 @@
 id: E07-T04
 epic: E07
 title: Safety mapping L0–L3
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T03]
 refs: [PRD §8, TECH-SPEC §4.1, CLAUDE.md test minimal]

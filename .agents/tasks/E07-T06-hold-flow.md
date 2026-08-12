@@ -2,7 +2,7 @@
 id: E07-T06
 epic: E07
 title: Alur HOLD (L2) & pemberitahuan ke user
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T04]
 refs: [PRD §8, DESIGN-REF §2.5, §2.6]

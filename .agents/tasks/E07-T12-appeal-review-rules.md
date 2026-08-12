@@ -2,7 +2,7 @@
 id: E07-T12
 epic: E07
 title: Aturan reviewer banding (reviewer ≠ pemutus)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T11]
 refs: [PRD §15.4, TECH-SPEC §19.2]

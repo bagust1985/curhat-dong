@@ -2,7 +2,7 @@
 id: E07-T02
 epic: E07
 title: Deteksi doxxing / data pribadi
-status: todo
+status: done
 estimate: 1d
 depends_on: [E07-T01]
 refs: [PRD §15, DESIGN-REF §2.6]

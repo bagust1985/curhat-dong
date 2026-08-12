@@ -2,7 +2,7 @@
 id: E07-T10
 epic: E07
 title: Aksi moderasi (7 aksi) + audit
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E07-T08]
 refs: [PRD §15, TECH-SPEC BAGIAN 19]

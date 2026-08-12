@@ -2,7 +2,7 @@
 id: E07-T05
 epic: E07
 title: Fallback saat AI timeout (split low-risk vs high-risk)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E07-T04]
 refs: [TECH-SPEC §4.2, BAGIAN 16, CLAUDE.md non-negotiable #1]
