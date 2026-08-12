@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { PrismaClient } from '@curhat/database';
 
 import { ApiException } from '../../common/api-error.js';
@@ -12,6 +12,7 @@ import {
   SupportResourcesService,
   type SupportiveIntervention,
 } from '../safety/support-resources.service.js';
+import { ListenerNudgeService } from '../listener/listener-nudge.service.js';
 import { UsersService } from '../users/users.service.js';
 import { CategoriesService } from './categories.service.js';
 import type { CreatePostDto } from './posts.dto.js';
@@ -54,6 +55,8 @@ export interface CreatePostResult {
 
 @Injectable()
 export class PostsService {
+  private readonly logger = new Logger(PostsService.name);
+
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly categories: CategoriesService,
@@ -64,6 +67,7 @@ export class PostsService {
     private readonly users: UsersService,
     private readonly rateLimit: RateLimitService,
     private readonly appConfig: AppConfigService,
+    private readonly nudge: ListenerNudgeService,
   ) {}
 
   async create(userId: string, input: CreatePostDto): Promise<CreatePostResult> {
@@ -149,6 +153,24 @@ export class PostsService {
         targetType: 'post',
         targetId: post.id,
       });
+    }
+
+    // Cold start (PRD §23): a post that explicitly asked for a listener is the
+    // clearest "somebody is waiting" signal the product has. Held posts are
+    // never nudged about — sending listeners to something under review would
+    // hand them a page they cannot open.
+    //
+    // Only when the author asked. Nudging on every post would burn through the
+    // per-listener daily cap on curhat nobody requested help with, and the cap
+    // exists to protect listeners, not to ration a firehose.
+    if (outcome.status === 'published' && input.requestListener) {
+      await this.nudge
+        .nudgeForWaitingRequester({
+          sourceId: post.id,
+          excludeUserId: userId,
+          topic: category.slug,
+        })
+        .catch((error: unknown) => this.logger.warn('listener nudge failed', error));
     }
 
     return {

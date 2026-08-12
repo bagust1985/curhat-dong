@@ -2,7 +2,7 @@
 id: E12-T04
 epic: E12
 title: Penjaga privasi payload notifikasi
-status: todo
+status: done
 estimate: 1d
 depends_on: [E12-T02]
 refs: [PRD §14, TECH-SPEC §6.2, CLAUDE.md non-negotiable #3]

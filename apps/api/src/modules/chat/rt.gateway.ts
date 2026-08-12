@@ -14,6 +14,7 @@ import type { Namespace, Socket } from 'socket.io';
 
 import { ENV } from '../../config/env.config.js';
 import { SessionService } from '../auth/session.service.js';
+import { NotificationRealtimeService } from '../notifications/notification-realtime.service.js';
 import { MessageSafetyService } from './message-safety.service.js';
 import { PresenceService } from './presence.service.js';
 import { RoomAccessService } from './room-access.service.js';
@@ -59,6 +60,7 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     private readonly safety: MessageSafetyService,
     private readonly presence: PresenceService,
     private readonly events: RoomEventsService,
+    private readonly notificationRealtime: NotificationRealtimeService,
   ) {}
 
   /**
@@ -77,6 +79,9 @@ export class RtGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
    */
   afterInit(server: Namespace): void {
     this.events.attach(server);
+    // Notifications reach a connected user over this same namespace (E12-T08).
+    // Handed over rather than imported so the module graph stays acyclic.
+    this.notificationRealtime.attach(server);
 
     server.use((socket, next) => {
       void this.authenticate(socket)

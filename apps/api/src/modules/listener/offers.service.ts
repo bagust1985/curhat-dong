@@ -4,6 +4,8 @@ import type { PrismaClient } from '@curhat/database';
 import { ApiException } from '../../common/api-error.js';
 import { AppConfigService } from '../../common/app-config.service.js';
 import { PRISMA } from '../../common/prisma.service.js';
+import { NotificationFanoutService } from '../notifications/notification-fanout.service.js';
+import { NotificationRealtimeService } from '../notifications/notification-realtime.service.js';
 import { BurnoutService } from './burnout.service.js';
 import { MatchingService } from './matching.service.js';
 
@@ -44,6 +46,8 @@ export class OffersService {
     private readonly appConfig: AppConfigService,
     private readonly matching: MatchingService,
     private readonly burnout: BurnoutService,
+    private readonly realtime: NotificationRealtimeService,
+    private readonly notifications: NotificationFanoutService,
   ) {}
 
   /**
@@ -95,12 +99,89 @@ export class OffersService {
       data: { attemptCount: { increment: 1 } },
     });
 
+    await this.announceOffer({
+      matchId: match.id,
+      listenerId: candidate.listenerId,
+      topic: request.topic,
+      emotion: request.emotion,
+      expiresAt,
+    });
+
     return {
       status: 'offered',
       matchId: match.id,
       listenerId: candidate.listenerId,
       expiresAt,
     };
+  }
+
+  /**
+   * Tells the listener an offer is waiting — E12-T08, TECH-SPEC §3.5.
+   *
+   * Closes the gap E10 left open: the offer row existed, the sixty-second
+   * clock was running, and nothing told the listener it had started. A
+   * countdown nobody can see is not a countdown.
+   *
+   * Two channels, one event. The socket payload carries what the listener
+   * needs to decide — topic, feeling, deadline — and no identity, exactly as
+   * `OfferView` does. The push payload is the generic catalogue entry, because
+   * it may land on a lock screen.
+   *
+   * Never throws: an offer that was created must not be rolled back because a
+   * notification failed. The listener can still find it in `/listen`.
+   */
+  private async announceOffer(offer: {
+    matchId: string;
+    listenerId: string;
+    topic: string;
+    emotion: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    try {
+      this.realtime.emitToUser(offer.listenerId, 'match:offer', {
+        matchId: offer.matchId,
+        topic: offer.topic,
+        emotion: offer.emotion,
+        expiresAt: offer.expiresAt,
+      });
+
+      await this.notifications.notify({
+        userId: offer.listenerId,
+        template: 'listener.match_offer',
+        targetId: offer.matchId,
+        dedupeKey: `match_offer:${offer.matchId}`,
+      });
+    } catch (error) {
+      this.logger.warn(`failed to announce offer ${offer.matchId}`, error);
+    }
+  }
+
+  /**
+   * Tells the requester somebody accepted — E12-T08.
+   *
+   * The other half of the same gap: until now the searching screen found out
+   * by polling `GET /listener/requests/current`. Waiting for a human being to
+   * say yes is the least good moment to be on a polling interval.
+   */
+  private async announceAccepted(
+    requesterId: string,
+    session: { sessionId: string; roomId: string },
+  ): Promise<void> {
+    try {
+      this.realtime.emitToUser(requesterId, 'match:accepted', {
+        sessionId: session.sessionId,
+        roomId: session.roomId,
+      });
+
+      await this.notifications.notify({
+        userId: requesterId,
+        template: 'listener.matched',
+        targetId: session.roomId,
+        dedupeKey: `match_accepted:${session.sessionId}`,
+      });
+    } catch (error) {
+      this.logger.warn(`failed to announce accepted session ${session.sessionId}`, error);
+    }
   }
 
   /** Live offers for a listener. Carries no identity of the requester. */
@@ -167,7 +248,7 @@ export class OffersService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const accepted = await this.prisma.$transaction(async (tx) => {
       // The request row is claimed first, and it is the only row two callers
       // ever contend for. Claiming the match first instead deadlocks: each
       // caller would hold its own match row while reaching for the shared
@@ -230,6 +311,9 @@ export class OffersService {
 
       return { sessionId: session.id, roomId: room.id, startedAt: session.startedAt };
     });
+
+    await this.announceAccepted(match.requesterId, accepted);
+    return accepted;
   }
 
   /**

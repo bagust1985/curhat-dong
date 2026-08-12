@@ -110,16 +110,44 @@ describe('timezone handling', () => {
 });
 
 describe('deferred delivery', () => {
-  it('schedules for the end of the window', () => {
-    const now = new Date('2026-08-12T02:00:00');
-    const next = nextDeliveryTime(7, now);
-    expect(next.getHours()).toBe(7);
-    expect(next.getDate()).toBe(12);
+  it('schedules for the end of the window in the recipient timezone', () => {
+    // 02:00 Jakarta on 12 August.
+    const now = new Date('2026-08-11T19:00:00Z');
+    const next = nextDeliveryTime(7, 'Asia/Jakarta', now);
+
+    expect(localHourIn('Asia/Jakarta', next)).toBe(7);
+    // 07:00 WIB is 00:00 UTC the same calendar day in Jakarta.
+    expect(next.toISOString()).toBe('2026-08-12T00:00:00.000Z');
   });
 
-  it('rolls to the next day when the window already ended today', () => {
-    const now = new Date('2026-08-12T23:00:00');
-    const next = nextDeliveryTime(7, now);
-    expect(next.getDate()).toBe(13);
+  it('rolls forward when the window already ended today', () => {
+    // 23:00 Jakarta — the next 07:00 is tomorrow morning.
+    const now = new Date('2026-08-12T16:00:00Z');
+    const next = nextDeliveryTime(7, 'Asia/Jakarta', now);
+
+    expect(localHourIn('Asia/Jakarta', next)).toBe(7);
+    expect(next.getTime() - now.getTime()).toBe(8 * 3_600_000);
+  });
+
+  it('trims to the top of the hour rather than the arrival minute', () => {
+    // 02:37 Jakarta.
+    const now = new Date('2026-08-11T19:37:00Z');
+    const next = nextDeliveryTime(7, 'Asia/Jakarta', now);
+
+    expect(next.getUTCMinutes()).toBe(0);
+    expect(next.getUTCSeconds()).toBe(0);
+  });
+
+  it('does not use the server clock to decide a remote recipient window', () => {
+    // The same instant releases at a different absolute time for two people in
+    // different timezones. A server-local setHours() would return one answer
+    // for both.
+    const now = new Date('2026-08-11T19:00:00Z');
+    const jakarta = nextDeliveryTime(7, 'Asia/Jakarta', now);
+    const london = nextDeliveryTime(7, 'Europe/London', now);
+
+    expect(jakarta.getTime()).not.toBe(london.getTime());
+    expect(localHourIn('Asia/Jakarta', jakarta)).toBe(7);
+    expect(localHourIn('Europe/London', london)).toBe(7);
   });
 });

@@ -2,7 +2,7 @@
 id: E12-T05
 epic: E12
 title: Penegakan quiet hours
-status: todo
+status: done
 estimate: 1d
 depends_on: [E12-T04, E04-T06]
 refs: [PRD §14, TECH-SPEC §4.7]

@@ -1,7 +1,7 @@
 ---
 id: E12
 title: Notification
-status: todo
+status: done
 tasks: 9
 depends_on: [E03]
 ---

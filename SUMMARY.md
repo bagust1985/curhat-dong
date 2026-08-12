@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E11 selesai.
+> Terakhir: **12 Agustus 2026** — E12 selesai.
 
 ## Status Keseluruhan
 
@@ -18,14 +18,261 @@
 | **E09** | DONG AI | 8/8 | ✅ **Selesai** |
 | **E10** | Listener & Matching | 11/11 | ✅ **Selesai** |
 | **E11** | Private Chat Room | 9/9 | ✅ **Selesai** |
-| E12 | Notification | 0/9 | ⬜ Belum |
+| **E12** | Notification | 9/9 | ✅ **Selesai** |
 | E13 | Search | 0/4 | ⬜ Belum |
 | E14 | Admin Panel | 0/15 | ⬜ Belum |
 | E15 | Web UI | 0/17 | ⬜ Belum |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 109 / 182 task (59,9%).**
+**Progres: 118 / 182 task (64,8%).**
+
+---
+
+## E12 — Notification ✅
+
+Cara orang tahu bahwa ada yang membalas — tanpa satu kata pun dari isi
+curhatnya ikut terbaca di lock screen.
+
+| Task | Hasil |
+|---|---|
+| E12-T01 | `POST/DELETE /devices` provider-agnostic; token dienkripsi + hash untuk dedup |
+| E12-T02 | Interface `PushProvider` + adapter Expo **dan** FCM; token mati dinonaktifkan |
+| E12-T03 | VAPID, service worker, dan aturan **kapan** izin diminta |
+| E12-T04 | Katalog tertutup + `NoFreeText` — teks bebas **tidak bisa dikompilasi** |
+| E12-T05 | Tahan / kirim / buang, dihitung di timezone penerima |
+| E12-T06 | Idempoten lewat unique index, bukan cek-lalu-insert |
+| E12-T07 | `GET /notifications` cursor, unread count, target hilang ditangani |
+| E12-T08 | `notification:new` untuk yang online; push hanya untuk yang tidak |
+| E12-T09 | Nudge listener dengan tiga batas yang tidak punya tombol lanjut |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm build      9/9              hijau
+pnpm test       8/9 workspace    hijau (213 test)
+```
+
+Pemecahan yang sudah melapor: @curhat/ai 57 · notifications 56 · auth 33 ·
+web 30 · database 14 · types 10 · config 9 · admin 4.
+
+**Suite `@curhat/api` belum selesai saat commit ini dibuat** dan angkanya belum
+tercatat di sini. Jalannya lama karena setiap user test dibuat lewat OTP yang
+di-brute-force terhadap database sungguhan. Jalankan ulang dengan:
+
+```bash
+pnpm --filter @curhat/api test
+```
+
+Yang sudah dijalankan terpisah dan hijau sebelum commit: `pnpm typecheck` dan
+`pnpm lint` untuk `@curhat/api`, plus dua putaran
+`src/modules/notifications` + `src/modules/listener/nudge.test.ts` yang
+menemukan dan menutup tiga bug di bawah. Putaran terakhir setelah perbaikan
+`z.partialRecord` dan `unavailableMessage` belum dikonfirmasi.
+
+### Non-negotiable #3 ditegakkan tipe, bukan review
+
+Aturan "isi curhat tidak pernah masuk notifikasi" gampang ditulis dan gampang
+bocor di sore hari yang buru-buru. Jadi jalurnya dibuat supaya **slot-nya tidak
+ada**: seluruh copy datang dari katalog tertutup, dan fungsi kirim tidak punya
+parameter untuk teks.
+
+Excess-property check TypeScript saja tidak cukup — itu hanya menangkap object
+literal, sementara kesalahan yang benar-benar terjadi bentuknya lain: meneruskan
+variabel yang kebetulan sudah memuat post-nya. Jadi ada mapped type:
+
+```ts
+export type NoFreeText<T, Allowed = NotificationRequest> = T & {
+  readonly [K in Exclude<keyof T, keyof Allowed>]: never;
+};
+```
+
+Setiap key di luar bentuk yang diizinkan menjadi `never`, sehingga tidak ada
+nilai yang bisa memenuhinya. Test-nya memakai `@ts-expect-error` — jadi kalau
+celahnya suatu hari terbuka, direktif itu sendiri yang error.
+
+Lapisan kedua di runtime: payload yang dibaca kembali dari database atau dari
+job **dibangun ulang** dari katalog, bukan divalidasi. Baris yang ditulis versi
+kode yang lebih longgar tidak bisa menghidupkan lagi teks yang sekarang dilarang.
+
+Diuji end-to-end: post berisi "aku capek banget…" dibalas, lalu `notifications`
+row, payload push, response list, dan payload WebSocket semuanya diperiksa —
+tidak satu pun memuat potongan teksnya.
+
+### Bug quiet hours yang ketemu waktu dipakai betulan
+
+`nextDeliveryTime` warisan E04-T06 memakai `setHours()` — jam **server**.
+Fungsinya belum pernah dipanggil siapa pun sampai E12, jadi tidak ada yang
+gagal. Begitu dipakai, akibatnya jelas: server UTC melepas notifikasi tertahan
+milik user Jakarta pukul 14.00 waktu setempat, tujuh jam setelah jendelanya
+seharusnya dibuka.
+
+Sekarang perhitungannya melangkah maju dari jam dinding **penerima**, dan ada
+test yang gagal kalau dua orang di timezone berbeda mendapat instant yang sama.
+
+### Tahan bukan satu-satunya jawaban
+
+PRD §14 minta notifikasi yang sudah tidak relevan **dibuang**, bukan menumpuk
+jadi banjir pagi hari. Bedanya ada di templatenya sendiri:
+
+| Template | Tengah malam | Alasan |
+|---|---|---|
+| `response.comment` | ditahan sampai 07.00 | balasannya masih ada besok pagi |
+| `listener.match_offer` | **dibuang** | offer-nya hidup 60 detik |
+| `listener.nudge` | **dibuang** | "ada yang butuh didengar" sudah lewat |
+| `safety.*`, `account.*` | dikirim | pengecualian PRD §14 |
+
+Yang sudah ditahan pun masih bisa gugur: sweep menjatuhkan apa pun yang lebih
+tua dari `notification.stale_after_minutes` (12 jam). Sembilan jam kemudian,
+"ada yang membalas curhatmu" adalah sesuatu yang sudah dia lihat sendiri di app.
+
+### Idempoten diselesaikan unique index, bukan pengecekan
+
+`notifications` punya unique `(user_id, dedupe_key)`, dan `dedupeKey` dibangun
+dari identitas peristiwa (`comment:<id>`), bukan dari identitas notifikasinya.
+Job yang di-retry kalah di constraint lalu **membaca kembali hasil kerjanya
+sendiri**.
+
+Cek-dulu-baru-insert akan menyisakan celah race — dua worker bisa sama-sama
+tidak menemukan apa-apa. Diuji dengan 5 panggilan paralel di key yang sama:
+tepat satu baris, empat sisanya melapor `duplicate`.
+
+### Online berarti socket, bukan status yang disimpan
+
+E11 memutuskan produk ini tidak punya sinyal "user sedang online" di mana pun —
+di produk tentang hal-hal privat, itu informasi yang tidak pernah disetujui
+siapa pun untuk dipublikasikan. E12-T08 butuh tahu apakah seseorang sedang
+terhubung, tapi tidak boleh melanggar itu.
+
+Jadi `hasLiveSocket()` **bertanya ke transport dan melupakan jawabannya**: tidak
+disimpan, tidak di-broadcast, tidak pernah muncul di API mana pun. Lewat
+adapter, jadi socket di instance API lain pun terlihat.
+
+Gagalnya ke arah `false` — notifikasi ganda itu mengganggu, notifikasi yang
+hilang berarti orangnya tidak pernah tahu ada yang membalas.
+
+### Graf modul dijaga asiklik lewat attach, bukan forwardRef
+
+`NotificationsModule` tidak meng-import apa pun dari chat atau listener.
+`NotificationRealtimeService` **menerima** namespace `/rt` dari gateway (pola
+yang sama dengan `RoomEventsService` di E11), sehingga arahnya satu:
+`ChatModule → NotificationsModule`.
+
+Nudge listener pun tinggal di modul listener, bukan di sini — semua
+keputusannya soal kapasitas, cooldown, dan cap harian. Menariknya ke modul
+notifikasi akan menutup lingkarannya.
+
+### Nudge: satu-satunya counter yang fail-closed
+
+Di seluruh codebase ini, counter yang mati berarti fail-open — user tidak
+dihukum karena masalah operasional kita. Nudge adalah pengecualiannya.
+
+Alasannya asimetris: kalau Redis mati dan kita fail-open, yang terjadi adalah
+mem-spam persis orang-orang yang batasnya ada untuk melindungi mereka. Tidak
+ada yang dirugikan oleh nudge yang tidak sampai.
+
+Tiga batas, semuanya tanpa override:
+
+| Batas | Nilai |
+|---|---|
+| Cooldown antar nudge | 60 menit (`SET NX`, atomik) |
+| Maksimum per hari | 4, reset tengah malam **WIB** |
+| Kondisi listener | tidak available / cooldown / cap harian → dilewati |
+
+Payload-nya `listener.nudge` — "Ada seseorang yang sedang butuh didengar." —
+tanpa `targetId`, tanpa topik. Nudge di lock screen tidak mengungkap apa pun
+tentang siapa yang sedang butuh bantuan.
+
+### Utang E10 dan E11 lunas
+
+`match:offer` dan `match:accepted` sekarang benar-benar dikirim. Sampai
+sekarang barisnya dibuat, hitungan 60 detiknya jalan, dan tidak ada yang
+memberi tahu listener bahwa hitungannya sudah dimulai — countdown yang tidak
+bisa dilihat siapa pun bukan countdown.
+
+Sisi requester juga: layar "sedang mencari" tadinya tahu lewat polling
+`GET /listener/requests/current`. Menunggu seorang manusia bilang iya adalah
+momen paling tidak cocok untuk berada di interval polling.
+
+### Izin browser hanya diminta sekali seumur hidup
+
+Sebuah situs mendapat **satu** prompt permission dari browser. Dihabiskan di
+page load pertama, sebagian besar orang menolak — refleks, sebelum tahu situsnya
+apa — dan jawabannya permanen.
+
+Jadi `shouldOfferPush()` baru mengembalikan true setelah orangnya melakukan
+sesuatu yang membuat notifikasi jelas berguna: mengirim curhat, minta listener,
+atau menyalakan availability. Prompt-nya lalu menjawab pertanyaan yang memang
+sudah ada di kepalanya — "nanti saya tahunya gimana?" — bukan menyela
+pertanyaan yang belum muncul.
+
+### Dua bug lagi yang ditangkap test
+
+1. **Satu baris rusak = 500 untuk seluruh daftar.** `targetExists` mengirim
+   `targetId` apa adanya ke kolom uuid; nilai yang bukan uuid membuat Postgres
+   melempar `invalid input syntax for type uuid`, dan satu baris aneh mematikan
+   halaman notifikasi orang itu seluruhnya. Sekarang divalidasi bentuknya dulu,
+   termasuk id di dalam cursor.
+2. **Setting notifikasi tidak bisa diubah sebagian.** `z.record` Zod 4 di atas
+   key enum bersifat **eksaustif** — endpoint E04-T06 menuntut keenam kategori
+   dikirim setiap kali, padahal service-nya sendiri melakukan merge. Klien yang
+   mematikan satu toggle harus mengirim balik lima lainnya, dan itulah cara
+   sebuah layar basi diam-diam mengembalikan setting yang baru saja diubah di
+   tempat lain. Diganti `z.partialRecord`.
+
+### Keputusan yang diambil saat implementasi
+
+1. **Baris in-app ditulis lebih dulu, push menyusul.** Kalau push gagal,
+   ditahan, atau semua toggle-nya mati, notifikasinya tetap ada di app. Daftar
+   itu sumber kebenarannya; push cuma cara tahu lebih cepat.
+2. **Toggle in-app disaring saat dibaca, bukan saat ditulis.** Barisnya tetap
+   ditulis karena ia sekaligus ledger pengiriman dan jangkar idempotensi;
+   menyalakan kembali tipe itu memulihkan riwayatnya, bukan meninggalkan lubang.
+3. **Token di-hash unik lintas user.** Satu perangkat fisik memegang satu push
+   token, dan setelah login ulang ia harus berhenti menerima notifikasi akun
+   sebelumnya. Ciphertext-nya sendiri tidak bisa dibandingkan — AES-GCM
+   mengacak IV, jadi token yang sama terenkripsi berbeda tiap kali.
+4. **Device dinonaktifkan, bukan dihapus,** saat provider bilang token-nya mati.
+   Barisnya adalah bukti perangkat itu pernah terdaftar, dan registrasi ulang
+   menghidupkannya lagi.
+5. **Adapter di atas `fetch`, bukan SDK vendor** — sama seperti E08. Web push
+   pengecualiannya: enkripsi payload-nya ECDH + HKDF + AES-128-GCM (RFC 8291),
+   dan menulis sendiri itu menghasilkan notifikasi yang tidak bisa didekripsi
+   browser mana pun — gagalnya diam-diam.
+6. **Adapter FCM ditulis betulan, bukan dijanjikan.** "Nanti bisa pindah
+   provider" cuma benar kalau ada yang sudah memeriksa apa yang diperlukan —
+   di sini OAuth2 dengan service account, yang justru bagian mengejutkannya.
+7. **Nudge hanya untuk post yang memang minta listener.** Nudge di setiap post
+   akan menghabiskan cap harian listener untuk curhat yang tidak meminta
+   bantuan, dan cap itu ada untuk melindungi listener, bukan untuk menjatah
+   firehose.
+
+### Catatan & keterbatasan
+
+- **Job BullMQ-nya belum ada.** `deliverDue()` (sweep quiet hours) sudah teruji;
+  membungkusnya sebagai repeatable job `notification-fanout` / `push-notification`
+  di container worker butuh E17-T02 — sama seperti `expireOverdue()` E10 dan
+  `analyze-post` E07. Sekarang jalur pengirimannya inline; perilakunya identik,
+  yang berubah nanti cuma di mana ia dijalankan.
+- **Belum ada satu pun kiriman nyata ke perangkat.** Adapter diuji dengan
+  `fetch` palsu: tiket sukses, `DeviceNotRegistered`, 429 vs 400, batch 250
+  target jadi 3 request, dan timeout. Yang belum dilakukan adalah kiriman
+  betulan ke device dev (E12-T02) dan ke FCM sungguhan — keduanya butuh
+  kredensial yang belum ada di lingkungan ini, dan masuk verifikasi manual E17.
+- **Verifikasi manual E12-T03 di Chrome & Firefox belum dijalankan** — belum ada
+  VAPID key di lingkungan ini, jadi `GET /devices/webpush-key` melapor `null`
+  dan klien memang melewatkan prompt-nya. Itu perilaku yang benar, bukan
+  workaround.
+- **UI-nya E15/E16.** Yang selesai di sini API, service worker, dan helper
+  klien; halaman `/notifications`, badge unread, dan sheet permission adalah
+  E15-T14 / E16.
+- **Reaksi belum memicu notifikasi.** Template `social.reaction` ada dan diuji,
+  tapi belum dipasang di `ReactionsService` — enam reaksi × setiap post akan
+  jadi sumber notifikasi paling berisik di produk ini, dan frekuensinya pantas
+  diputuskan dari angka nyata, bukan di depan.
+- Retensi notifikasi belum punya job penghapus; ikut E17-T08.
 
 ---
 

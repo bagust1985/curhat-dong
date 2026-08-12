@@ -2,7 +2,7 @@
 id: E12-T08
 epic: E12
 title: Event WebSocket notification:new
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E12-T07, E11-T01]
 refs: [TECH-SPEC §3.5]

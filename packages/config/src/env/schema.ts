@@ -78,6 +78,28 @@ export const serverEnvSchema = z.object({
   EXPO_ACCESS_TOKEN: z.string().optional(),
   EXPO_PROJECT_ID: z.string().optional(),
 
+  // --- PUSH (TECH-SPEC §6.1) ---
+  /**
+   * Default provider for a newly registered mobile device.
+   *
+   * Switching to `fcm` is a config change, not a migration: nothing downstream
+   * of the adapter knows which provider carried the message (E12-T02).
+   */
+  PUSH_MOBILE_PROVIDER: z.enum(['expo', 'fcm']).default('expo'),
+  FCM_PROJECT_ID: z.string().optional(),
+  /** Service-account JSON for FCM HTTP v1, if that path is enabled. */
+  FCM_SERVICE_ACCOUNT_JSON: z.string().optional(),
+
+  /**
+   * Web Push (VAPID) — E12-T03. Optional so a dev environment without keys
+   * still boots; web push then reports itself unconfigured instead of
+   * throwing at send time.
+   */
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  /** `mailto:` contact the push service can use to reach us. */
+  VAPID_SUBJECT: z.string().default('mailto:ops@curhatdong.com'),
+
   // --- SENTRY ---
   SENTRY_DSN: z.string().optional(),
 

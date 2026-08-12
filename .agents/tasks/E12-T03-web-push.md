@@ -2,7 +2,7 @@
 id: E12-T03
 epic: E12
 title: Web Push + service worker
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E12-T02]
 refs: [TECH-SPEC §1.1, §6.1]

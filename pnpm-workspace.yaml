@@ -45,6 +45,13 @@ catalog:
   # --- Shared ---
   zod: 4.4.3
 
+  # --- Push (TECH-SPEC §6.1) ---
+  # Web Push payload encryption is ECDH + HKDF + AES-128-GCM against a spec
+  # with real interop teeth (RFC 8291). Hand-rolling it is how you ship a
+  # notification nobody's browser can decrypt.
+  web-push: 3.6.7
+  '@types/web-push': 3.6.4
+
   # --- Tooling ---
   typescript: 5.9.3
   '@types/node': 24.13.3

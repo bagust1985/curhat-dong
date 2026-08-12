@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '../auth/auth.module.js';
 import { ModerationModule } from '../moderation/moderation.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { SafetyModule } from '../safety/safety.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AvailabilityService } from './availability.service.js';
 import { BurnoutService } from './burnout.service.js';
 import { ListenerController } from './listener.controller.js';
 import { ListenerEscalateService } from './listener-escalate.service.js';
+import { ListenerNudgeService } from './listener-nudge.service.js';
 import { ListenerRequestsService } from './listener-requests.service.js';
 import { ListenerService } from './listener.service.js';
 import { MatchingService } from './matching.service.js';
@@ -22,7 +24,7 @@ import { OffersService } from './offers.service.js';
  * decides *who* ends up in it.
  */
 @Module({
-  imports: [AuthModule, UsersModule, ModerationModule, SafetyModule],
+  imports: [AuthModule, UsersModule, ModerationModule, SafetyModule, NotificationsModule],
   controllers: [ListenerController],
   providers: [
     AvailabilityService,
@@ -32,6 +34,7 @@ import { OffersService } from './offers.service.js';
     OffersService,
     ListenerRequestsService,
     ListenerEscalateService,
+    ListenerNudgeService,
   ],
   exports: [
     AvailabilityService,
@@ -39,6 +42,7 @@ import { OffersService } from './offers.service.js';
     ListenerService,
     OffersService,
     ListenerRequestsService,
+    ListenerNudgeService,
   ],
 })
 export class ListenerModule {}

@@ -4,8 +4,15 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist .turbo",
@@ -14,11 +21,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "resend": "6.19.0"
+    "resend": "6.19.0",
+    "web-push": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@types/web-push": "catalog:"
   }
 }

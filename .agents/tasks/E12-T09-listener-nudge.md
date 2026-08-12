@@ -2,7 +2,7 @@
 id: E12-T09
 epic: E12
 title: Listener nudge + rate control
-status: todo
+status: done
 estimate: 1d
 depends_on: [E12-T06]
 refs: [PRD §14, §23, DESIGN-REF §2.4]

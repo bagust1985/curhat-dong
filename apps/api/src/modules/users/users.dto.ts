@@ -40,8 +40,17 @@ export const consentUpdateSchema = z.object({
 });
 
 export const notificationSettingsSchema = z.object({
+  /**
+   * A subset is allowed — `partialRecord`, not `record`.
+   *
+   * Zod 4's `z.record` over an enum key is exhaustive: it demands all six
+   * categories on every call. That contradicts what the service does with the
+   * value (it merges over the current settings) and would force a client
+   * turning off one toggle to send the other five back, which is how a stale
+   * screen quietly reverts a setting the user changed elsewhere.
+   */
   perTypeToggles: z
-    .record(
+    .partialRecord(
       z.enum(['social', 'response', 'listener', 'ai', 'safety', 'account']),
       z.object({ push: z.boolean(), inApp: z.boolean() }),
     )

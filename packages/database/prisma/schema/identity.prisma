@@ -217,8 +217,25 @@ model UserDevice {
   platform     Platform
   pushProvider PushProvider @map("push_provider")
   /// Encrypted at rest (TECH-SPEC §7.5).
+  ///
+  /// For `webpush` this holds the whole subscription object (endpoint + keys)
+  /// as JSON — the column stays provider-shaped, not FCM-shaped.
   pushTokenEncrypted String @map("push_token_encrypted")
-  deviceId           String @map("device_id")
+  /// Keyed hash of the same token, for dedup and lookup.
+  ///
+  /// The ciphertext cannot be compared: AES-GCM uses a random IV, so the same
+  /// token encrypts differently every time. Unique across all users on
+  /// purpose — one physical device holds one push token, and after a
+  /// re-login it must stop receiving the previous account's notifications.
+  pushTokenHash String @unique @map("push_token_hash")
+  deviceId      String @map("device_id")
+
+  /// Set when the provider reports the token is gone (E12-T02).
+  ///
+  /// Disabled rather than deleted: the row is the evidence that this device
+  /// was registered, and re-registering the same token revives it.
+  disabledAt   DateTime? @map("disabled_at") @db.Timestamptz(6)
+  disabledReason String? @map("disabled_reason")
 
   /// Quiet hours are per-device because the timezone is (PRD §14).
   timezone        String  @default("Asia/Jakarta")
@@ -232,6 +249,7 @@ model UserDevice {
 
   @@unique([userId, deviceId])
   @@index([userId, lastSeen])
+  @@index([userId, disabledAt])
   @@map("user_devices")
 }
 

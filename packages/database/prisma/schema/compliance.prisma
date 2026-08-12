@@ -36,6 +36,20 @@ enum NotificationType {
   account
 }
 
+/// Delivery state of the push half of a notification (E12-T05, E12-T06).
+enum PushStatus {
+  /// Not attempted yet.
+  pending
+  /// Held by quiet hours; `deliver_after` says when it may go out.
+  held
+  sent
+  /// The user switched this type off, or has no registered device.
+  skipped
+  /// Perishable and would have arrived stale — see PRD §14.
+  dropped
+  failed
+}
+
 enum RetentionRunStatus {
   running
   completed
@@ -146,12 +160,31 @@ model Notification {
 
   payload Json
 
+  /// Idempotency key derived from the event — "comment X on post Y" (E12-T06).
+  ///
+  /// The unique index is what makes a retried job safe: the second insert
+  /// loses to the constraint instead of producing a second notification.
+  /// Nullable because a broadcast has no natural event identity.
+  dedupeKey String? @map("dedupe_key")
+
+  /// Where the push half of this notification got to.
+  ///
+  /// Separate from `readAt`: the in-app row always exists, while the push may
+  /// have been held by quiet hours, dropped as stale, or refused by the user's
+  /// per-type toggle.
+  pushStatus  PushStatus @default(pending) @map("push_status")
+  /// Set when quiet hours held it — the sweep delivers after this instant.
+  deliverAfter DateTime? @map("deliver_after") @db.Timestamptz(6)
+  pushedAt     DateTime? @map("pushed_at") @db.Timestamptz(6)
+
   readAt    DateTime? @map("read_at") @db.Timestamptz(6)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, dedupeKey])
   @@index([userId, readAt, createdAt(sort: Desc)])
+  @@index([pushStatus, deliverAfter])
   @@map("notifications")
 }
 

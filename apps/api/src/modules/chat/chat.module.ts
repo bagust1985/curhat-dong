@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { FeltHeardModule } from '../felt-heard/felt-heard.module.js';
 import { ListenerModule } from '../listener/listener.module.js';
 import { ModerationModule } from '../moderation/moderation.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { SafetyModule } from '../safety/safety.module.js';
 import { MessageSafetyService } from './message-safety.service.js';
 import { PresenceService } from './presence.service.js';
@@ -26,7 +27,15 @@ import { RtGateway } from './rt.gateway.js';
  * (E10-T09) — the caps E10 built are inert until this module calls them.
  */
 @Module({
-  imports: [AuthModule, AiModule, SafetyModule, ModerationModule, ListenerModule, FeltHeardModule],
+  imports: [
+    AuthModule,
+    AiModule,
+    SafetyModule,
+    ModerationModule,
+    ListenerModule,
+    FeltHeardModule,
+    NotificationsModule,
+  ],
   controllers: [RoomsController],
   providers: [
     RoomAccessService,

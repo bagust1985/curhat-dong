@@ -2,7 +2,7 @@
 id: E12-T01
 epic: E12
 title: Registrasi device (provider-agnostic)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T02]
 refs: [TECH-SPEC §6.1, §3.4]

@@ -86,6 +86,29 @@ export const APP_CONFIG_DEFAULTS = {
   'notification.quiet_hours_end': 7,
 
   /**
+   * PRD §14, §23 — listener nudge rate control (E12-T09).
+   *
+   * Over-nudging is the fastest way to lose a listener, and a listener lost is
+   * not replaced by a notification. Four a day with an hour between them is
+   * deliberately conservative; cold start (PRD §23) may want more, and that is
+   * a decision to make from real numbers rather than in advance.
+   */
+  'notification.nudge_max_per_day': 4,
+  'notification.nudge_cooldown_minutes': 60,
+
+  /**
+   * How long a held push stays worth sending (E12-T05).
+   *
+   * A notification older than this is dropped when the quiet-hours sweep
+   * reaches it: nine hours later "ada yang membalas curhatmu" is something the
+   * user has already seen in the app.
+   */
+  'notification.stale_after_minutes': 720,
+
+  /** How many devices one push batch addresses (E12-T02). */
+  'notification.push_batch_size': 100,
+
+  /**
    * PRD §15.3 — moderation SLA in minutes.
    *
    * The night window is only slightly wider, not waived: peak usage on this

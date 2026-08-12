@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { PrismaClient } from '@curhat/database';
 
 import { ApiException } from '../../common/api-error.js';
@@ -6,6 +6,7 @@ import { AppConfigService } from '../../common/app-config.service.js';
 import { PRISMA } from '../../common/prisma.service.js';
 import { RateLimitService } from '../../common/rate-limit.service.js';
 import { FeltHeardService } from '../felt-heard/felt-heard.service.js';
+import { NotificationFanoutService } from '../notifications/notification-fanout.service.js';
 import { LocalRulesService } from '../safety/local-rules.service.js';
 import { UsersService } from '../users/users.service.js';
 
@@ -27,6 +28,8 @@ export interface CommentPage {
 
 @Injectable()
 export class CommentsService {
+  private readonly logger = new Logger(CommentsService.name);
+
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly users: UsersService,
@@ -34,6 +37,7 @@ export class CommentsService {
     private readonly appConfig: AppConfigService,
     private readonly localRules: LocalRulesService,
     private readonly feltHeard: FeltHeardService,
+    private readonly notifications: NotificationFanoutService,
   ) {}
 
   /**
@@ -135,6 +139,12 @@ export class CommentsService {
       await this.feltHeard.onHumanResponse(post.authorId, postId);
     }
 
+    // Held comments are not announced: telling someone their curhat got a
+    // reply and then showing them nothing is worse than silence.
+    if (!rules.highRisk) {
+      await this.announce(comment.id, postId, userId, post.authorId, parentId);
+    }
+
     return {
       id: comment.id,
       body: comment.body,
@@ -145,6 +155,59 @@ export class CommentsService {
       createdAt: comment.createdAt,
       replies: [],
     };
+  }
+
+  /**
+   * Tells the people involved that a reply arrived — E12.
+   *
+   * The notification names the post and nothing else. There is no parameter on
+   * `notify` that could carry the comment text, which is the point
+   * (CLAUDE.md non-negotiable #3): a reply landing on a lock screen must not
+   * be readable there.
+   *
+   * Never throws. A notification failing must not fail a comment that is
+   * already saved — the user wrote it, it is there, and an error at this point
+   * would leave them unsure whether it went through.
+   */
+  private async announce(
+    commentId: string,
+    postId: string,
+    authorId: string,
+    postAuthorId: string,
+    parentId?: string,
+  ): Promise<void> {
+    try {
+      await this.notifications.notify({
+        userId: postAuthorId,
+        actorId: authorId,
+        template: 'response.comment',
+        targetId: postId,
+        // Identity of the event, not of the notification: a retried job
+        // recognises its own work (E12-T06).
+        dedupeKey: `comment:${commentId}`,
+      });
+
+      if (!parentId) return;
+
+      const parent = await this.prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { authorId: true },
+      });
+
+      // Skipped when the parent's author is the post author — they were told
+      // once already, and two notifications for one reply is one too many.
+      if (!parent || parent.authorId === postAuthorId) return;
+
+      await this.notifications.notify({
+        userId: parent.authorId,
+        actorId: authorId,
+        template: 'response.reply',
+        targetId: postId,
+        dedupeKey: `reply:${commentId}`,
+      });
+    } catch (error) {
+      this.logger.warn(`failed to notify about comment ${commentId}`, error);
+    }
   }
 
   async list(
@@ -262,6 +325,20 @@ export class CommentsService {
         data: { helpfulCount: { increment: helpful ? 1 : -1 } },
       });
     });
+
+    // Only on the way up. Un-marking is a correction, and telling someone
+    // their reply stopped being helpful serves nobody.
+    if (helpful) {
+      await this.notifications
+        .notify({
+          userId: comment.authorId,
+          actorId: userId,
+          template: 'social.helpful',
+          targetId: commentId,
+          dedupeKey: `helpful:${commentId}`,
+        })
+        .catch((error: unknown) => this.logger.warn('failed to notify helpful', error));
+    }
   }
 
   async deleteOwn(userId: string, commentId: string): Promise<void> {

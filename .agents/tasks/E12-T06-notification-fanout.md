@@ -2,7 +2,7 @@
 id: E12-T06
 epic: E12
 title: Job notification fanout
-status: todo
+status: done
 estimate: 1d
 depends_on: [E12-T05]
 refs: [TECH-SPEC §1.4]

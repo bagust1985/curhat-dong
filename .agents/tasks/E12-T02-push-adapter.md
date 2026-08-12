@@ -2,7 +2,7 @@
 id: E12-T02
 epic: E12
 title: Push adapter — Expo Push Service
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E12-T01]
 refs: [TECH-SPEC §6.1]

@@ -9,13 +9,9 @@
  * makes that choice for them, which is the opposite thing.
  */
 
-export type NotificationCategory =
-  | 'social'
-  | 'response'
-  | 'listener'
-  | 'ai'
-  | 'safety'
-  | 'account';
+import type { NotificationCategory } from './templates.js';
+
+export type { NotificationCategory };
 
 /**
  * Categories that ignore quiet hours.
@@ -68,25 +64,58 @@ export function decideQuietHours(input: QuietHoursInput): QuietHoursDecision {
   return input.perishable ? 'drop' : 'hold';
 }
 
-/** Local hour for an IANA timezone. Falls back to UTC on a bad zone. */
-export function localHourIn(timezone: string, now: Date = new Date()): number {
+/** Local wall-clock time in an IANA timezone. Falls back to UTC on a bad zone. */
+export function localTimeIn(
+  timezone: string,
+  now: Date = new Date(),
+): { hour: number; minute: number } {
   try {
     const formatted = new Intl.DateTimeFormat('en-GB', {
       timeZone: timezone,
-      hour: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
       hour12: false,
     }).format(now);
-    const hour = Number.parseInt(formatted, 10);
-    return Number.isNaN(hour) ? now.getUTCHours() : hour % 24;
+
+    const [hourPart, minutePart] = formatted.split(':');
+    const hour = Number.parseInt(hourPart ?? '', 10);
+    const minute = Number.parseInt(minutePart ?? '', 10);
+
+    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+      return { hour: now.getUTCHours(), minute: now.getUTCMinutes() };
+    }
+    return { hour: hour % 24, minute };
   } catch {
-    return now.getUTCHours();
+    return { hour: now.getUTCHours(), minute: now.getUTCMinutes() };
   }
 }
 
-/** When a held notification may be sent. */
-export function nextDeliveryTime(endHour: number, now: Date = new Date()): Date {
-  const next = new Date(now);
-  next.setHours(endHour, 0, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
-  return next;
+/** Local hour for an IANA timezone. Falls back to UTC on a bad zone. */
+export function localHourIn(timezone: string, now: Date = new Date()): number {
+  return localTimeIn(timezone, now).hour;
+}
+
+/**
+ * When a held notification may be sent, as an absolute instant.
+ *
+ * Computed by stepping forward from *the recipient's* local clock, not the
+ * server's. A server in UTC calling `setHours(7)` would release Jakarta's held
+ * notifications at 14:00 local — the middle of the afternoon, hours after the
+ * moment the window was supposed to open.
+ */
+export function nextDeliveryTime(
+  endHour: number,
+  timezone: string,
+  now: Date = new Date(),
+): Date {
+  const { hour, minute } = localTimeIn(timezone, now);
+
+  let hoursAhead = endHour - hour;
+  if (hoursAhead <= 0) hoursAhead += 24;
+
+  const target = new Date(now.getTime() + hoursAhead * 3_600_000);
+  // Trim back to the top of the hour so delivery lands at exactly endHour:00
+  // local rather than at whatever minute the notification happened to arrive.
+  target.setUTCMinutes(target.getUTCMinutes() - minute, 0, 0);
+  return target;
 }
