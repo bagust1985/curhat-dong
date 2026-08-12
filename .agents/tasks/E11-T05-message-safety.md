@@ -2,7 +2,7 @@
 id: E11-T05
 epic: E11
 title: Safety scan pesan room (L0–L3)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E11-T03, E07-T07]
 refs: [PRD §15.5, TECH-SPEC §4.3.1]

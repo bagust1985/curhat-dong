@@ -2,7 +2,7 @@
 id: E11-T04
 epic: E11
 title: Typing indicator & presence
-status: todo
+status: done
 estimate: 1d
 depends_on: [E11-T03]
 refs: [TECH-SPEC §3.5, DESIGN-REF §2.11]

@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E10 selesai.
+> Terakhir: **12 Agustus 2026** — E11 selesai.
 
 ## Status Keseluruhan
 
@@ -17,7 +17,7 @@
 | **E08** | AI Gateway | 9/9 | ✅ **Selesai** |
 | **E09** | DONG AI | 8/8 | ✅ **Selesai** |
 | **E10** | Listener & Matching | 11/11 | ✅ **Selesai** |
-| E11 | Private Chat Room | 0/9 | ⬜ Belum |
+| **E11** | Private Chat Room | 9/9 | ✅ **Selesai** |
 | E12 | Notification | 0/9 | ⬜ Belum |
 | E13 | Search | 0/4 | ⬜ Belum |
 | E14 | Admin Panel | 0/15 | ⬜ Belum |
@@ -25,7 +25,154 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 100 / 182 task (54,9%).**
+**Progres: 109 / 182 task (59,9%).**
+
+---
+
+## E11 — Private Chat Room ✅
+
+Ruangan yang dibuka E10 akhirnya ada isinya: realtime, presence, safety pesan,
+penutupan sesi, dan feedback dua arah.
+
+| Task | Hasil |
+|---|---|
+| E11-T01 | Namespace `/rt`, auth di **handshake**, Redis backplane lewat `IoAdapter` |
+| E11-T02 | Membership dicek ulang **tiap event**, bukan sekali saat join |
+| E11-T03 | Pesan persist dulu baru broadcast; dedup lewat client message id |
+| E11-T04 | Typing di-throttle; presence kedaluwarsa sendiri, tidak menggantung |
+| E11-T05 | Safety L0–L3 async, selalu additive, L2 target-directed dibedakan |
+| E11-T06 | Notice sekali per room, jujur soal batas proteksi screenshot |
+| E11-T07 | Close dua arah + idle timeout; **counter burnout listener jalan di sini** |
+| E11-T08 | Feedback requester lewat Felt Heard; "tidak aman" dari listener buka review |
+| E11-T09 | Daftar room tanpa cuplikan pesan; block dari room memutus sesi |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm build      9/9              hijau
+pnpm test       427 test         hijau
+```
+
+Pemecahan: api 256 · @curhat/ai 57 · auth 33 · notifications 23 · web 21 ·
+database 14 · types 10 · config 9 · admin 4.
+
+### Race di handshake yang ketemu lewat test socket
+
+Autentikasi awalnya ada di `handleConnection`. Masalahnya: event `connect`
+menyala di klien begitu transport tersambung, sementara `handleConnection`
+masih menunggu query database untuk memastikan sesi masih aktif. Klien yang
+langsung mengirim pesan setelah `connect` tiba saat `socket.data` belum ada —
+dan diputus.
+
+Gejalanya di test persis seperti bug produksi yang paling menyebalkan: kadang
+jalan, kadang tidak, tergantung berapa lama query-nya.
+
+Perbaikannya memindahkan autentikasi ke **middleware handshake**. Middleware
+berjalan sebelum koneksi dinyatakan selesai, jadi tidak ada event yang bisa
+tiba di socket yang identitasnya masih dicari. Penolakan sekarang muncul
+sebagai `connect_error` dengan kode stabil di `err.data.code`, bukan event
+menyusul yang bisa keburu didahului pesan lain.
+
+Ada test khusus untuknya: *"is usable the instant connect fires"*.
+
+### Dua bug lain di sepanjang jalan
+
+1. **Adapter Redis dipasang terlambat.** `server.adapter()` dipanggil dari
+   `afterInit` gateway, setelah namespace hidup — socket yang sudah tersambung
+   terdaftar di adapter lama sementara broadcast lewat yang baru. Sekarang
+   dipasang saat server dibuat lewat `RedisIoAdapter` (pola NestJS yang benar),
+   dengan koneksi Redis sendiri: klien jalur request sengaja fail-fast
+   (`enableOfflineQueue: false`) supaya rate limit tahu saat tidak bisa
+   menghitung, dan koneksi pub/sub dengan setelan itu membuang perintah yang
+   dikirim sebelum koneksinya siap.
+2. **Test harness-nya sendiri bohong.** `io(url)` mengembalikan socket yang
+   *sama* untuk URL yang sudah pernah dipakai, jadi setiap "user kedua" di file
+   test sebenarnya user pertama yang masih login. Ketahuan karena hasilnya
+   ganjil, bukan karena test-nya gagal jujur — `forceNew: true` memperbaikinya.
+
+### Membership adalah otorisasi, bukan sejarah
+
+TECH-SPEC §3.5 minta membership dicek di setiap event sensitif. Alasannya
+kelihatan begitu ditulis sebagai test: sebuah socket hidup lebih lama daripada
+alasan ia boleh ada. Sesi ditutup, orang saling blokir, seseorang keluar —
+semua terjadi di bawah koneksi yang masih tersambung.
+
+Jadi `RoomAccessService.require()` dipanggil ulang tiap event, dan test
+memastikan pesan ditolak setelah `left_at` diisi di tengah koneksi yang sama.
+
+Blokir memutus dua arah: yang memblokir pun kehilangan room-nya. Room yang
+sudah ditutup tetap **bisa dibaca**, tidak bisa ditulis.
+
+### Aksi safety di room selalu menambah, tidak pernah mengurangi
+
+Klasifikasi jalan **setelah** pesan terkirim, tidak pernah sebelumnya — supaya
+delivery tetap di bawah 2 detik (TECH-SPEC §8.3) dan tidak ada vonis yang bisa
+menahan pesan.
+
+Yang membedakan hanya arah bahayanya:
+
+| Level | Yang terjadi |
+|---|---|
+| L3 | resources ke **kedua** pihak, case Critical, room tetap terbuka |
+| L2 target-directed | peringatan ke pengirim, tombol report/block ke penerima, queue High |
+| L2 lainnya | case Medium — orang yang sedang berat bukan pelanggar |
+
+Peringatan L2 dikirim ke channel personal pengirim, bukan ke room, supaya
+teguran tidak jadi tontonan.
+
+### Notice room menyebut batasnya sendiri
+
+PRD §15 melarang menjanjikan screenshot mustahil. Jadi kalimatnya:
+
+> "Percakapan ini dipantau sistem keamanan otomatis. Jaga privasimu — kami
+> membantu mencegah tangkapan layar di perangkat yang mendukung, tapi tidak
+> bisa menjaminnya."
+
+FLAG_SECURE membantu di Android dan tidak membantu sama sekali terhadap ponsel
+kedua yang diarahkan ke layar. Ada test yang gagal kalau kalimat "tidak bisa
+menjaminnya" hilang.
+
+### Utang E10 lunas
+
+`BurnoutService.recordSessionEnd()` sekarang dipanggil saat sesi ditutup —
+lewat API, lewat block, dan lewat idle sweep. Tanpa itu cap harian listener
+tidak pernah bertambah di produksi. Test memverifikasi counter naik, cooldown
+mulai, dan **sesi hanya dihitung sekali** meski close dipanggil dua kali.
+
+### Keputusan yang diambil saat implementasi
+
+1. **Persist dulu, broadcast kemudian.** Urutan sebaliknya lebih cepat dan
+   menghasilkan bug terburuk fitur ini: pesan yang dilihat berdua, dibahas,
+   lalu hilang saat refresh.
+2. **Presence kedaluwarsa, bukan dihapus saat disconnect.** Koneksi yang putus
+   mendadak tidak pernah sempat membersihkan dirinya; "online" yang bohong
+   lebih buruk daripada tidak ada presence.
+3. **Presence hanya per-room.** Tidak ada sinyal "user ini sedang online" di
+   mana pun — di produk tentang hal-hal privat, itu informasi yang tidak pernah
+   disetujui siapa pun untuk dipublikasikan.
+4. **Ack `{ok:false, code}` untuk penolakan event, bukan exception.** Exception
+   di socket mudah berubah jadi koneksi yang mati diam-diam; ack yang eksplisit
+   bisa ditangani klien.
+5. **REST `POST /rooms/:id/messages` tetap ada** sebagai jalur cadangan saat
+   socket mati — lewat persistensi yang sama persis, jadi perilakunya identik.
+6. **`ScriptedAiProvider` jadi kode biasa, bukan file test.** Setiap pengiriman
+   pesan memicu klasifikasi di latar; tanpa ini, test socket akan berisi
+   panggilan jaringan sungguhan dan butuh API key.
+
+### Catatan & keterbatasan
+
+- **Idle sweep belum punya penjadwal.** `closeIdleRooms()` sudah teruji;
+  job BullMQ-nya E17 — sama seperti `expireOverdue()` dari E10.
+- **`match:offer` / `match:accepted` belum dikirim.** Kanal socket-nya sudah
+  ada; yang memancarkannya bagian E12 (notifikasi & realtime nudge).
+- **Reminder istirahat 90 menit aktif** masih dihitung dari jumlah sesi, belum
+  dari durasi presence.
+- **FLAG_SECURE** hanya bisa diaktifkan di klien Android (E16); backend
+  menyediakan teks notice-nya.
+- Retensi pesan room 365 hari (PRD §25.4) baru berupa nilai config; job
+  penghapusnya E17-T08.
 
 ---
 
@@ -1162,22 +1309,19 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E11 — Private Chat Room** (9 task): Socket.IO gateway, membership guard,
-messaging realtime, typing/presence, safety pesan, close session, feedback.
+**E12 — Notification** (9 task): registrasi device, adapter push
+provider-agnostic, web push, privasi payload, quiet hours, fanout, in-app,
+realtime, listener nudge.
 
-Ruangannya sudah ada — `accept` membuat `chat_rooms`, `room_members`, dan
-`listener_sessions`. Yang belum ada adalah isinya.
+Kanal socket-nya sudah berdiri: `notification:new`, `match:offer`, dan
+`match:accepted` tinggal dipancarkan lewat `RoomEventsService`.
 
-Dua hal yang harus dipegang di E11: membership dicek **per event**, bukan sekali
-saat join (TECH-SPEC §3.5), dan klasifikasi pesan berjalan asynchronous supaya
-delivery tetap di bawah 2 detik — dengan aksi yang tetap additive di semua
-level, termasuk L3 (PRD §15.5).
+Satu hal yang harus dipegang di E12: **notifikasi tidak pernah memuat isi
+curhat atau chat** (non-negotiable #3). `NOTIFICATION_TEMPLATES` sudah dibuat
+sebagai himpunan tertutup di E01 dan `NotificationPayload` sengaja tidak punya
+field `body` — E12 tinggal tidak merusaknya.
 
-Satu utang dari E10 yang jatuh tempo di sini: `BurnoutService.recordSessionEnd()`
-harus dipanggil saat sesi ditutup (E11-T07), kalau tidak cap harian tidak pernah
-bertambah di produksi.
-
-Setelahnya: `E12 (Notification) → E13 (Search)`.
+Setelahnya: `E13 (Search) → E14 (Admin Panel)`.
 
 **Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
 punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.

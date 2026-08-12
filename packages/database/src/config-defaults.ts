@@ -65,6 +65,18 @@ export const APP_CONFIG_DEFAULTS = {
   'turnstile.anomaly_threshold': 3,
   'turnstile.anomaly_window_seconds': 900,
 
+  /** TECH-SPEC §3.5, §8.3 — private room */
+  'room.idle_timeout_minutes': 30,
+  'room.typing_throttle_seconds': 3,
+  /**
+   * How long a presence entry survives without a heartbeat.
+   *
+   * Short enough that a dropped connection does not leave someone showing as
+   * online while nobody is there — an "online" that lies is worse than no
+   * presence at all.
+   */
+  'room.presence_ttl_seconds': 45,
+
   /** TECH-SPEC §4.5 — matching */
   'matching.offer_ttl_seconds': 60,
   'matching.max_candidates': 5,
@@ -117,6 +129,12 @@ export const APP_CONFIG_DEFAULTS = {
 
 export type AppConfigKey = keyof typeof APP_CONFIG_DEFAULTS;
 
+/** Matching rows whose value is a JSON object (E10-T06). */
+export const MATCHING_JSON_CONFIG_KEYS = {
+  /** Ranking weights over 0..1 rates — see `@curhat/api` matching.ts. */
+  rankWeights: 'matching.rank_weights',
+} as const;
+
 /**
  * `app_configs` rows whose value is a JSON object rather than a number.
  *
@@ -124,12 +142,6 @@ export type AppConfigKey = keyof typeof APP_CONFIG_DEFAULTS;
  * the defaults themselves live in `@curhat/ai`, next to the code that reads
  * them. Absent rows fall back to those built-ins (E08-T03, E08-T05).
  */
-/** Matching rows whose value is a JSON object (E10-T06). */
-export const MATCHING_JSON_CONFIG_KEYS = {
-  /** Ranking weights over 0..1 rates — see `@curhat/api` matching.ts. */
-  rankWeights: 'matching.rank_weights',
-} as const;
-
 export const AI_JSON_CONFIG_KEYS = {
   /** Cheap/advanced model ids and the ambiguity band. */
   routing: 'ai.routing',

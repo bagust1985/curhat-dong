@@ -2,7 +2,7 @@
 id: E11-T08
 epic: E11
 title: Session feedback dua arah
-status: todo
+status: done
 estimate: 1d
 depends_on: [E11-T07, E06-T06]
 refs: [PRD §11, DESIGN-REF §2.11b]

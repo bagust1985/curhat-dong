@@ -2,7 +2,7 @@
 id: E11-T02
 epic: E11
 title: Cek membership di setiap event sensitif
-status: todo
+status: done
 estimate: 1d
 depends_on: [E11-T01]
 refs: [TECH-SPEC §3.5]

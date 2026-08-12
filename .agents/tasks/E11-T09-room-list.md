@@ -2,7 +2,7 @@
 id: E11-T09
 epic: E11
 title: Daftar room + report/block dari room
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E11-T07]
 refs: [TECH-SPEC §3.4, DESIGN-REF §2.11]

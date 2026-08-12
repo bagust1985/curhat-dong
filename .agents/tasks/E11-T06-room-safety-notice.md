@@ -2,7 +2,7 @@
 id: E11-T06
 epic: E11
 title: Safety notice & screenshot protection
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E11-T03]
 refs: [PRD §15, DESIGN-REF §2.11]

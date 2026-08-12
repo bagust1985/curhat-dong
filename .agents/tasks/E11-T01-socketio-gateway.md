@@ -2,7 +2,7 @@
 id: E11-T01
 epic: E11
 title: Socket.IO gateway + auth handshake
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E03-T03]
 refs: [TECH-SPEC §3.5, §1.1]

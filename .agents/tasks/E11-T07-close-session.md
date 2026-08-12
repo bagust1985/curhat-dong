@@ -2,7 +2,7 @@
 id: E11-T07
 epic: E11
 title: Akhiri sesi & idle timeout
-status: todo
+status: done
 estimate: 1d
 depends_on: [E11-T04]
 refs: [TECH-SPEC §3.4, PRD §11]

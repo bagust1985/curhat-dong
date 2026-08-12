@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { ResponseInterceptor } from './common/response.interceptor.js';
+import { RedisIoAdapter } from './common/redis-io.adapter.js';
 import { ENV } from './config/env.config.js';
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
 import { SessionService } from './modules/auth/session.service.js';
@@ -74,6 +75,10 @@ async function bootstrap(): Promise<void> {
   // controllers apply ZodValidationPipe per route. Registering Nest's
   // class-validator pipe as well would mean two validation stacks disagreeing
   // about the same request.
+
+  // Realtime namespace `/rt` with a Redis backplane (TECH-SPEC §3.5). Installed
+  // before listening so every socket is registered with the same adapter.
+  app.useWebSocketAdapter(await RedisIoAdapter.create(app));
 
   app.enableShutdownHooks();
 

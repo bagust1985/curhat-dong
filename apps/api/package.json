@@ -21,6 +21,9 @@
     "@nestjs/config": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
+    "@nestjs/platform-socket.io": "catalog:",
+    "@nestjs/websockets": "catalog:",
+    "@socket.io/redis-adapter": "catalog:",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
     "google-auth-library": "11.0.1",
@@ -29,6 +32,7 @@
     "pg": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "socket.io": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -42,6 +46,7 @@
     "@types/pg": "8.21.0",
     "@types/supertest": "7.2.1",
     "dotenv": "17.4.2",
+    "socket.io-client": "catalog:",
     "supertest": "7.2.2",
     "typescript": "catalog:",
     "vitest": "catalog:"

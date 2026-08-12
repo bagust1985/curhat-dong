@@ -2,7 +2,7 @@
 id: E11-T03
 epic: E11
 title: Kirim & terima pesan realtime
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E11-T02]
 refs: [TECH-SPEC §3.5, §8.3, DESIGN-REF §2.11]
