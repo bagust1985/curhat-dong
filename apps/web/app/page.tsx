@@ -12,7 +12,9 @@ import { AA_NORMAL_TEXT, AA_UI_COMPONENT, contrastRatio } from '../lib/contrast'
 const PAIRS: Array<{ fg: keyof (typeof THEMES)['dark']; bg: 'bg' | 'surface'; need: number }> = [
   { fg: 'text', bg: 'bg', need: AA_NORMAL_TEXT },
   { fg: 'muted', bg: 'bg', need: AA_NORMAL_TEXT },
-  { fg: 'accent', bg: 'bg', need: AA_UI_COMPONENT },
+  { fg: 'brand', bg: 'bg', need: AA_UI_COMPONENT },
+  { fg: 'primary', bg: 'bg', need: AA_UI_COMPONENT },
+  { fg: 'focus', bg: 'bg', need: AA_UI_COMPONENT },
   { fg: 'danger', bg: 'bg', need: AA_NORMAL_TEXT },
 ];
 
@@ -52,9 +54,9 @@ export default function TokensPage() {
 
               <button
                 type="button"
-                className="mt-5 min-h-11 rounded-[var(--radius-chip)] bg-[var(--color-accent)] px-5 text-[var(--color-accent-fg)]"
+                className="mt-5 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
               >
-                Mulai Cerita
+                Mulai Curhat
               </button>
 
               <dl className="mt-5 space-y-1 text-sm text-[var(--color-muted)]">

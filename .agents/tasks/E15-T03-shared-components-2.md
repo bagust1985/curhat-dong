@@ -14,7 +14,11 @@ CommentItem (+ helpful badge, nested 1 level), ChatBubble (room & AI, varian str
 ## Acceptance criteria
 - Empty state hangat & kontekstual ("Belum ada yang cerita di sini. Mau jadi yang pertama?"), bukan pesan sistem kosong.
 - ChatBubble streaming tidak "melompat" saat token masuk.
-- Nav: HOME · EXPLORE · [+ CURHAT] · LISTEN · PROFILE.
+- ~~Nav: HOME · EXPLORE · [+ CURHAT] · LISTEN · PROFILE.~~ **Digantikan
+  keputusan user (12 Agt 2026):** nav mengikuti mock — Beranda · Chat ·
+  Komunitas (disabled, Phase 2) · Notifikasi · Akun. `+ Curhat` tetap sebagai
+  FAB; EXPLORE dan LISTEN dijangkau dari Beranda supaya tidak ada fitur MVP
+  yang tidak bisa diakses.
 
 ## Verifikasi
 Halaman contoh seluruh varian; uji streaming bubble dengan teks panjang.

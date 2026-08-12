@@ -1,89 +1,135 @@
 @import 'tailwindcss';
 
 /*
- * CURHAT DONG design tokens — DESIGN-REF §0.
+ * CURHAT DONG design tokens — E15-T01. DESIGN-REF §0, PRD §23.1.
  *
  * Direction: calming, warm, private, safe. Explicitly NOT hospital, clinic,
- * dating app, crypto, or corporate. Dark mode is first-class because peak
- * usage is at night.
+ * dating app, crypto, or corporate. Dark mode is first-class because peak usage
+ * is at night.
  *
- * Every pair below is verified against WCAG 2.1 AA (PRD §23.1) — see
- * lib/contrast.test.ts, which fails the build if a token drifts under the
- * threshold. Warm accent on dark ground is easy to get wrong by eye.
+ * Values come from the brand kit in docs/, tuned until they pass WCAG 2.1 AA.
+ * Two brand pairings did not and are handled deliberately — see lib/tokens.ts
+ * for the numbers. lib/contrast.test.ts fails the build if any of them drifts,
+ * because warm-on-dark is easy to get wrong by eye.
+ *
+ * This file and lib/tokens.ts must stay in step; the test asserts the values in
+ * tokens.ts, so a change here without a change there is a silent divergence.
  */
 
 @theme {
   --font-sans:
     'Nunito', ui-rounded, 'Segoe UI Rounded', system-ui, -apple-system, sans-serif;
 
-  /* Generous radii and spacing — nothing sharp or clinical. */
-  --radius-curhat: 1.25rem; /* 20px */
+  /* Generous radii — nothing sharp or clinical (DESIGN-REF §0). */
+  --radius-curhat: 1rem; /* 16px — cards, sheets */
+  --radius-action: 1.25rem; /* 20px — primary buttons, FAB */
   --radius-chip: 999px;
 
   --spacing-gutter: 1.25rem;
+
+  /* PRD §23.1 — the floor for anything tappable, reaction buttons included. */
+  --size-touch: 2.75rem; /* 44px */
 }
 
 /* --- Light --- */
 :root {
-  --color-bg: #fbf9f7;
+  --color-bg: #f7f5ff;
   --color-surface: #ffffff;
-  --color-border: #e6e1db;
-  --color-text: #1a1f2b;
-  --color-muted: #5a6478;
-  --color-accent: #8a4a00;
-  --color-accent-fg: #ffffff;
-  --color-danger: #a32323;
+  --color-surface-alt: #eae6ff;
+  --color-border: #d9d2f2;
+  --color-text: #1e1240;
+  --color-muted: #514873;
+  --color-primary: #5b3be0;
+  --color-primary-fg: #ffffff;
+  --color-brand: #7c5cfc;
+  --color-accent-pink: #ff688a;
+  --color-accent-amber: #ffb84d;
+  --color-accent-fg: #1e1240;
+  --color-danger: #b3261e;
+  --color-danger-fg: #ffffff;
+  --color-focus: #5b3be0;
 }
 
-/* --- Dark (default at night, and the primary design target) --- */
+/* --- Dark: the primary design target, because people open this at night. --- */
 [data-theme='dark'] {
-  --color-bg: #0f1420;
-  --color-surface: #171e2e;
-  --color-border: #263049;
-  --color-text: #e8eaf0;
-  --color-muted: #a3acc2;
-  --color-accent: #f5b971;
-  --color-accent-fg: #2a1d0a;
-  --color-danger: #f08a8a;
+  --color-bg: #12101f;
+  --color-surface: #1b1830;
+  --color-surface-alt: #252140;
+  --color-border: #332d52;
+  --color-text: #edeafb;
+  --color-muted: #b5aed2;
+  --color-primary: #b9a6ff;
+  --color-primary-fg: #12101f;
+  --color-brand: #b9a6ff;
+  --color-accent-pink: #ff9fb4;
+  --color-accent-amber: #ffc978;
+  --color-accent-fg: #12101f;
+  --color-danger: #ffb4ab;
+  --color-danger-fg: #12101f;
+  --color-focus: #b9a6ff;
 }
 
 /*
  * Midnight Mode — 21:00–04:00 (DESIGN-REF §0).
- * Darker and quieter, not a different brand. Still AA.
+ *
+ * Dimmer and quieter, not a different brand. Text contrast is held at AA:
+ * dimming the text along with the ground is how a night theme reads as
+ * tasteful and becomes unusable.
  */
 [data-theme='midnight'] {
-  --color-bg: #080b12;
-  --color-surface: #0f1420;
-  --color-border: #1c2437;
-  --color-text: #dce0ea;
-  --color-muted: #98a1b8;
-  --color-accent: #e0a867;
-  --color-accent-fg: #211705;
-  --color-danger: #e88080;
+  --color-bg: #0a0814;
+  --color-surface: #12101f;
+  --color-surface-alt: #1b1830;
+  --color-border: #2a2545;
+  --color-text: #e4e0f5;
+  --color-muted: #9f98be;
+  --color-primary: #ae9bf5;
+  --color-primary-fg: #0a0814;
+  --color-brand: #ae9bf5;
+  --color-accent-pink: #f58fa6;
+  --color-accent-amber: #f0bd72;
+  --color-accent-fg: #0a0814;
+  --color-danger: #f5aaa2;
+  --color-danger-fg: #0a0814;
+  --color-focus: #ae9bf5;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --color-bg: #0f1420;
-    --color-surface: #171e2e;
-    --color-border: #263049;
-    --color-text: #e8eaf0;
-    --color-muted: #a3acc2;
-    --color-accent: #f5b971;
-    --color-accent-fg: #2a1d0a;
-    --color-danger: #f08a8a;
+    --color-bg: #12101f;
+    --color-surface: #1b1830;
+    --color-surface-alt: #252140;
+    --color-border: #332d52;
+    --color-text: #edeafb;
+    --color-muted: #b5aed2;
+    --color-primary: #b9a6ff;
+    --color-primary-fg: #12101f;
+    --color-brand: #b9a6ff;
+    --color-accent-pink: #ff9fb4;
+    --color-accent-amber: #ffc978;
+    --color-accent-fg: #12101f;
+    --color-danger: #ffb4ab;
+    --color-danger-fg: #12101f;
+    --color-focus: #b9a6ff;
   }
 }
 
 @theme inline {
   --color-bg: var(--color-bg);
   --color-surface: var(--color-surface);
+  --color-surface-alt: var(--color-surface-alt);
   --color-border: var(--color-border);
   --color-text: var(--color-text);
   --color-muted: var(--color-muted);
-  --color-accent: var(--color-accent);
+  --color-primary: var(--color-primary);
+  --color-primary-fg: var(--color-primary-fg);
+  --color-brand: var(--color-brand);
+  --color-accent-pink: var(--color-accent-pink);
+  --color-accent-amber: var(--color-accent-amber);
   --color-accent-fg: var(--color-accent-fg);
   --color-danger: var(--color-danger);
+  --color-danger-fg: var(--color-danger-fg);
+  --color-focus: var(--color-focus);
 }
 
 body {
@@ -95,13 +141,13 @@ body {
 
 /* PRD §23.1: focus must always be visible for keyboard users. */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 /*
- * Soft micro-interactions are a brand principle (DESIGN-REF §0), but they are
- * never mandatory. Respect the OS setting.
+ * Soft micro-interactions are a brand principle (DESIGN-REF §0), but never
+ * mandatory. The OS setting wins.
  */
 @media (prefers-reduced-motion: reduce) {
   *,
