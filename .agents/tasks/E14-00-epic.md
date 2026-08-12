@@ -1,7 +1,7 @@
 ---
 id: E14
 title: Admin Panel
-status: todo
+status: done
 tasks: 15
 depends_on: [E07]
 ---

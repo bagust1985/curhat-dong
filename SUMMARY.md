@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E13 selesai, E14 berjalan (12/15).
+> Terakhir: **12 Agustus 2026** — E14 selesai (API; UI menyusul di E15/E16).
 
 ## Status Keseluruhan
 
@@ -20,12 +20,216 @@
 | **E11** | Private Chat Room | 9/9 | ✅ **Selesai** |
 | **E12** | Notification | 9/9 | ✅ **Selesai** |
 | **E13** | Search | 4/4 | ✅ **Selesai** |
-| E14 | Admin Panel | 12/15 | 🟡 **Berjalan** — 113 test hijau (T13–T15 sisa) |
+| **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
 | E15 | Web UI | 0/17 | ⬜ Belum |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 122 / 182 task (67,0%).**
+**Progres: 137 / 182 task (75,3%).**
+
+---
+
+## E14 — Admin Panel ✅ (API)
+
+Lima belas task. Yang paling menentukan bentuk kodenya bukan fiturnya, tapi
+apa yang **tidak boleh bisa dilakukan** dari panel ini.
+
+| Task | Hasil |
+|---|---|
+| E14-T01 | TOTP sendiri (RFC 6238), MFA wajib, step-up, lockout, anti-replay |
+| E14-T02 | 23 permission × 5 role, default-deny, bukan hierarki |
+| E14-T03 | Audit log append-only **karena method-nya tidak ada** |
+| E14-T04 | Konten privat hanya lewat case aktif; percobaan gagal juga dicatat |
+| E14-T05 | Queue 4 level, Critical selalu di atas, SLA memperingatkan **sebelum** lewat |
+| E14-T06 | 7 aksi, alasan wajib bermakna, bulk hanya Low |
+| E14-T07 | Banding disembunyikan dari pemutusnya — tiga lapis |
+| E14-T08 | Cari akun lewat **hash** email, bukan email |
+| E14-T09 | Remove tidak menyentuh komentar, jadi restore benar-benar restore |
+| E14-T10 | Suspend listener ≠ ban akun; sesi ditutup sopan |
+| E14-T11 | Archive, bukan delete; slug tidak ada di DTO update |
+| E14-T12 | Threshold jadi config hidup — **tanpa cara mematikannya** |
+| E14-T13 | Verifikasi ulang wajib bawa sumber baru; empty state = peringatan keras |
+| E14-T14 | Metrik persis PRD §19.1; rate dihitung dari total, bukan rata-rata harian |
+| E14-T15 | Jumlah penerima dikonfirmasi sebelum kirim, dicek dua kali |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm test       6/6 file admin   hijau (141 test)
+```
+
+### Threshold safety jadi bisa diubah, tanpa jadi bisa dimatikan
+
+PRD §15.4 minta rasio overturned dipakai mengalibrasi threshold. Itu cuma
+berguna kalau ada yang bisa mengubahnya. Tapi halaman yang bisa menyetel angka
+apa pun bisa menyetel **1.0**, dan 1.0 adalah "mati" yang ditulis dengan cara
+lain — model tidak pernah seyakin itu.
+
+Jadi nilainya dibatasi 0.05–0.95, kategori L3 wajib tidak bisa dihapus (kategori
+tanpa threshold tidak pernah dievaluasi — `categoriesAtOrAbove` mengiterasi
+threshold, bukan skor), urutan level dijaga, dan `self_harm` **harus tetap**
+paling sensitif. Asimetri yang E07 tulis sebagai komentar sekarang jadi aturan
+yang menolak input.
+
+Baris yang tersimpan tapi tidak lolos validasi **diabaikan**, bukan dipakai.
+Kalau ada yang menulis nilai aneh langsung ke database, jawaban yang aman adalah
+default, bukan apa pun yang tertulis di sana.
+
+Yang membuat ini mungkin tanpa menyentuh logika keputusan: E07 menulis
+`mapRiskToSafetyLevel` sebagai fungsi murni yang **menerima** threshold sebagai
+argumen. Nilainya pindah ke `app_configs`, logikanya tidak berubah satu baris.
+
+### Audit log tidak bisa diubah karena tidak ada method-nya
+
+`AuditService` punya `record`, `list`, `exportCsv`. Tidak ada update, tidak ada
+delete, tidak ada endpoint yang memanggilnya. Test statik menolak
+`auditLog.update|delete|upsert` di seluruh modul admin.
+
+Audit log yang bisa diedit admin bukan bukti apa pun.
+
+### Konten privat: satu pintu, dan pintunya butuh case
+
+`PrivateContentService.openRoom` adalah satu-satunya jalan ke isi pesan room.
+Tidak ada endpoint yang membaca pesan by id, tidak ada listing yang memuat body,
+tidak ada route debug. Test memindai modul admin dan menolak `select` apa pun
+yang mengambil `body` dari `prisma.message` di luar file itu.
+
+Empat hal dicek, dan yang ketiga paling gampang dilupakan: case ada, case masih
+terbuka, **case menunjuk ke room itu**, dan aksesnya tercatat. Tanpa cek ketiga,
+satu case terbuka di mana pun jadi kunci untuk seluruh percakapan privat di
+platform.
+
+Audit ditulis **sebelum** konten dikembalikan, dan di-await. Crash di antara
+keduanya akan meninggalkan akses tanpa jejak — dan akses yang paling layak
+disembunyikan justru yang orangnya rela menginterupsi.
+
+Percobaan yang **ditolak** juga dicatat. Pola penolakan adalah sinyal yang lebih
+kuat daripada satu keberhasilan, dan tidak meninggalkan jejak sama sekali kalau
+cuma sukses yang dicatat.
+
+### Banding: disembunyikan, bukan ditolak
+
+Aturan "banding tidak ditinjau orang yang memutuskannya" sekarang punya tiga
+lapis. Dua yang sudah ada — CHECK constraint di database (E02) dan penolakan di
+service (E07) — sama-sama menghasilkan error **di ujung pekerjaan**, setelah
+moderator membaca case dan membentuk pendapat.
+
+Lapis ketiga menyembunyikannya dari query. Moderator tidak pernah membukanya,
+tidak pernah punya pendapat yang harus dikesampingkan. Ada test untuk keduanya:
+tidak muncul di queue, dan tetap ditolak kalau id-nya ditebak.
+
+### Suspend listener bukan ban akun
+
+Orang yang kewalahan menampung cerita orang lain bukan orang yang melakukan
+kesalahan. Alasan paling mungkin menarik seorang listener adalah karena dia
+perlu berhenti — itu alasan untuk **melindungi** akunnya, bukan menutupnya.
+
+Urutannya penting: availability dimatikan dulu (tidak ada offer baru), sesi
+terbuka ditutup lewat jalur close yang normal (requester melihat room tertutup
+dan prompt feedback, bukan percakapan yang berhenti begitu saja), lalu profil
+ditandai. Akunnya tidak disentuh — dia masih bisa posting, komentar, dan minta
+listener untuk dirinya sendiri.
+
+Memulihkan **tidak** menyalakan availability kembali. Kembali adalah keputusan
+dia; listener yang diam-diam dibuat available lagi akan mulai menerima offer
+yang tidak pernah dia minta.
+
+### Metrik: definisi PRD §19.1, dan dua yang gampang salah
+
+**Felt Heard Rate** = `(iya + sedikit) / total terjawab`. Prompt yang di-dismiss
+**tidak** masuk penyebut. Kalau dihitung, North Star berubah jadi ukuran
+seberapa mengganggu prompt-nya, dan angkanya memburuk tiap kali prompt muncul di
+saat yang salah. Numerator dan denominator disimpan terpisah supaya periode bisa
+dijumlahkan dengan benar — dan supaya rate bisa dihitung ulang kalau rumusnya
+suatu hari direvisi.
+
+**Meaningful action** tidak menghitung reaksi. Terlalu murah untuk menandakan
+keterlibatan; memasukkannya akan membuat Activation kelihatan sehat sementara
+tidak ada yang benar-benar berbicara dengan siapa pun.
+
+Rate dihitung dari total numerator/denominator, bukan rata-rata persentase
+harian. Merata-ratakan persentase memberi Selasa yang sepi bobot sama dengan
+Sabtu yang ramai — persis cara sebuah dashboard berselisih dengan query manual.
+
+Hari yang tidak punya snapshot **dilaporkan sebagai hilang**, tidak digambar nol.
+Nol berarti "tidak ada yang pakai app hari itu"; yang sebenarnya terjadi adalah
+job-nya tidak jalan.
+
+### Broadcast: satu-satunya tempat manusia menulis teks push
+
+Semua notifikasi lain datang dari katalog tertutup (E12-T04), karena copy
+per-peristiwa adalah tempat isi curhat bocor. Pemberitahuan maintenance tidak
+bisa berupa string tetap, jadi teksnya ditulis — dan aturan yang menggantikan
+jaminan katalog:
+
+- teksnya **sama untuk semua**, tanpa interpolasi. `assertNoUserData` menolak
+  placeholder (`{alias}`, `{{x}}`, `${x}`, `%x%`), email, dan nomor telepon
+  saat dibuat. Menangkap `{alias}` di sini murah; menemukannya setelah empat
+  puluh ribu orang menerima template setengah jadi tidak;
+- jumlah penerima di-snapshot, dan `confirmedRecipients` **wajib** dikirim saat
+  send. Mismatch ditolak, plus cek kedua terhadap segmen live. Broadcast tidak
+  bisa ditarik kembali, jadi tidak boleh disetujui dengan satu angka lalu
+  dikirim dengan angka lain;
+- hanya tipe `safety` melewati quiet hours. Pengumuman jam 2 pagi adalah persis
+  yang PRD §14 ada untuk mencegah;
+- batch 200 dengan jeda, supaya push provider tidak dibanjiri.
+
+Membatalkan broadcast yang sudah jalan **ditolak dengan jujur**, bukan tombol
+yang tidak melakukan apa-apa. Begitu notifikasinya ada, dia ada.
+
+### Kendala Nest yang membentuk desain
+
+`NestFactory.create` mendaftarkan `APP_GUARD` **sebelum** `main.ts` memanggil
+`useGlobalGuards`. Artinya `AdminGuard` global akan jalan **sebelum**
+`JwtAuthGuard` dan tidak menemukan user — setiap route admin menjawab 401 dengan
+token yang sempurna valid.
+
+Jadi guard-nya per-controller (`@UseGuards`), yang urutannya dijamin. Risiko
+"ada yang lupa memasang decorator" ditutup `admin-boundary.test.ts`: CI merah
+kalau ada controller admin tanpa guard, atau route tanpa `@RequirePermission`.
+
+### Empat bug yang ditemukan test, semuanya di kode sesi ini
+
+1. **Step TOTP dicatat salah.** `consumeCode` menyimpan `totpStep(now)` — step
+   server — padahal verifikasi menerima ±1 step. Kode sah dari step berikutnya
+   diarsipkan sebagai step sekarang, lalu ditolak sebagai replay. Akibatnya:
+   enrol lalu login **selalu gagal**. Diperbaiki di primitifnya —
+   `verifyTotpStep` mengembalikan step mana yang cocok. "Apakah valid" dan "apa
+   yang terpakai" dua pertanyaan berbeda; menyatukannya yang menyebabkan ini.
+2. **Export CSV dibungkus envelope.** `ResponseInterceptor` global membungkus
+   nilai balik jadi `{data, meta, error}`, sehingga baris pertama file unduhan
+   berupa JSON. Menyetel content-type tidak cukup — body-nya harus melewati
+   envelope lewat `@Res()`, preseden yang sama dengan SSE di E09.
+3. **Dua kegagalan cleanup yang ternyata fakta schema.**
+   `curhat_posts_category_id_fkey` menahan, jadi user harus dihapus sebelum
+   kategori. Dan `moderation_actions.moderator_id` **sengaja** tanpa cascade:
+   menghapus akun moderator tidak boleh menghapus catatan keputusannya.
+4. **Nest tidak mewarisi import modul bersarang.** `AdminModule` meng-import
+   `NotificationsModule` yang meng-import `UsersModule` — tapi
+   `NotificationSettingsService` tetap tidak terlihat sampai `AdminModule`
+   meng-import `UsersModule` sendiri. Gejalanya menipu: empat suite melapor
+   "103 skipped, 0 failed", karena app-nya tidak pernah boot. Run yang
+   melewatkan semuanya kelihatan lebih tenang daripada yang merah — persis yang
+   membuat versi E12 dari bug ini lolos ke commit.
+
+### Catatan & keterbatasan
+
+- **UI admin belum ada.** `apps/admin` masih scaffold; DESIGN-REF §3 menyebut 14
+  halaman. Yang selesai di sini seluruh API-nya plus `lib/navigation.ts`.
+  Halaman-halamannya pekerjaan tersendiri, bukan bagian dari 15 task ini.
+- **`daily-analytics` belum punya penjadwal.** `computeDay()` teruji dan bisa
+  dipanggil lewat `POST /admin/analytics/recompute`; repeatable job BullMQ-nya
+  E17-T02, sama seperti `deliverDue()` E12 dan `expireOverdue()` E10.
+- **`medianFirstResponseSeconds` di dashboard adalah median dari median harian**,
+  bukan median sebenarnya sepanjang periode. Aproksimasi, dan ditandai begitu di
+  kode; median sebenarnya butuh seluruh selisih mentah.
+- **Broadcast terjadwal belum dikirim otomatis.** Statusnya tersimpan
+  `scheduled`; yang menjalankannya saat waktunya tiba juga job E17.
+- **Belum ada satu pun hotline terverifikasi.** Endpoint T13 sudah siap dan
+  memperingatkan keras saat kosong, tapi daftar hotline Indonesia yang valid
+  (PRD §15.2) tetap **blocker rilis** yang butuh keputusan di luar kode.
 
 ---
 

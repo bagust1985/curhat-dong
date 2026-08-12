@@ -2,7 +2,7 @@
 id: E14-T15
 epic: E14
 title: Notification CMS (broadcast) + rate control
-status: todo
+status: done
 estimate: 1d
 depends_on: [E14-T02, E12-T06]
 refs: [PRD §18, DESIGN-REF §3.9]

@@ -234,3 +234,124 @@ model AppConfig {
 
   @@map("app_configs")
 }
+
+/// Broadcast type — E14-T15, DESIGN-REF §3.9.
+enum BroadcastType {
+  announcement
+  maintenance
+  campaign
+  /// The only type exempt from quiet hours (PRD §14).
+  safety
+}
+
+enum BroadcastStatus {
+  draft
+  scheduled
+  sending
+  sent
+  cancelled
+  failed
+}
+
+/// Who a broadcast goes to — E14-T15.
+enum BroadcastSegment {
+  all
+  listeners
+  /// Anyone with a session in the last 30 days.
+  active_users
+  inactive_users
+}
+
+/// An admin broadcast — E14-T15. PRD §18, DESIGN-REF §3.9.
+///
+/// The copy is written by an admin rather than drawn from the notification
+/// catalogue, because a maintenance notice cannot be a fixed string. That makes
+/// this the one place a human writes push text, so it is stored here, reviewed
+/// before sending, and never interpolated with anything about a recipient
+/// (CLAUDE.md non-negotiable #3 forbids user content; this forbids user *data*).
+model Broadcast {
+  id      String           @id @default(uuid()) @db.Uuid
+  type    BroadcastType
+  status  BroadcastStatus  @default(draft)
+  segment BroadcastSegment @default(all)
+
+  title String @db.VarChar(80)
+  body  String @db.VarChar(240)
+
+  /// Recipient count shown to the admin at confirmation time.
+  ///
+  /// Snapshotted rather than recomputed: a broadcast that cannot be recalled
+  /// must not be approved against one number and sent against another.
+  estimatedRecipients Int @map("estimated_recipients")
+  /// Actual notifications created, filled in as the send progresses.
+  sentCount           Int @default(0) @map("sent_count")
+
+  scheduledFor DateTime? @map("scheduled_for") @db.Timestamptz(6)
+  startedAt    DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(6)
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, scheduledFor])
+  @@index([createdAt(sort: Desc)])
+  @@map("broadcasts")
+}
+
+/// Daily metric snapshot — E14-T14. PRD §19.1.
+///
+/// Aggregated by a job rather than computed when the dashboard opens: the
+/// retention and time-to-first-response figures scan large ranges, and a
+/// dashboard that takes twenty seconds is a dashboard nobody opens.
+///
+/// One row per day. Recomputing a day overwrites it, so a backfill is
+/// idempotent and a fix to a metric definition can be replayed.
+model AnalyticsDaily {
+  /// The WIB day this describes, at midnight UTC of that date.
+  date DateTime @id @db.Date
+
+  newUsers    Int @default(0) @map("new_users")
+  activeUsers Int @default(0) @map("active_users")
+  dau         Int @default(0)
+  wau         Int @default(0)
+  mau         Int @default(0)
+
+  postsPublished Int @default(0) @map("posts_published")
+  commentsPosted Int @default(0) @map("comments_posted")
+
+  aiConversations Int @default(0) @map("ai_conversations")
+  listenerSessions Int @default(0) @map("listener_sessions")
+  activeListeners  Int @default(0) @map("active_listeners")
+
+  /// Felt Heard Rate numerator and denominator, stored separately.
+  ///
+  /// The North Star (PRD §19.1) — keeping both parts means the rate can be
+  /// recomputed if the formula is ever revised, and a period can be summed
+  /// correctly rather than by averaging daily percentages.
+  feltHeardAnswered Int @default(0) @map("felt_heard_answered")
+  feltHeardPositive Int @default(0) @map("felt_heard_positive")
+  /// Dismissed prompts, tracked but never in the denominator (PRD §9).
+  feltHeardDismissed Int @default(0) @map("felt_heard_dismissed")
+
+  /// Activation: new users who reached a meaningful action within 24h.
+  activatedUsers Int @default(0) @map("activated_users")
+
+  /// Posts published today that received >=1 human response within 24h.
+  postsWithResponse24h Int @default(0) @map("posts_with_response_24h")
+  /// Median seconds from publish to first human response.
+  medianFirstResponseSeconds Int? @map("median_first_response_seconds")
+
+  reportsFiled Int @default(0) @map("reports_filed")
+
+  aiCostUsd     Float @default(0) @map("ai_cost_usd")
+  aiCallCount   Int   @default(0) @map("ai_call_count")
+
+  casesOpened   Int @default(0) @map("cases_opened")
+  casesResolved Int @default(0) @map("cases_resolved")
+  slaBreached   Int @default(0) @map("sla_breached")
+
+  computedAt DateTime @default(now()) @map("computed_at") @db.Timestamptz(6)
+
+  @@map("analytics_daily")
+}

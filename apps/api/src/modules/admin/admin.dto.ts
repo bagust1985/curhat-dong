@@ -228,3 +228,86 @@ export type RoutingUpdateDto = z.infer<typeof routingUpdateSchema>;
 export type PromptPublishDto = z.infer<typeof promptPublishSchema>;
 export type PromptRollbackDto = z.infer<typeof promptRollbackSchema>;
 export type PromptDiffDto = z.infer<typeof promptDiffSchema>;
+
+// --- Support resources (E14-T13) --------------------------------------------
+
+/** Required on every write path. A dead hotline is worse than none. */
+const sourceUrl = z.string().trim().url().max(500);
+
+export const supportResourceCreateSchema = z.object({
+  region: z.string().trim().min(2).max(8).default('ID'),
+  name: z.string().trim().min(2).max(120),
+  channel: z.enum(['phone', 'chat', 'whatsapp', 'web']),
+  value: z.string().trim().min(3).max(200),
+  hours: z.string().trim().min(2).max(120),
+  language: z.string().trim().min(2).max(8).default('id'),
+  sourceUrl,
+  /** Off by default: a new entry is reviewed, then switched on. */
+  isActive: z.boolean().default(false),
+});
+
+export const supportResourceUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  value: z.string().trim().min(3).max(200).optional(),
+  hours: z.string().trim().min(2).max(120).optional(),
+  isActive: z.boolean().optional(),
+  sourceUrl: sourceUrl.optional(),
+});
+
+export const supportResourceVerifySchema = z.object({ sourceUrl });
+
+export const supportResourceDeactivateSchema = z.object({
+  reason: z.string().trim().min(10).max(2000),
+});
+
+export const regionQuerySchema = z.object({
+  region: z.string().trim().min(2).max(8).default('ID'),
+});
+
+// --- Analytics (E14-T14) ----------------------------------------------------
+
+export const analyticsRangeSchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});
+
+export const analyticsComputeSchema = z.object({
+  /** Omit for today. Present so a backfill can run one day at a time. */
+  date: z.coerce.date().optional(),
+});
+
+// --- Broadcast (E14-T15) ----------------------------------------------------
+
+export const broadcastCreateSchema = z.object({
+  type: z.enum(['announcement', 'maintenance', 'campaign', 'safety']),
+  segment: z.enum(['all', 'listeners', 'active_users', 'inactive_users']).default('all'),
+  title: z.string().trim().min(4).max(80),
+  /** Short on purpose: this is push copy, not an article. */
+  body: z.string().trim().min(10).max(240),
+  scheduledFor: z.coerce.date().optional(),
+});
+
+/**
+ * The confirmation step.
+ *
+ * `confirmedRecipients` is required, not optional — a broadcast cannot be
+ * recalled, so the count has to be echoed back deliberately rather than
+ * accepted by default.
+ */
+export const broadcastSendSchema = z.object({
+  confirmedRecipients: z.coerce.number().int().min(0),
+});
+
+export const broadcastSegmentSchema = z.object({
+  segment: z.enum(['all', 'listeners', 'active_users', 'inactive_users']),
+});
+
+export type SupportResourceCreateDto = z.infer<typeof supportResourceCreateSchema>;
+export type SupportResourceUpdateDto = z.infer<typeof supportResourceUpdateSchema>;
+export type SupportResourceVerifyDto = z.infer<typeof supportResourceVerifySchema>;
+export type SupportResourceDeactivateDto = z.infer<typeof supportResourceDeactivateSchema>;
+export type RegionQueryDto = z.infer<typeof regionQuerySchema>;
+export type AnalyticsRangeDto = z.infer<typeof analyticsRangeSchema>;
+export type AnalyticsComputeDto = z.infer<typeof analyticsComputeSchema>;
+export type BroadcastCreateDto = z.infer<typeof broadcastCreateSchema>;
+export type BroadcastSendDto = z.infer<typeof broadcastSendSchema>;
+export type BroadcastSegmentDto = z.infer<typeof broadcastSegmentSchema>;

@@ -2,7 +2,7 @@
 id: E14-T13
 epic: E14
 title: Support Resources management
-status: todo
+status: done
 estimate: 1d
 depends_on: [E14-T02, E02-T07]
 refs: [PRD §15.2, TECH-SPEC §18.5, DESIGN-REF §3.14]
