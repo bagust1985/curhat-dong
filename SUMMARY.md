@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E03 selesai.
+> Terakhir: **12 Agustus 2026** — E04 selesai.
 
 ## Status Keseluruhan
 
@@ -10,7 +10,7 @@
 | **E01** | Foundation & Tooling | 10/10 | ✅ **Selesai** |
 | **E02** | Database & Prisma | 9/9 | ✅ **Selesai** |
 | **E03** | Auth & Session | 12/12 | ✅ **Selesai** |
-| E04 | Onboarding, Consent & Identity | 0/8 | ⬜ Belum |
+| **E04** | Onboarding, Consent & Identity | 8/8 | ✅ **Selesai** |
 | E05 | Post & Feed | 0/12 | ⬜ Belum |
 | E06 | Interaction & Felt Heard | 0/8 | ⬜ Belum |
 | E07 | Safety Engine & Moderation Core | 0/14 | ⬜ Belum |
@@ -25,7 +25,89 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 31 / 182 task (17,0%).**
+**Progres: 39 / 182 task (21,4%).**
+
+---
+
+## E04 — Onboarding, Consent & Identity ✅
+
+7 langkah onboarding, age gate 18+, consent 3 jenis tercatat terpisah, alias
+anonim, identitas per post, export data, dan delete account.
+
+| Task | Hasil |
+|---|---|
+| E04-T01 | Age gate self-declaration + cooldown 24 jam pada device |
+| E04-T02 | Consent 3 jenis; analytics opsional dan tidak pernah mengunci fitur |
+| E04-T03 | Alias generator kamus Indonesia + validasi + cek ketersediaan |
+| E04-T04 | Kode anonim **acak per post**, tidak bisa dikorelasikan |
+| E04-T05 | `POST /onboarding` atomik & idempoten |
+| E04-T06 | Notification settings + quiet hours sadar timezone |
+| E04-T07 | Data export — hanya data sendiri |
+| E04-T08 | Delete: purge (grace 30 hari) vs anonymize (irreversible) |
+
+### Hasil verifikasi
+
+```
+pnpm lint       13/13 workspace  hijau
+pnpm typecheck  13/13 workspace  hijau
+pnpm test       156 test         hijau
+```
+
+Pemecahan: api 46 · auth 33 · notifications 23 · web 17 · database 14 ·
+types 10 · config 9 · admin 4.
+
+### Bug nyata yang ditangkap test sendiri
+
+Test "generator harus lolos validasinya sendiri" **gagal** — dan benar.
+Blacklist alias memakai pencocokan substring, sehingga **"PurnamaSunyi" ditolak**
+karena mengandung `asu`. Hal yang sama menimpa "CakrawalaSunyi" dan
+"LenteraSunyi" — semuanya kombinasi yang bisa dihasilkan generator sendiri.
+
+Perbaikannya memisah blacklist jadi dua:
+- **kata panjang tak ambigu** (anjing, kontol, ngentot…) → cocok di mana saja;
+- **kata pendek yang muncul di kata biasa** (asu, babi, mati, bego) → cocok
+  hanya sebagai token utuh, setelah alias dipecah di separator, angka, dan
+  batas camelCase.
+
+Jadi "AsuBesar", "asu_besar", dan "a s u" tetap ditolak, sementara
+"PurnamaSunyi" lolos. Tanpa test itu, user akan melapor "generator namanya
+rusak" — dan kita akan lama mencari penyebabnya.
+
+### Keputusan implementasi
+
+1. **Kode anonim diacak, bukan diturunkan dari user id.** Kode turunan — bahkan
+   yang di-hash — akan identik di semua post orang itu, sehingga siapa pun bisa
+   mengelompokkan seluruh post anonim satu orang hanya dengan membaca feed.
+   Itu persis bahaya yang mode anonim seharusnya cegah. Diuji: 5 post dari satu
+   author menghasilkan kode berbeda.
+2. **Quiet hours dihitung di timezone device, bukan server.** 20:00 UTC adalah
+   tengah malam di Jakarta. Logikanya di `packages/notifications` dengan 15 test,
+   termasuk jendela yang melewati tengah malam — salah menangani itu berarti
+   notifikasi mati seharian, bukan semalaman, dan tidak ada yang melapor karena
+   terlihat seperti fitur yang memang tidak jalan.
+3. **Listener nudge TIDAK dikecualikan dari quiet hours.** Cuma `safety` dan
+   `account`. Nudge jam 2 pagi adalah cara tercepat kehilangan listener, dan itu
+   bukan hal mendesak — requester-nya sudah ditawari DONG AI.
+4. **Notifikasi yang cepat basi di-drop, bukan ditahan.** Match offer ber-TTL 60
+   detik yang dikirim 6 jam kemudian lebih buruk daripada diam.
+5. **Export tidak memuat pesan private room** walau user ikut menulisnya.
+   Percakapan itu milik berdua; mengekspor satu sisi berarti menyerahkan
+   kata-kata orang lain tanpa izinnya. Alasannya ditulis di dalam file export.
+6. **Delete account butuh konfirmasi diketik** (`HAPUS AKUN`). Satu ketukan
+   terlalu sedikit untuk aksi tanpa jalan kembali.
+7. **Consent ditolak tetap dicatat**, bukan dilewati — "dia bilang tidak" sama
+   berharganya sebagai bukti kepatuhan.
+
+### Catatan
+
+- Age gate memakai self-declaration. Meminta KTP ke platform anonim akan
+  menghancurkan premisnya sendiri; klaim publiknya "ditujukan untuk 18+", bukan
+  "terverifikasi 18+".
+- Cooldown age gate memakai device id atau IP hash. Keduanya bisa dipalsukan —
+  tujuannya menghentikan percobaan ulang yang paling gampang, bukan membangun
+  sistem identitas.
+- `GET /me/export/preview` masih membangun export secara langsung. Job async
+  dengan signed URL menyusul di E17 bersama object storage.
 
 ---
 
@@ -348,12 +430,12 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E04 — Onboarding, Consent & Identity** (8 task): age gate 18+, consent 3 jenis
-tercatat terpisah, alias anonim, anonymous identity per post, data export,
-delete/anonymize account.
+**E05 — Post & Feed** (12 task): create curhat lengkap (mood, intent,
+anonymity), 4 tab feed cursor-based, aturan "Butuh Didengar", noindex, dan
+target p95 < 500ms.
 
 Urutan setelahnya mengikuti jalur kritis:
-`E04 → E05 → E07 → E10 → E11`.
+`E05 → E07 → E10 → E11`.
 
 Catatan urutan: **E07 (Safety) wajib selesai sebelum E09 (DONG AI) dirilis** —
 AI yang jalan tanpa safety engine melanggar aturan non-negotiable #1.

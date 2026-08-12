@@ -2,7 +2,7 @@
 id: E04-T06
 epic: E04
 title: Notification settings + quiet hours
-status: todo
+status: done
 estimate: 1d
 depends_on: [E04-T05]
 refs: [PRD §14, TECH-SPEC §4.7, DESIGN-REF §2.16]

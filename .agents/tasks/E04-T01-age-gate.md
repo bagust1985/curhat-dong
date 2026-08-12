@@ -2,7 +2,7 @@
 id: E04-T01
 epic: E04
 title: Age gate 18+ dengan cooldown penolakan
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T02]
 refs: [PRD §25.5, DESIGN-REF §2.2c]

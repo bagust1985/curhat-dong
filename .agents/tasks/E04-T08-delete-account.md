@@ -2,7 +2,7 @@
 id: E04-T08
 epic: E04
 title: Delete account — purge vs anonymize
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E04-T07]
 refs: [PRD §25.4, TECH-SPEC §18.3, DESIGN-REF §2.21]

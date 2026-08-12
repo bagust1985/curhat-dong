@@ -2,7 +2,7 @@
 id: E04-T05
 epic: E04
 title: Endpoint onboarding
-status: todo
+status: done
 estimate: 1d
 depends_on: [E04-T01, E04-T02, E04-T03]
 refs: [TECH-SPEC §3.1, PRD §5]

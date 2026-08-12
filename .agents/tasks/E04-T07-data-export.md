@@ -2,7 +2,7 @@
 id: E04-T07
 epic: E04
 title: Data export (hak portabilitas)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T07]
 refs: [PRD §25.2, TECH-SPEC §18.3]

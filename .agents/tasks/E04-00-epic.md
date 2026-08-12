@@ -1,7 +1,7 @@
 ---
 id: E04
 title: Onboarding, Consent & Identity
-status: todo
+status: done
 tasks: 8
 depends_on: [E03]
 ---

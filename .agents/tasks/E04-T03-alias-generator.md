@@ -2,7 +2,7 @@
 id: E04-T03
 epic: E04
 title: Anonymous alias — generator, cek ketersediaan, avatar preset
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T10]
 refs: [PRD §4, DESIGN-REF §2.3]

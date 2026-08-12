@@ -2,7 +2,7 @@
 id: E04-T02
 epic: E04
 title: API consent — grant, revoke, versioning
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E02-T07]
 refs: [PRD §25.3, TECH-SPEC §18.1]
