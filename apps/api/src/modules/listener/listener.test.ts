@@ -16,6 +16,11 @@ import { SessionService } from '../auth/session.service.js';
 import { FeatureFlagService } from '../feature-flags/feature-flags.service.js';
 import { ModerationService } from '../moderation/moderation.service.js';
 import { SupportResourcesService } from '../safety/support-resources.service.js';
+import { DevicesService } from '../notifications/devices.service.js';
+import { NotificationFanoutService } from '../notifications/notification-fanout.service.js';
+import { NotificationRealtimeService } from '../notifications/notification-realtime.service.js';
+import { PushDeliveryService } from '../notifications/push-delivery.service.js';
+import { NotificationSettingsService } from '../users/notification-settings.service.js';
 import { UsersService } from '../users/users.service.js';
 import { wibDayKey } from '../ai/wib-day.js';
 import { AvailabilityService } from './availability.service.js';
@@ -85,6 +90,15 @@ describeIntegration('listener & matching (E10)', () => {
         OffersService,
         ListenerRequestsService,
         ListenerEscalateService,
+        // E12 gave OffersService a voice: accepting an offer now emits
+        // match:offer / match:accepted and queues a push. Both are provided
+        // here so this suite keeps exercising matching on its own, without
+        // pulling the whole notification module in.
+        NotificationRealtimeService,
+        NotificationFanoutService,
+        NotificationSettingsService,
+        DevicesService,
+        PushDeliveryService,
       ],
     }).compile();
 

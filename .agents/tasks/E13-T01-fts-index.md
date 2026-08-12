@@ -2,7 +2,7 @@
 id: E13-T01
 epic: E13
 title: tsvector + GIN index untuk post
-status: todo
+status: done
 estimate: 1d
 depends_on: [E02-T08]
 refs: [TECH-SPEC §2.4]

@@ -2,7 +2,7 @@
 id: E13-T03
 epic: E13
 title: Batas privasi pencarian
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E13-T02]
 refs: [PRD §13, CLAUDE.md non-negotiable #5]

@@ -11,6 +11,14 @@ export const APP_CONFIG_DEFAULTS = {
   'rate_limit.comment_per_hour': 60,
   'rate_limit.report_per_day': 20,
   'rate_limit.otp_per_hour_per_email': 5,
+  /**
+   * PRD §13 — search (E13-T02).
+   *
+   * Scraping the feed one query at a time is the cheapest way to build a
+   * corpus of other people's curhat. Generous enough that someone refining a
+   * search never notices it.
+   */
+  'rate_limit.search_per_minute': 30,
 
   /** PRD §10 — AI cost guard */
   'ai.messages_per_day': 50,

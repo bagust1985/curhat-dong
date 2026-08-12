@@ -2,7 +2,7 @@
 id: E13-T04
 epic: E13
 title: Recent searches (lokal)
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E13-T02]
 refs: [DESIGN-REF §2.13]

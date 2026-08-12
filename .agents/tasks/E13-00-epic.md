@@ -1,7 +1,7 @@
 ---
 id: E13
 title: Search
-status: todo
+status: done
 tasks: 4
 depends_on: [E05]
 ---

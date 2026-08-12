@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E12 selesai.
+> Terakhir: **12 Agustus 2026** — E13 selesai.
 
 ## Status Keseluruhan
 
@@ -19,13 +19,194 @@
 | **E10** | Listener & Matching | 11/11 | ✅ **Selesai** |
 | **E11** | Private Chat Room | 9/9 | ✅ **Selesai** |
 | **E12** | Notification | 9/9 | ✅ **Selesai** |
-| E13 | Search | 0/4 | ⬜ Belum |
+| **E13** | Search | 4/4 | ✅ **Selesai** |
 | E14 | Admin Panel | 0/15 | ⬜ Belum |
 | E15 | Web UI | 0/17 | ⬜ Belum |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 118 / 182 task (64,8%).**
+**Progres: 122 / 182 task (67,0%).**
+
+---
+
+## E13 — Search ✅
+
+Postgres full-text, tanpa Elasticsearch. Empat task, dan tiga di antaranya
+sebenarnya tentang apa yang **tidak** boleh ditemukan.
+
+| Task | Hasil |
+|---|---|
+| E13-T01 | Index sudah ada dari E02-T08; afiks Indonesia diselesaikan di query layer |
+| E13-T02 | `GET /search` tiga tab, cursor berperingkat, rate limit, profil public-safe |
+| E13-T03 | Room & AI tidak terjangkau — dijaga test statik, bukan niat baik |
+| E13-T04 | Riwayat pencarian **hanya di perangkat**, tanpa endpoint sama sekali |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm build      9/9              hijau
+pnpm test       561 test          hijau
+```
+
+Pemecahan: api 337 · @curhat/ai 57 · notifications 56 · web 41 · auth 33 ·
+database 14 · types 10 · config 9 · admin 4.
+
+Catatan jujur soal cara menjalankannya: `pnpm test` satu proses untuk seluruh
+workspace butuh belasan menit — suite `@curhat/api` membuat setiap user test
+lewat OTP yang di-brute-force terhadap database sungguhan — dan di lingkungan
+ini prosesnya dibunuh sebelum selesai. Angka di atas dikumpulkan dari dua
+jalur: delapan workspace non-api dalam satu putaran penuh, dan `@curhat/api`
+dari putaran penuh (309 lulus) ditambah `src/modules/listener` yang dijalankan
+terpisah setelah perbaikan di bawah (58 lulus, mencakup 28 test yang sebelumnya
+tidak sempat jalan). Tidak ada satu pun test yang gagal — tapi belum pernah
+semuanya hijau dalam **satu** proses, dan itu pantas dicatat.
+
+### Postgres tidak punya stemmer bahasa Indonesia
+
+E02-T08 sudah memilih konfigurasi `simple` dan mencatat alasannya: `english`
+akan men-stem kata Indonesia dengan aturan Inggris — hasilnya salah dengan cara
+yang sulit ditebak dan mustahil dijelaskan ke user yang bingung kenapa
+pencariannya nol hasil.
+
+Konsekuensinya afiks jadi urusan query layer. Diberi satu kata, `wordVariants`
+menghasilkan bentuk-bentuk yang mungkin terindeks, lalu semuanya di-OR:
+
+```
+"kesepian"  →  kesepian:* | kesepi:* | sepian:* | sepi:*
+```
+
+Prefix match (`:*`) mengurus akhiran yang menempel di token terindeks —
+mencari "kesepian" menemukan "kesepiannya". Pengupasan mengurus arah
+sebaliknya: mencari "kesepian" juga menemukan post yang cuma menulis "sepi".
+
+Ini **aproksimasi murah, bukan stemmer**. Sengaja sedikit over-generate
+(pencarian yang agak longgar mengembalikan beberapa hasil melenceng) daripada
+under-generate (pencarian nol hasil, yang dibaca orang sebagai "app-nya
+rusak"). Nazief-Adriani sungguhan lebih besar dari porsi Phase 1 — alasan yang
+sama TECH-SPEC §2.4 mencoret Elasticsearch.
+
+Ada rem yang penting: stem di bawah **empat huruf ditolak**. "diam" dikupas
+`di-` jadi "am", yang cocok dengan sangat banyak kata Indonesia dan tidak
+berarti apa pun. Test memastikan "diam" dan "sedih" tidak pernah dikupas.
+
+### Kata pertama selalu yang diketik user
+
+`wordVariants(word)[0] === word`, dijaga test. Varian adalah tambahan, bukan
+pengganti — pencarian yang mengabaikan kata yang benar-benar diketik seseorang
+adalah cara tercepat membuat orang berhenti percaya kolom pencarian.
+
+### Sanitasi ganda sebelum `to_tsquery`
+
+`to_tsquery` **mem-parse** argumennya. Tanda `!`, `&`, `<->`, dan kurung adalah
+operator; kurung yang tidak seimbang adalah syntax error — artinya 500 untuk
+orang yang kebetulan mengetiknya.
+
+Dua kunci: tokenizer memotong di setiap karakter non-huruf/angka lalu menyapu
+sisanya, sehingga yang keluar hanya bisa `[a-z0-9]`; dan nilainya tetap dikirim
+sebagai **bound parameter**, bukan disisipkan ke SQL. Ada test yang menembakkan
+`"capek & !kerja"`, `"(banget):*"`, `"a <-> b"`, dan `"'x'"` — semuanya 200.
+
+### Cursor berperingkat, bukan berwaktu
+
+Feed mengurut waktu; pencarian mengurut relevansi. Jadi cursornya
+`(rank, id)` — rank saja tidak unik (dua post yang cocok satu kata biasanya
+skornya identik), dan paging di rank saja akan berputar di baris yang sama.
+
+### Yang paling penting di epic ini adalah kode yang tidak ada
+
+"Pesan private room dan percakapan DONG AI tidak pernah bisa dicari" adalah
+klaim tentang kode yang **tidak ditulis**, dan klaim seperti itu paling sulit
+dipertahankan: satu permintaan fitur yang masuk akal ("biar user bisa nyari
+obrolan lamanya") berjarak satu sore dari sebuah join yang diam-diam
+membatalkannya.
+
+Jadi dijaga mekanis. `search-boundary.test.ts` memindai seluruh modul search
+dan menolak: `prisma.message`, `prisma.aiMessage`, `prisma.aiConversation`,
+`chat_rooms`, `room_members`, plus setiap kolom yang mengidentifikasi akun
+(`email_hash`, `provider_id`, `trust_score_internal`, `push_token`).
+
+Ada juga test integrasi yang menulis pesan room dan pesan AI berisi kata unik,
+lalu mencarinya di ketiga tab — nol hasil di semuanya.
+
+### Post anonim tetap tidak bisa dikorelasikan
+
+Kalau search mengembalikan `author_id` — atau kode anonim yang stabil per user
+— membaca halaman hasil akan mengelompokkan seluruh riwayat anonim seseorang
+dalam satu langkah. Persis bahaya yang E04-T04 cegah dengan mengacak kode tiap
+post.
+
+Jadi test-nya tidak memeriksa teks SQL (kolomnya memang muncul di `WHERE` dan
+di `JOIN`), tapi memeriksa **bentuk yang keluar**: `PostRow` dan `PostResult`
+tidak boleh punya field id apa pun. Ditambah test integrasi: dua post anonim
+dari satu penulis muncul dengan dua kode berbeda, tanpa alias, tanpa user id.
+
+### Bio listener sengaja tidak di-full-text
+
+Pencarian listener mencocokkan alias saja. Bio adalah tempat orang menulis
+sesuatu yang personal tentang kenapa mereka mau mendengarkan; membuatnya bisa
+dicari kata per kata mengubahnya dari catatan di profil yang seseorang pilih
+untuk dibuka, menjadi permukaan untuk **mencari orang**.
+
+Hasil listener juga memakai allow-list yang sama persis dengan `PublicProfile`
+(PRD §16), plus availability. Ada test yang membandingkan `Object.keys()` hasil
+dengan daftar itu — search tidak boleh jadi satu-satunya endpoint yang bocor
+lebih banyak dari halaman profilnya sendiri.
+
+### Riwayat pencarian tidak punya endpoint
+
+E13-T04 selesai dengan **tidak membangun apa pun di server**. Tidak ada
+endpoint yang menerima riwayat pencarian dan tidak ada yang mengembalikannya.
+
+Alasannya: apa yang seseorang cari di app curhat setidaknya seinformatif apa
+yang dia tulis, dan sering lebih — sebuah pencarian adalah pertanyaan yang
+belum dia putuskan untuk diucapkan. Menyimpannya lokal juga membuat tombol
+"hapus riwayat" benar-benar menghapus; kalau ada salinan di server, tombol itu
+cuma sebuah request, dan di belakangnya ada backup.
+
+Dijaga dua test: file klien tidak memuat `fetch`/`sendBeacon`/URL apa pun, dan
+tidak satu pun file di modul search API menyebut `recent_search` /
+`searchHistory`.
+
+Daftarnya sengaja pendek (8 entri). Riwayat panjang di perangkat yang dipakai
+bersama adalah daftar kekhawatiran seseorang yang ditinggal terbuka untuk orang
+berikutnya yang memegang ponselnya.
+
+### Keputusan yang diambil saat implementasi
+
+1. **Raw SQL, bukan Prisma.** `@@`, `ts_rank`, dan kolom `tsvector` tidak bisa
+   diekspresikan Prisma — alasan yang sama migrasi E02-T08 ditulis tangan.
+2. **Filter `status = 'published'` ditulis ulang di query** meski index GIN-nya
+   sudah partial. Index adalah keputusan performa yang bisa diubah orang tanpa
+   sadar itu juga batas keamanannya.
+3. **AND antar kata, OR antar bentuk.** Dua kata adalah penyempitan, bukan
+   pelebaran: yang mengetik "capek kerja" ingin post tentang keduanya. Varian
+   dibungkus kurung — tanpa itu `a:* | b:* & c:*` mengikat sebagai
+   `a | (b & c)` dan kata kedua berhenti jadi syarat.
+4. **`X-Robots-Tag` juga di API,** bukan cuma di web (E05-T11 sudah menutup
+   `/:path*`). Crawler yang menemukan API langsung akan mendapat JSON penuh
+   kutipan curhat tanpa penanda apa pun.
+5. **Rate limit fail-open,** seperti seluruh endpoint konten (E05). Redis mati
+   tidak boleh mematikan pencarian.
+6. **Excerpt, bukan isi penuh.** Hasil pencarian memotong di 280 karakter sama
+   seperti kartu feed; halaman hasil bukan tempat membaca curhat orang utuh.
+
+### Catatan & keterbatasan
+
+- **Awalan yang tidak diikuti akhiran belum tertangani sepenuhnya.** Varian
+  yang dihasilkan mencakup kasus umum (`ke-…-an`, `me-…-kan`, akhiran murni),
+  tapi ini tetap aproksimasi. Kalau kualitas pencarian terbukti kurang di data
+  nyata, langkah berikutnya adalah kamus stemmer Indonesia di sisi index —
+  perubahan yang jauh lebih besar dan pantas diputuskan dari angka.
+- **Ranking `ts_rank` bawaan.** Bobot A untuk judul dan B untuk body sudah
+  ditetapkan E02-T08; belum ada penyesuaian freshness atau engagement.
+  Menambahkan engagement ke ranking pencarian perlu hati-hati — PRD §20
+  melarang konten sensitif terangkat karena engagement.
+- **UI-nya E15-T13/E16.** Yang selesai di sini API dan helper klien; halaman
+  `/search`, tab, dan daftar recent searches adalah epic UI.
+- **Belum ada benchmark pencarian di data besar.** Benchmark feed E05-T12 jalan
+  di 50.000 post; query FTS belum diukur setara.
 
 ---
 
@@ -52,25 +233,35 @@ curhatnya ikut terbaca di lock screen.
 pnpm lint       15/15 workspace  hijau
 pnpm typecheck  15/15 workspace  hijau
 pnpm build      9/9              hijau
-pnpm test       8/9 workspace    hijau (213 test)
+pnpm test       561 test          hijau
 ```
 
-Pemecahan yang sudah melapor: @curhat/ai 57 · notifications 56 · auth 33 ·
-web 30 · database 14 · types 10 · config 9 · admin 4.
+Pemecahan: api 337 · @curhat/ai 57 · notifications 56 · web 41 · auth 33 ·
+database 14 · types 10 · config 9 · admin 4.
 
-**Suite `@curhat/api` belum selesai saat commit ini dibuat** dan angkanya belum
-tercatat di sini. Jalannya lama karena setiap user test dibuat lewat OTP yang
-di-brute-force terhadap database sungguhan. Jalankan ulang dengan:
+**Angka ini dikonfirmasi belakangan, saat E13.** Commit E12 dibuat sebelum
+suite `@curhat/api` sempat melapor, dan konsekuensinya nyata — lihat regresi
+di bawah.
 
-```bash
-pnpm --filter @curhat/api test
-```
+### Regresi yang lolos ke commit E12
 
-Yang sudah dijalankan terpisah dan hijau sebelum commit: `pnpm typecheck` dan
-`pnpm lint` untuk `@curhat/api`, plus dua putaran
-`src/modules/notifications` + `src/modules/listener/nudge.test.ts` yang
-menemukan dan menutup tiga bug di bawah. Putaran terakhir setelah perbaikan
-`z.partialRecord` dan `unavailableMessage` belum dikonfirmasi.
+`OffersService` mendapat dua dependensi baru di E12 supaya akhirnya bisa
+mengirim `match:offer` / `match:accepted`. Tapi `listener.test.ts` membangun
+`TestingModule` yang sengaja sempit — daftar provider ditulis tangan, bukan
+meng-import modul — jadi Nest tidak bisa me-resolve keduanya dan **seluruh file
+itu gagal di `beforeAll`**. Dua puluh delapan test tidak jalan sama sekali;
+laporannya "skipped", bukan "failed", yang justru lebih mudah terlewat.
+
+Tidak terlihat waktu suite notifikasi dan nudge dijalankan sendiri-sendiri, dan
+putaran penuh yang seharusnya menangkapnya terbunuh di tengah jalan oleh proses
+test lain di database yang sama.
+
+Perbaikannya menambahkan provider notifikasi ke daftar itu, bukan meng-import
+`NotificationsModule` — supaya suite tersebut tetap menguji matching secara
+berdiri sendiri.
+
+Pelajarannya lugas: commit sebelum suite melapor adalah taruhan, dan taruhan
+ini kalah.
 
 ### Non-negotiable #3 ditegakkan tipe, bukan review
 
