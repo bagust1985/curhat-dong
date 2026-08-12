@@ -2,7 +2,7 @@
 id: E06-T07
 epic: E06
 title: Pemeliharaan response_count
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E06-T02]
 refs: [TECH-SPEC §4.7, §2.4]

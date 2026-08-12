@@ -2,7 +2,7 @@
 id: E06-T08
 epic: E06
 title: Report — 10 kategori
-status: todo
+status: done
 estimate: 1d
 depends_on: [E06-T02]
 refs: [PRD §15, TECH-SPEC §3.2, DESIGN-REF §2.17]

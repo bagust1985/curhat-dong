@@ -2,7 +2,7 @@
 id: E06-T06
 epic: E06
 title: Jawaban Felt Heard + perhitungan rate
-status: todo
+status: done
 estimate: 1d
 depends_on: [E06-T05]
 refs: [PRD §9, §19.1, TECH-SPEC §4.6]

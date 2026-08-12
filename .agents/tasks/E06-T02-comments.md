@@ -2,7 +2,7 @@
 id: E06-T02
 epic: E06
 title: Komentar & reply (nested 1 level)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E06-T01]
 refs: [PRD §9, TECH-SPEC §3.2, DESIGN-REF §2.5]

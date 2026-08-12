@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E05 selesai (11/12; 1 task client-side ditunda).
+> Terakhir: **12 Agustus 2026** — E06 selesai.
 
 ## Status Keseluruhan
 
@@ -12,7 +12,7 @@
 | **E03** | Auth & Session | 12/12 | ✅ **Selesai** |
 | **E04** | Onboarding, Consent & Identity | 8/8 | ✅ **Selesai** |
 | **E05** | Post & Feed | 11/12 | ✅ **Selesai** (1 ditunda ke E15/E16) |
-| E06 | Interaction & Felt Heard | 0/8 | ⬜ Belum |
+| **E06** | Interaction & Felt Heard | 8/8 | ✅ **Selesai** |
 | E07 | Safety Engine & Moderation Core | 0/14 | ⬜ Belum |
 | E08 | AI Gateway | 0/9 | ⬜ Belum |
 | E09 | DONG AI | 0/8 | ⬜ Belum |
@@ -25,7 +25,90 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 50 / 182 task (27,5%).**
+**Progres: 58 / 182 task (31,9%).**
+
+---
+
+## E06 — Interaction & Felt Heard ✅
+
+6 emotional reaction, komentar + reply satu tingkat, mark helpful, report 10
+kategori, dan **Felt Heard** — North Star Metric produk ini.
+
+| Task | Hasil |
+|---|---|
+| E06-T01 | 6 reaksi pada post, idempoten, cek visibilitas |
+| E06-T02 | Komentar + reply 1 tingkat, cursor pagination |
+| E06-T03 | Reaksi pada komentar — service yang sama, bukan duplikasi |
+| E06-T04 | Mark helpful (author only) + helpful count profil |
+| E06-T05 | Trigger Felt Heard + seluruh aturan anti-fatigue |
+| E06-T06 | Jawaban + perhitungan Felt Heard Rate |
+| E06-T07 | `response_count` atomik, akurat di bawah konkurensi |
+| E06-T08 | Report 10 kategori + prioritas queue + SLA |
+
+### Hasil verifikasi
+
+```
+pnpm lint       13/13 workspace  hijau
+pnpm typecheck  13/13 workspace  hijau
+pnpm test       202 test         hijau
+```
+
+Pemecahan: api 88 · auth 33 · notifications 23 · web 21 · database 14 ·
+types 10 · config 9 · admin 4.
+
+### Yang menjaga North Star tetap bermakna
+
+**Dismiss bukan "Belum".** Prompt yang di-dismiss dikeluarkan sepenuhnya dari
+penyebut. Menghitungnya sebagai jawaban negatif akan membuat Felt Heard Rate
+mengukur *keterganggusan*, bukan apakah orang merasa didengar — dan angkanya
+akan pelan-pelan memburuk setiap kali prompt muncul di saat yang salah.
+Diuji langsung: 3 jawaban + 1 dismiss → rate 2/3, dismiss dilaporkan terpisah.
+
+**Rate mengembalikan `null`, bukan 0, saat belum ada jawaban.** "Belum ada
+data" dan "tidak ada yang merasa didengar" adalah dua hal yang sangat berbeda
+untuk ditampilkan di dashboard.
+
+**Jumlah dismiss ikut dilaporkan.** Angka dismiss yang naik adalah sinyal
+prompt-nya muncul di saat yang salah — bukan sinyal orang merasa tidak
+didengar. Tanpa memisahkan keduanya, dua masalah berbeda terlihat sama.
+
+**Reaksi tidak dihitung sebagai respons.** Post dengan dua belas ketukan dan nol
+kata belum terjawab. Menghitung reaksi akan mengubur persis post yang masih
+butuh balasan manusia. Diuji.
+
+**Balasan ke diri sendiri tidak dihitung.** Membalas curhat sendiri bukan
+"didengar".
+
+### Anti-fatigue Felt Heard
+
+Empat aturan, semuanya diuji terhadap server sungguhan:
+- maksimal **1 prompt per post**, berapa pun balasan yang masuk (diuji dengan 4 balasan);
+- maksimal **3 per hari** (diuji dengan 5 post yang semuanya dijawab);
+- **delay 30 menit** setelah respons pertama — bertanya di detik yang sama
+  balasan datang berarti bertanya sebelum penulisnya sempat membaca;
+- bisa **dimatikan permanen** dari Settings.
+
+### `response_count` di bawah konkurensi
+
+Counter ini menentukan post mana yang muncul di "Butuh Didengar", jadi
+melesetnya berarti post yang sudah dijawab terus meminta bantuan. Increment-nya
+atomik, bukan read-modify-write. Diuji dengan **20 komentar paralel** → hitungan
+tepat 20.
+
+### Report
+
+Prioritas queue mengikuti kategori: `threat` dan `dangerous_content` langsung
+**Critical**, `spam` ke **Low**. Biaya keterlambatan tidak sama antar kategori —
+spam yang menunggu dua hari itu gangguan, ancaman yang menunggu dua hari itu
+kegagalan jenis lain.
+
+Laporan berulang atas target yang sama **menaikkan bobot case yang ada**, bukan
+membuat case baru: sepuluh laporan tentang satu post itu satu masalah. Dan case
+hanya bisa naik — laporan spam menyusul tidak boleh menurunkan case yang dibuka
+karena ancaman. Diuji.
+
+Pelapor tidak pernah diberi tahu hasilnya. Mengonfirmasi hasil akan membuat
+fitur report bisa dipakai menyelidiki apakah seseorang sudah ditindak.
 
 ---
 
@@ -524,12 +607,15 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E06 — Interaction & Felt Heard** (8 task): 6 emotional reaction, komentar +
-reply 1 level, mark helpful, dan Felt Heard — North Star Metric produk ini,
-lengkap dengan aturan anti-fatigue.
+**E07 — Safety Engine & Moderation Core** (14 task) — epik paling kritis di
+produk ini. Melengkapi local rule engine, mapping L0–L3 penuh, fallback AI
+timeout, supportive intervention, aksi moderasi, **banding**, dan trust score.
 
-Urutan setelahnya mengikuti jalur kritis:
-`E06 → E07 → E10 → E11`.
+Urutan setelahnya: `E07 → E10 → E11`.
+
+**E07 juga melunasi utang teknis E05:** seluruh post dengan
+`needs_reanalysis = true` harus diantre ulang lewat `analyze-post` begitu
+classifier tersedia.
 
 **Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
 punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.

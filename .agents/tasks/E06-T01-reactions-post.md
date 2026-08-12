@@ -2,7 +2,7 @@
 id: E06-T01
 epic: E06
 title: 6 emotional reaction pada post
-status: todo
+status: done
 estimate: 1d
 depends_on: [E05-T03]
 refs: [PRD §9, TECH-SPEC §3.2]

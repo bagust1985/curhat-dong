@@ -2,7 +2,7 @@
 id: E06-T04
 epic: E06
 title: Tandai komentar "membantu gue" (author only)
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E06-T02]
 refs: [PRD §9, TECH-SPEC §3.2]

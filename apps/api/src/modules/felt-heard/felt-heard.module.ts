@@ -1,9 +1,19 @@
 import { Module } from '@nestjs/common';
 
+import { AuthModule } from '../auth/auth.module.js';
+import { FeltHeardController } from './felt-heard.controller.js';
+import { FeltHeardService } from './felt-heard.service.js';
+
 /**
- * Felt Heard prompts and answers — North Star input (E06)
+ * Felt Heard — the North Star Metric (PRD §9, §19.1).
  *
- * Scaffolded in E01-T05. Controllers and providers land in the epic noted above.
+ * Exported because comments and listener sessions both create prompts, and the
+ * anti-fatigue rules must be applied in exactly one place.
  */
-@Module({})
+@Module({
+  imports: [AuthModule],
+  controllers: [FeltHeardController],
+  providers: [FeltHeardService],
+  exports: [FeltHeardService],
+})
 export class FeltHeardModule {}

@@ -2,7 +2,7 @@
 id: E06-T05
 epic: E06
 title: Trigger & anti-fatigue prompt Felt Heard
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E06-T02]
 refs: [PRD §9, §19.1, TECH-SPEC §4.6, §4.7]

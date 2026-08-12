@@ -1,7 +1,7 @@
 ---
 id: E06
 title: Interaction & Felt Heard
-status: todo
+status: done
 tasks: 8
 depends_on: [E05]
 ---
