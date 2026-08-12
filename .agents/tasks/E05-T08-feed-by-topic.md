@@ -2,7 +2,7 @@
 id: E05-T08
 epic: E05
 title: Feed per topik + halaman Explore
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E05-T05]
 refs: [PRD §6, DESIGN-REF §2.12]

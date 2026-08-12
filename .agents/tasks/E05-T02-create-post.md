@@ -2,7 +2,7 @@
 id: E05-T02
 epic: E05
 title: Create curhat — POST /posts
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E05-T01, E04-T04]
 refs: [PRD §7, TECH-SPEC §4.1, DESIGN-REF §2.6]

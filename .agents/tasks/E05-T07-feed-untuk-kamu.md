@@ -2,7 +2,7 @@
 id: E05-T07
 epic: E05
 title: Feed tab "Untuk Kamu" (emotional matching v1)
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E05-T06]
 refs: [PRD §6, §20, TECH-SPEC §4.7]

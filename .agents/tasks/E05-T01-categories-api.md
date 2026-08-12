@@ -2,7 +2,7 @@
 id: E05-T01
 epic: E05
 title: Categories API + cache
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E02-T09]
 refs: [TECH-SPEC §3.2, §8.1]

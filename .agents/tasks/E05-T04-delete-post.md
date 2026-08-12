@@ -2,7 +2,7 @@
 id: E05-T04
 epic: E05
 title: Hapus post sendiri + kunci komentar
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E05-T03]
 refs: [TECH-SPEC §3.2, DESIGN-REF §2.5]

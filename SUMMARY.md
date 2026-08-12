@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E04 selesai.
+> Terakhir: **12 Agustus 2026** — E05 selesai (11/12; 1 task client-side ditunda).
 
 ## Status Keseluruhan
 
@@ -11,7 +11,7 @@
 | **E02** | Database & Prisma | 9/9 | ✅ **Selesai** |
 | **E03** | Auth & Session | 12/12 | ✅ **Selesai** |
 | **E04** | Onboarding, Consent & Identity | 8/8 | ✅ **Selesai** |
-| E05 | Post & Feed | 0/12 | ⬜ Belum |
+| **E05** | Post & Feed | 11/12 | ✅ **Selesai** (1 ditunda ke E15/E16) |
 | E06 | Interaction & Felt Heard | 0/8 | ⬜ Belum |
 | E07 | Safety Engine & Moderation Core | 0/14 | ⬜ Belum |
 | E08 | AI Gateway | 0/9 | ⬜ Belum |
@@ -25,7 +25,101 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 39 / 182 task (21,4%).**
+**Progres: 50 / 182 task (27,5%).**
+
+---
+
+## E05 — Post & Feed ✅
+
+Create curhat lengkap, 4 tab feed cursor-based, aturan "Butuh Didengar",
+noindex, dan verifikasi performa.
+
+| Task | Hasil |
+|---|---|
+| E05-T01 | `GET /categories` + cache Redis, invalidasi eksplisit |
+| E05-T02 | Create curhat: mood, intent, anonymity, anti-doxxing warning |
+| E05-T03 | Detail post + matriks visibilitas |
+| E05-T04 | Hapus post sendiri (soft delete) + kunci komentar |
+| E05-T05 | Tab Terbaru — cursor `createdAt + id` |
+| E05-T06 | Tab Butuh Didengar — kedua aturan §4.7 |
+| E05-T07 | Tab Untuk Kamu — afinitas topik, **hanya L0** |
+| E05-T08 | Tab Topik + halaman Explore |
+| E05-T09 | Cache halaman pertama, personalisasi tidak pernah di-cache global |
+| E05-T10 | **Ditunda** ke E15-T09 / E16-T05 — murni client-side |
+| E05-T11 | Noindex diuji otomatis di CI |
+| E05-T12 | Benchmark performa feed |
+
+### Hasil verifikasi
+
+```
+pnpm lint       13/13 workspace  hijau
+pnpm typecheck  13/13 workspace  hijau
+pnpm test       181 test         hijau
+```
+
+Pemecahan: api 67 · auth 33 · notifications 23 · web 21 · database 14 ·
+types 10 · config 9 · admin 4.
+
+**Benchmark feed pada 50.000 post** (target TECH-SPEC §8.3: p95 < 500ms):
+
+| Query | p50 | p95 | Query plan |
+|---|---|---|---|
+| Terbaru | 9,7 ms | **21,0 ms** | index |
+| Butuh Didengar | 7,0 ms | **24,6 ms** | index |
+| Topik | 8,5 ms | **24,8 ms** | index |
+| Cursor dalam (hal. 50) | 3,9 ms | **4,5 ms** | index |
+
+Plan-nya diperiksa, bukan cuma waktunya: query cepat di 50k baris yang ternyata
+sequential scan tidak akan tetap cepat di 500k. Jalankan ulang kapan saja dengan
+`pnpm --filter @curhat/database benchmark`.
+
+### Keputusan yang paling penting: post tidak boleh publish sebagai L0
+
+E05 butuh pipeline safety, tapi AI Gateway baru ada di E08. Jalan gampangnya —
+publish semua post sebagai L0 — adalah **safety bypass**, persis yang dilarang
+aturan non-negotiable #1.
+
+Yang dipakai adalah cabang yang memang sudah dispesifikasikan untuk kondisi ini
+(TECH-SPEC §4.2, "AI unavailable"):
+
+```
+local rules diam         → publish L1, needs_reanalysis = true
+local high-risk signal   → HELD + moderation case Critical
+```
+
+Cabang itu mensyaratkan local rule engine, jadi versi minimalnya ditarik maju
+dari E07-T01/T02. Konsekuensinya jujur: **tidak ada post yang saat ini publish
+sebagai L0** — karena "belum diperiksa" bukan hal yang sama dengan "sudah
+diperiksa dan aman". Semua ditandai `needs_reanalysis`, jadi begitu E07 mendarat
+mereka diantre ulang dan diklasifikasi, bukan dipercaya diam-diam.
+
+Diuji langsung: post biasa → `L1` + `needsReanalysis`; post berisiko tinggi →
+`held` + case Critical + supportive intervention **tanpa** hukuman, tanpa skor,
+tanpa menyebut level.
+
+### Local rule engine sengaja tidak sensitif berlebihan
+
+Produk ini justru ada untuk kalimat seperti "aku capek banget" dan "rasanya
+sedih terus". Menandai itu sebagai krisis akan menahan separuh feed **dan**
+mengajari orang bahwa jujur di sini berarti dibungkam.
+
+Jadi polanya dekat ke pernyataan niat yang eksplisit. Ada test khusus untuk
+kedua arah: 5 kalimat curhat biasa harus lolos, 4 pernyataan niat harus
+tertahan.
+
+### Catatan lain
+
+- **Cursor pakai `createdAt + id`.** `createdAt` saja tidak unik; dua post yang
+  berbagi milidetik akan membuat salah satunya tidak pernah terjangkau.
+- **Cursor rusak me-restart dari atas**, bukan error — hampir selalu tautan
+  basi, bukan serangan.
+- **Tab "Untuk Kamu" hanya menarik dari L0.** Safety di atas virality
+  (PRD §20): konten sensitif tidak dipromosikan.
+- **Feed personal tidak pernah di-cache global** — cache key memasukkan konteks
+  blokir, dan tab personalisasi dilewati sepenuhnya. Diuji dengan dua user.
+- **Post yang dihapus author tetap meninggalkan jejak moderasi.** Diuji.
+- Endpoint konten **fail open** saat Redis mati; endpoint auth fail closed.
+  Menolak semua post karena cache mati menghukum user atas masalah operasional.
 
 ---
 
@@ -430,12 +524,16 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E05 — Post & Feed** (12 task): create curhat lengkap (mood, intent,
-anonymity), 4 tab feed cursor-based, aturan "Butuh Didengar", noindex, dan
-target p95 < 500ms.
+**E06 — Interaction & Felt Heard** (8 task): 6 emotional reaction, komentar +
+reply 1 level, mark helpful, dan Felt Heard — North Star Metric produk ini,
+lengkap dengan aturan anti-fatigue.
 
 Urutan setelahnya mengikuti jalur kritis:
-`E05 → E07 → E10 → E11`.
+`E06 → E07 → E10 → E11`.
+
+**Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
+punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.
+Itu memang desainnya, bukan kelalaian — tapi jangan sampai terlewat.
 
 Catatan urutan: **E07 (Safety) wajib selesai sebelum E09 (DONG AI) dirilis** —
 AI yang jalan tanpa safety engine melanggar aturan non-negotiable #1.

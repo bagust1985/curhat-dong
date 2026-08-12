@@ -1,7 +1,7 @@
 ---
 id: E05
 title: Post & Feed
-status: todo
+status: done
 tasks: 12
 depends_on: [E04]
 ---

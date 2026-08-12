@@ -2,7 +2,7 @@
 id: E05-T12
 epic: E05
 title: Test performa feed (p95 < 500ms)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E05-T09]
 refs: [TECH-SPEC §8.3]

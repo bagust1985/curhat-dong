@@ -2,7 +2,7 @@
 id: E05-T06
 epic: E05
 title: Feed tab "Butuh Didengar"
-status: todo
+status: done
 estimate: 1d
 depends_on: [E05-T05]
 refs: [TECH-SPEC §4.7, PRD §6]

@@ -2,7 +2,7 @@
 id: E05-T11
 epic: E05
 title: Noindex & privacy-first SEO
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E05-T03]
 refs: [PRD §13, CLAUDE.md non-negotiable #5]

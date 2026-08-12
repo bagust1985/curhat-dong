@@ -2,7 +2,7 @@
 id: E05-T09
 epic: E05
 title: Cache halaman pertama feed
-status: todo
+status: done
 estimate: 1d
 depends_on: [E05-T07]
 refs: [TECH-SPEC §8.1, §8.3]

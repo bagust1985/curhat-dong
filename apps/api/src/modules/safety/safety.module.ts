@@ -1,9 +1,17 @@
 import { Module } from '@nestjs/common';
 
+import { LocalRulesService } from './local-rules.service.js';
+import { PostSafetyService } from './post-safety.service.js';
+
 /**
- * Rule engine, L0-L3 mapping, supportive intervention (E07)
+ * Safety engine — TECH-SPEC §4.1, §4.2 (E07).
  *
- * Scaffolded in E01-T05. Controllers and providers land in the epic noted above.
+ * Currently holds the local rule engine and the post safety decision. The AI
+ * classifier, full L0–L3 mapping, moderation actions and appeals land in E07
+ * and E08; what exists here is the fail-safe branch those will build on.
  */
-@Module({})
+@Module({
+  providers: [LocalRulesService, PostSafetyService],
+  exports: [LocalRulesService, PostSafetyService],
+})
 export class SafetyModule {}

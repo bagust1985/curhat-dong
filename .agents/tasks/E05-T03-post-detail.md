@@ -2,7 +2,7 @@
 id: E05-T03
 epic: E05
 title: Detail post — GET /posts/:id
-status: todo
+status: done
 estimate: 1d
 depends_on: [E05-T02]
 refs: [TECH-SPEC §3.2, DESIGN-REF §2.5]
