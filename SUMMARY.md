@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E14 selesai (API; UI menyusul di E15/E16).
+> Terakhir: **12 Agustus 2026** — E15 berjalan (4/17). E01–E14 selesai.
 
 ## Status Keseluruhan
 
@@ -21,11 +21,160 @@
 | **E12** | Notification | 9/9 | ✅ **Selesai** |
 | **E13** | Search | 4/4 | ✅ **Selesai** |
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
-| E15 | Web UI | 0/17 | ⬜ Belum |
+| E15 | Web UI | 4/17 | 🟡 **Berjalan** (T01–T04: fondasi + 19 komponen) |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 137 / 182 task (75,3%).**
+**Progres: 141 / 182 task (77,5%).**
+
+---
+
+## E15 — Web UI 🟡 (4/17)
+
+Fondasi visual dan pustaka komponen. Halaman-halamannya (T05–T17) belum
+dikerjakan.
+
+| Task | Hasil |
+|---|---|
+| E15-T01 | Token dari brand kit `docs/`, **kontras diverifikasi angka** |
+| E15-T02 | CurhatCard (4 varian), ReactionBar/Picker, MoodChip/Picker, IntentBadge/Selector, CategoryChip/Sheet |
+| E15-T03 | CommentItem, ChatBubble, ListenerCard, EmptyState, BottomNav + FAB |
+| E15-T04 | FeltHeardSheet, ReportSheet, BlockDialog, SafetyResourceCard, DestructiveConfirm |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm build      9/9              hijau
+pnpm test       120 test (web)   hijau
+```
+
+### Dua warna brand kit gagal AA — dan itu inti T01
+
+Brand kit di `docs/` jadi sumber identitas (keputusan user, 12 Agt 2026),
+menggantikan arahan "navy/charcoal + amber/peach" di Scope task. Logonya sudah
+ada, jadi itu identitasnya.
+
+Tapi dua pasangan brand kit **tidak lolos WCAG AA**, dan keduanya tidak terlihat
+salah oleh mata — persis kenapa T01 menulis "jangan andalkan mata":
+
+| Pasangan | Rasio | Putusan |
+|---|---|---|
+| Putih di atas purple `#7C5CFC` | **4.38:1** | Gagal teks normal (butuh 4.5). Tombol "Mulai Curhat" di mock persis ini. |
+| Putih di atas pink `#FF688A` | **2.76:1** | Gagal jauh. |
+
+Penyelesaiannya: `primary` diperdalam ke `#5B3BE0` (6.67:1) untuk apa pun yang
+ditumpangi teks; purple brand tetap dipakai untuk teks besar, ikon, dan outline
+(ambang 3:1, lolos); pink **tidak pernah** membawa teks putih — dia dekorasi
+atau memakai tinta gelap (`#1E1240` di atas pink = 6.25:1).
+
+Keduanya sekarang **assertion**, bukan komentar. Memasukkan kembali pasangan itu
+membuat CI merah.
+
+Swatch keenam brand kit tertulis `#F755FF` (magenta terang) padahal chip-nya
+nyaris putih. Dibaca sebagai `#F7F5FF` — transposisi satu karakter yang cocok
+dengan gambar maupun keluarga lavender. **Perlu dikonfirmasi user** kalau
+pembacaan ini salah.
+
+### Purple-pink adalah palette yang DESIGN-REF §0 justru melarang
+
+§0 melarang nuansa dating, dan purple-pink adalah rumahnya. Dua hal menjaganya:
+pink dipakai sebagai tanda baca brand — bukan di hati, match, atau profil — dan
+ground-nya tetap lavender netral, tidak tersaturasi. `danger` satu-satunya
+merah, dan ada test yang menolak kalau dia dipakai ulang sebagai aksen.
+
+### Midnight Mode tidak pernah menimpa preferensi light
+
+Midnight hanya **menggantikan dark**. User yang memilih light tetap light, jam
+berapa pun. Meredupkan layar seseorang karena jam, melawan setting yang dia
+pilih sendiri, adalah app yang merasa lebih tahu. Diuji dua arah.
+
+Di dark, `primary` dibalik: isian purple terang dengan tinta gelap — tombol
+purple tersaturasi di atas ground gelap tidak bisa membawa teks putih di AA.
+
+### Komponen diuji dengan render, bukan grep
+
+Ditambahkan jsdom + Testing Library. "Setiap ikon punya label screen reader"
+adalah klaim tentang apa yang **benar-benar didarati** pembaca; memastikan
+atribut `aria-label` ada di dalam file membuktikan hal yang jauh lebih lemah.
+Audit aksesibilitas T17 butuh harness ini juga.
+
+Tiga aturan sekarang jadi test:
+
+1. **Glyph selalu `aria-hidden`.** `🫂` dibacakan sebagai "hugging face" — benar,
+   dan tidak berguna. Bentuk ucapannya "Beri reaksi: peluk virtual".
+2. **Setiap nilai punya bentuk, bukan cuma warna.** Ada test yang menolak grup
+   yang cuma memakai satu bentuk — itu memenuhi tipe tapi mematikan tujuannya.
+3. **Setiap label ucapan dalam satu grup berbeda.** Dua mood yang dibacakan sama
+   adalah cacat yang sama dengan satu mood tanpa label.
+
+### Reaksi tetap kata, bukan like
+
+Enam glyph telanjang akan runtuh jadi rating: mata memilih favorit, hati jadi
+default, dan "aku pernah di situ" berubah jadi persetujuan — persis yang PRD §9
+larang. Jadi kata selalu tampil, glyph cuma di sebelahnya.
+
+Hitungan reaksi **bisa disembunyikan per pemanggil**, karena angka yang sama
+berarti dua hal berlawanan: di kartu feed dia terbaca "dua belas orang sudah
+merespons, kamu nggak dibutuhkan"; di halaman penulisnya sendiri dia terbaca
+"dua belas orang mendengarmu".
+
+### Dismiss Felt Heard bukan jawaban keempat
+
+Dipisahkan secara visual, ditulis "Nggak sekarang", dan ada test yang memastikan
+teksnya tidak memuat "belum"/"tidak"/"no". Prompt yang di-dismiss keluar dari
+metrik sepenuhnya (E06-T06) — kalau tombolnya terbaca seperti "tidak", North
+Star berubah jadi ukuran keterganggusan.
+
+### Nav: keputusan user menciptakan lubang, dan lubangnya ditutup
+
+User memilih lima slot dari mock: Beranda · Chat · Komunitas · Notifikasi · Akun
+(bukan HOME · EXPLORE · [+ CURHAT] · LISTEN · PROFILE dari PRD §23 dan
+DESIGN-REF §1). Konsekuensinya ditangani, bukan diabaikan:
+
+- **Komunitas** Phase 2 (`communities.enabled: false`, tanpa backend) →
+  dirender **disabled** dengan label jujur "belum tersedia", bukan tab hidup
+  yang menuju kosong;
+- **+ Curhat** → jadi FAB (mock-nya memang sudah punya FAB). Ini aksi paling
+  penting di produk (PRD §23), tidak boleh hilang cuma karena slot habis;
+- **Explore dan Listen** → dijangkau dari Beranda. Membiarkannya tidak
+  terjangkau sama dengan menghapus fitur MVP — itu keputusan yang berbeda dari
+  mengubah bar navigasi.
+
+AC asli E15-T03 dicatat **digantikan** di file task-nya, bukan diam-diam gagal.
+
+### Bug yang ditemukan di kode sendiri
+
+Assertion "konsekuensi di atas tombol" mencari string `"Hapus"`, yang juga cocok
+dengan judul dialog di indeks 0 — jadi dia membandingkan elemen yang salah dan
+akan **lolos untuk alasan yang salah**. Diganti `compareDocumentPosition`.
+
+### Sisa E15 (13 task)
+
+T05 landing · T06 auth · T07 onboarding · T08 home feed · T09 create curhat ·
+T10 supportive intervention · T11 post detail · T12 DONG AI · T13 listener ·
+T14 request + room · T15 explore/search/notif · T16 profil & settings ·
+T17 audit aksesibilitas.
+
+Semuanya menyusun komponen yang sudah ada, jadi seharusnya lebih cepat. T10
+(Supportive Intervention) adalah layar paling hati-hati di seluruh produk dan
+pantas dikerjakan dengan tenang.
+
+### Catatan untuk sesi berikutnya
+
+- **Panel admin belum punya UI.** `apps/admin` masih scaffold; DESIGN-REF §3
+  menyebut 14 halaman. Ini **tidak masuk hitungan task epic mana pun** —
+  pekerjaan tersendiri yang belum diberi nomor.
+- **Belum ada satu pun hotline terverifikasi** (PRD §15.2). Endpoint admin
+  E14-T13 siap dan memperingatkan keras saat kosong, tapi daftarnya butuh
+  keputusan di luar kode. **Blocker rilis.**
+- **Worker BullMQ (E17-T02) menampung banyak utang**: `deliverDue()` E12,
+  `expireOverdue()` E10, `closeIdleRooms()` E11, `computeDay()` E14, broadcast
+  terjadwal E14, dan job retensi E17-T08.
+- **Suite API lambat (~12 menit)** karena setiap user test dibuat lewat OTP yang
+  di-brute-force. Kalau mengganggu, yang perlu diganti helper test-nya —
+  menyuntik user langsung lewat Prisma — bukan cakupan test-nya.
 
 ---
 
