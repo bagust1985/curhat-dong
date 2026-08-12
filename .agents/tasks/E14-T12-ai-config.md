@@ -2,7 +2,7 @@
 id: E14-T12
 epic: E14
 title: AI moderation config + audit trail + rollback
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E14-T03, E08-T04]
 refs: [PRD §18, TECH-SPEC §4.4, DESIGN-REF §3.8]

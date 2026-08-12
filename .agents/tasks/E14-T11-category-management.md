@@ -2,7 +2,7 @@
 id: E14-T11
 epic: E14
 title: Category management
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E14-T02]
 refs: [PRD §16, DESIGN-REF §3.7]

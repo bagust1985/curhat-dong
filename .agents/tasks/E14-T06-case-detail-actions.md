@@ -2,7 +2,7 @@
 id: E14-T06
 epic: E14
 title: Detail case + 7 aksi moderasi
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E14-T05, E07-T10]
 refs: [PRD §15, DESIGN-REF §3.3]

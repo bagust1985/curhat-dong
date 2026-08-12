@@ -2,7 +2,7 @@
 id: E14-T10
 epic: E14
 title: Listener management
-status: todo
+status: done
 estimate: 1d
 depends_on: [E14-T08]
 refs: [PRD §18, DESIGN-REF §3.6]

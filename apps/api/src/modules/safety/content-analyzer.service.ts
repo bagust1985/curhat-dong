@@ -10,11 +10,11 @@ import {
   type SafetyClassifier,
 } from './safety-classifier.port.js';
 import {
-  DEFAULT_THRESHOLDS,
   actionForLevel,
   fallbackDecision,
   mapRiskToSafetyLevel,
 } from './safety-mapping.js';
+import { SafetyThresholdsService } from './safety-thresholds.service.js';
 
 export interface AnalysisOutcome {
   level: SafetyLevel;
@@ -49,6 +49,9 @@ export class ContentAnalyzerService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly localRules: LocalRulesService,
+    // Live thresholds (E14-T12), not the built-in constants: a Super Admin can
+    // recalibrate from the overturn rates without a deploy.
+    private readonly thresholds: SafetyThresholdsService,
     @Optional() @Inject(SAFETY_CLASSIFIER) classifier?: SafetyClassifier,
   ) {
     // No provider bound yet (E08). The stand-in always reports unavailable, so
@@ -66,7 +69,7 @@ export class ContentAnalyzerService {
 
     try {
       const classification = await this.classifier.classify(input.text);
-      const mapping = mapRiskToSafetyLevel(classification.riskScores, DEFAULT_THRESHOLDS);
+      const mapping = mapRiskToSafetyLevel(classification.riskScores, await this.thresholds.current());
 
       await this.prisma.aiClassification.create({
         data: {

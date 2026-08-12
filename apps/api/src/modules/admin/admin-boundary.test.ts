@@ -119,15 +119,28 @@ describe('CSV export bypasses the response envelope (E14-T03)', () => {
 describe('private content is case-gated (E14-T04)', () => {
   const service = sources.find((file) => file.name === 'private-content.service.ts')?.content ?? '';
 
-  it('is the only place that reads message bodies', () => {
-    // If another admin file could read `messages`, the case gate would be one
-    // route away from being optional.
+  it('is the only place that reads a message body', () => {
+    // The invariant is about *bodies*, not about the table. Resolving which
+    // account sent a reported message is legitimate — a case about a message
+    // has to be actionable — so the check is on what the query selects.
+    //
+    // If any other admin file could select a body, the case gate would be one
+    // route away from being decorative.
     const others = sources.filter((file) => file.name !== 'private-content.service.ts');
+    const offenders: string[] = [];
 
     for (const file of others) {
-      expect(file.content, file.name).not.toMatch(/prisma\.message\b/);
-      expect(file.content, file.name).not.toMatch(/messages:\s*\{/);
+      // Every `prisma.message.<op>({ ... })` call, with its selection.
+      for (const call of file.content.matchAll(/prisma\.message\.\w+\(\{[\s\S]*?\n\s*\}\)/g)) {
+        if (/\bbody\b/.test(call[0])) offenders.push(`${file.name}: ${call[0].slice(0, 60)}…`);
+      }
+
+      // And no eager-loading of the messages relation, which would carry
+      // bodies without ever naming them.
+      if (/messages:\s*\{/.test(file.content)) offenders.push(`${file.name}: messages relation`);
     }
+
+    expect(offenders).toEqual([]);
   });
 
   it('writes the audit row before returning content', () => {

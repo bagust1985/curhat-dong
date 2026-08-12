@@ -6,9 +6,9 @@ import { PRISMA } from '../../common/prisma.service.js';
 import { ModerationService } from '../moderation/moderation.service.js';
 import { LocalRulesService } from '../safety/local-rules.service.js';
 import {
-  DEFAULT_THRESHOLDS,
   mapRiskToSafetyLevel,
 } from '../safety/safety-mapping.js';
+import { SafetyThresholdsService } from '../safety/safety-thresholds.service.js';
 import {
   SupportResourcesService,
   type SupportiveIntervention,
@@ -47,6 +47,7 @@ export class ChatSafetyService {
     private readonly localRules: LocalRulesService,
     private readonly supportResources: SupportResourcesService,
     private readonly moderation: ModerationService,
+    private readonly thresholds: SafetyThresholdsService,
   ) {}
 
   /**
@@ -74,7 +75,7 @@ export class ChatSafetyService {
 
     try {
       const { value, meta } = await this.gateway.assessRisk(input.text, { userId: input.userId });
-      const mapping = mapRiskToSafetyLevel(value.riskScores, DEFAULT_THRESHOLDS);
+      const mapping = mapRiskToSafetyLevel(value.riskScores, await this.thresholds.current());
 
       level = rules.highRisk && mapping.level !== 'L3' ? 'L3' : mapping.level;
       topic = value.topic;

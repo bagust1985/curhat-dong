@@ -23,6 +23,7 @@ import { createPrismaClient, type PrismaClient } from '@curhat/database';
 
 import { ApiException } from '../../common/api-error.js';
 import { AppConfigService } from '../../common/app-config.service.js';
+import { SafetyThresholdsService } from '../safety/safety-thresholds.service.js';
 import { PRISMA } from '../../common/prisma.service.js';
 import { REDIS } from '../../common/redis.service.js';
 import { ENV } from '../../config/env.config.js';
@@ -166,6 +167,8 @@ describeIntegration('DONG AI (E09)', () => {
         AiBudgetService,
         AiQuotaService,
         AiGatewayService,
+        // E14-T12: the safety engine reads its thresholds from config now.
+        SafetyThresholdsService,
         ChatSafetyService,
         ContextBuilderService,
         ConversationsService,

@@ -2,7 +2,7 @@
 id: E14-T07
 epic: E14
 title: Halaman Appeal Review
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E14-T06, E07-T12]
 refs: [PRD §15.4, TECH-SPEC §19.3, DESIGN-REF §3.13]

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AppConfigService } from '../../common/app-config.service.js';
+import { SafetyThresholdsService } from './safety-thresholds.service.js';
 import { PRISMA } from '../../common/prisma.service.js';
 import { ContentAnalyzerService } from './content-analyzer.service.js';
 import { LocalRulesService } from './local-rules.service.js';
@@ -83,6 +84,8 @@ describeDb('safety engine (E07)', () => {
 
     const moduleRef = await Test.createTestingModule({
       providers: [
+        // E14-T12: the safety engine reads its thresholds from config now.
+        SafetyThresholdsService,
         ContentAnalyzerService,
         LocalRulesService,
         ReanalysisService,

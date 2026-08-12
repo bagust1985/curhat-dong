@@ -2,7 +2,7 @@
 id: E14-T08
 epic: E14
 title: User management
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E14-T04]
 refs: [PRD §18, DESIGN-REF §3.4]

@@ -2,7 +2,7 @@
 id: E14-T05
 epic: E14
 title: Moderation queue 4 level + SLA timer
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E14-T04, E07-T08]
 refs: [PRD §15.3, TECH-SPEC §18.7, DESIGN-REF §3.3]

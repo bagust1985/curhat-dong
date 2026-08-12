@@ -2,7 +2,7 @@
 id: E14-T09
 epic: E14
 title: Content management
-status: todo
+status: done
 estimate: 1d
 depends_on: [E14-T06]
 refs: [PRD §18, DESIGN-REF §3.5]

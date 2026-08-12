@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { ModerationModule } from '../moderation/moderation.module.js';
 import { ContentAnalyzerService } from './content-analyzer.service.js';
 import { LocalRulesService } from './local-rules.service.js';
+import { SafetyThresholdsService } from './safety-thresholds.service.js';
 import { ReanalysisService } from './reanalysis.service.js';
 import { ReportsController } from './reports.controller.js';
 import { ReportsService } from './reports.service.js';
@@ -24,6 +25,7 @@ import { TrustScoreService } from './trust-score.service.js';
   imports: [AuthModule, ModerationModule, forwardRef(() => AiModule)],
   controllers: [ReportsController, SupportResourcesController],
   providers: [
+    SafetyThresholdsService,
     LocalRulesService,
     ContentAnalyzerService,
     SupportResourcesService,
@@ -32,6 +34,7 @@ import { TrustScoreService } from './trust-score.service.js';
     TrustScoreService,
   ],
   exports: [
+    SafetyThresholdsService,
     LocalRulesService,
     ContentAnalyzerService,
     SupportResourcesService,
