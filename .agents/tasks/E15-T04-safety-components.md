@@ -2,7 +2,7 @@
 id: E15-T04
 epic: E15
 title: Komponen safety — FeltHeardSheet, ReportSheet, BlockDialog, SafetyResourceCard, DestructiveConfirm
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E15-T02]
 refs: [DESIGN-REF §5 (10–12, 20), §2.17]

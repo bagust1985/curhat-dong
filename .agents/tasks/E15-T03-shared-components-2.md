@@ -2,7 +2,7 @@
 id: E15-T03
 epic: E15
 title: Komponen — CommentItem, ChatBubble, ListenerCard, EmptyState, BottomNav+FAB
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E15-T02]
 refs: [DESIGN-REF §5 (6–8, 13–14)]

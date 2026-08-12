@@ -2,7 +2,7 @@
 id: E15-T02
 epic: E15
 title: Komponen inti — CurhatCard, ReactionBar, MoodChip, IntentBadge, CategoryChip
-status: todo
+status: done
 estimate: 2d
 depends_on: [E15-T01]
 refs: [DESIGN-REF §5 (1–5), PRD §9, §23.1]
