@@ -2,7 +2,7 @@
 id: E10-T04
 epic: E10
 title: Request listener
-status: todo
+status: done
 estimate: 1d
 depends_on: [E10-T03]
 refs: [TECH-SPEC §3.4, §4.5, DESIGN-REF §2.10]

@@ -2,7 +2,7 @@
 id: E10-T11
 epic: E10
 title: Tombol escalate listener → moderator
-status: todo
+status: done
 estimate: 1d
 depends_on: [E10-T07, E07-T07]
 refs: [PRD §11.3, DESIGN-REF §2.11]

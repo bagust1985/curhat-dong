@@ -2,7 +2,7 @@
 id: E10-T10
 epic: E10
 title: Statistik listener
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E10-T09]
 refs: [PRD §11, DESIGN-REF §2.9b]

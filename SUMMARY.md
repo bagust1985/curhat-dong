@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E09 selesai.
+> Terakhir: **12 Agustus 2026** — E10 selesai.
 
 ## Status Keseluruhan
 
@@ -16,7 +16,7 @@
 | **E07** | Safety Engine & Moderation Core | 14/14 | ✅ **Selesai** |
 | **E08** | AI Gateway | 9/9 | ✅ **Selesai** |
 | **E09** | DONG AI | 8/8 | ✅ **Selesai** |
-| E10 | Listener & Matching | 0/11 | ⬜ Belum |
+| **E10** | Listener & Matching | 11/11 | ✅ **Selesai** |
 | E11 | Private Chat Room | 0/9 | ⬜ Belum |
 | E12 | Notification | 0/9 | ⬜ Belum |
 | E13 | Search | 0/4 | ⬜ Belum |
@@ -25,7 +25,146 @@
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 89 / 182 task (48,9%).**
+**Progres: 100 / 182 task (54,9%).**
+
+---
+
+## E10 — Listener & Matching ✅
+
+Bagian di mana produk ini berhenti jadi software dan mulai melibatkan orang.
+Aktivasi listener, matching engine, siklus offer, dan perlindungan burnout.
+
+| Task | Hasil |
+|---|---|
+| E10-T01 | Guidelines 6 poin, wajib accept, versi + timestamp tersimpan |
+| E10-T02 | Preferensi topik/bahasa; `max_concurrent` hanya bisa **turun** |
+| E10-T03 | Availability toggle + mirror Redis yang bisa dibangun ulang dari Postgres |
+| E10-T04 | Request listener, satu aktif per orang, prefill dari post/AI |
+| E10-T05 | Filter kandidat — **21 unit test**, termasuk blokir dua arah |
+| E10-T06 | Ranking dari rate 0..1, tanpa satu pun sinyal penalti |
+| E10-T07 | Offer TTL 60 detik, maks 5 kandidat, race accept diarbitrase di satu baris |
+| E10-T08 | Gagal matching: jujur + 3 alternatif nyata |
+| E10-T09 | Cap konkuren/harian/cooldown ditegakkan server, auto-off apresiatif |
+| E10-T10 | Statistik pribadi tanpa leaderboard, tanpa identitas lawan bicara |
+| E10-T11 | Escalate → case Critical + resources, sesi tetap terbuka |
+
+### Hasil verifikasi
+
+```
+pnpm lint       15/15 workspace  hijau
+pnpm typecheck  15/15 workspace  hijau
+pnpm build      9/9              hijau
+pnpm test       391 test         hijau
+```
+
+Pemecahan: api 220 · @curhat/ai 57 · auth 33 · notifications 23 · web 21 ·
+database 14 · types 10 · config 9 · admin 4.
+
+### Deadlock yang ketemu di test race
+
+Dua listener menerima tawaran untuk request yang sama pada saat bersamaan.
+Versi pertama mengunci baris `listener_matches` dulu, baru `listener_requests`
+— dan Postgres membunuh salah satu transaksi dengan `40P01 deadlock detected`:
+
+```
+A: kunci match A  →  minta request R  →  minta match B (buat superseded)
+B: kunci match B  →  minta request R              ↑ menunggu A
+                          ↑ menunggu A       siklus
+```
+
+Perbaikannya bukan retry, tapi urutan: **klaim `listener_requests` lebih dulu**
+— satu-satunya baris yang diperebutkan dua pemanggil. Yang kalah menunggu di
+satu baris itu saja, tidak pernah sambil memegang baris lain. Test race
+dijalankan tiga kali berturut-turut untuk memastikan bukan kebetulan.
+
+Kalau ini lolos ke produksi, gejalanya adalah `500` acak persis di detik paling
+penting: saat seseorang akhirnya dapat pendengar.
+
+### Ranking tidak punya tempat untuk menghukum
+
+PRD §11.2 melarang ranking menurunkan skor orang yang menolak atau melewatkan
+offer. Cara paling aman menegakkannya adalah tidak menyediakan datanya:
+`CandidateSnapshot` tidak punya `declineCount`, `timeoutCount`, atau
+`missedOffers`, dan ada test yang gagal kalau ada yang menambahkannya nanti.
+
+Skor juga **rate 0..1, bukan hitungan**. Hitungan akan membuat ranking jadi
+kontes popularitas — persis leaderboard yang dilarang PRD §11 — dan mengubur
+setiap listener baru di bawah siapa pun yang mulai lebih dulu.
+
+Dua angkanya datang dari jawaban requester sendiri:
+`feltHeardScore` = porsi jawaban "yes"; `helpfulScore` = porsi yang bukan "no".
+Prompt yang di-dismiss tidak masuk tabel sama sekali, jadi diam tidak pernah
+dihitung sebagai "tidak".
+
+### Batas yang tidak punya tombol "lanjutkan saja"
+
+Semua cap ditegakkan di server, dan tidak satu pun berbentuk hukuman:
+
+| State | Yang terjadi | Kalimatnya |
+|---|---|---|
+| Cooldown 10 mnt | dikeluarkan dari kandidat | "Ambil napas dulu sebentar ya." |
+| 8 sesi/hari | availability **auto-off** | "Kamu udah dengerin 8 orang hari ini. Istirahat dulu ya 🤍" |
+| Konkuren penuh | offer tidak masuk | "Sesi kamu lagi penuh, jadi offer baru nggak masuk dulu." |
+
+Tidak ada endpoint untuk memaksa lanjut. Test memverifikasi sesi ke-9 tidak
+pernah ditawarkan, dan bahwa copy-nya tidak mengandung kata bernada peringatan.
+
+Hari dihitung **WIB**, sama seperti kuota AI. PRD §11.2 menyebut timezone
+listener; MVP Indonesia-saja, jadi ini memang timezone-nya — bukan placeholder.
+
+### Gagal matching ditulis sejujur mungkin
+
+TECH-SPEC §4.5 melarang menjanjikan listener tersedia. Jadi ketika lima kandidat
+habis:
+
+> "Belum ada yang siap mendengarkan sekarang. Bukan karena ceritamu kurang
+> penting — listener kami manusia, dan lagi nggak ada yang available."
+
+Plus tiga jalan keluar yang benar-benar ada: DONG AI, posting ke Butuh
+Didengar, atau coba lagi. Ada test yang gagal kalau kalimatnya berubah jadi
+"tunggu sebentar lagi" — janji yang tidak bisa ditepati sistem.
+
+### Escalate: memanggil bantuan, bukan melaporkan orang
+
+Tombolnya membuat `safety_event` + case **Critical**, menampilkan resources ke
+requester, dan memberi listener tiga kalimat panduan plus izin untuk keluar.
+Yang **tidak** dilakukan: menutup sesi, memblokir requester, menurunkan skor
+siapa pun.
+
+Kosakatanya pun dijaga — `actionTaken: 'listener_escalated'`, bukan sesuatu
+yang berbunyi seperti pelanggaran. Trust score tidak membaca safety event sama
+sekali, hanya moderation *action*, jadi meminta bantuan untuk seseorang tidak
+bisa menurunkan skornya. Test memverifikasi nol `moderation_action` dan status
+akun tetap `active`.
+
+### Keputusan yang diambil saat implementasi
+
+1. **Filter dan ranking murni, hidrasi terpisah.** Seluruh I/O ada di
+   `matching.service.ts` supaya `matching.ts` bisa diuji penuh. Pemisahan ini
+   lebih penting dari biasanya: filter adalah satu-satunya yang berdiri di
+   antara pasangan yang saling blokir dan sebuah private room.
+2. **Topik kosong berarti "apa saja".** Listener yang belum memilih topik
+   terbuka untuk semua, bukan untuk nol.
+3. **Kapasitas dicek dua kali** — saat menawarkan dan saat menerima. Enam puluh
+   detik cukup lama untuk seorang listener jadi penuh.
+4. **Redis punya penanda sinkron.** Set kosong dan set hilang terlihat sama
+   dari Redis; tanpa penanda, cache yang ter-flush akan terbaca sebagai "tidak
+   ada yang mendengarkan". Sekarang mirror dibangun ulang dari Postgres.
+5. **Room dibuat di sini, isinya di E11.** `accept` membuat `chat_rooms`,
+   `room_members`, dan `listener_sessions` dalam satu transaksi; realtime
+   messaging, presence, dan close menyusul.
+
+### Catatan & keterbatasan
+
+- **Requester belum diberi tahu saat ada yang menerima.** Sekarang polling
+  lewat `GET /listener/requests/current`. Push dan realtime-nya E12.
+- **Sweep offer kedaluwarsa belum ada job-nya.** `expireOverdue()` sudah siap
+  dan teruji; penjadwalnya (BullMQ) di E17.
+- **Reminder istirahat 90 menit aktif** baru dihitung dari jumlah sesi, belum
+  dari durasi aktif — butuh presence dari E11.
+- `listener_session_counters` bertambah lewat `recordSessionEnd()`, yang
+  dipanggil E11-T07 saat sesi ditutup. Sampai E11 mendarat, counter hanya naik
+  lewat jalur test.
 
 ---
 
@@ -1023,18 +1162,22 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E10 — Listener & Matching** (11 task): aktivasi listener, availability di
-Redis, filter + ranking kandidat, siklus offer 60 detik, burnout caps.
+**E11 — Private Chat Room** (9 task): Socket.IO gateway, membership guard,
+messaging realtime, typing/presence, safety pesan, close session, feedback.
 
-Jalur masuknya sudah ada: bridge DONG AI mengirim topik dan emosi sebagai
-prefill ke form Cari Listener (E09-T06). Yang belum ada adalah yang di ujung
-sana — orangnya.
+Ruangannya sudah ada — `accept` membuat `chat_rooms`, `room_members`, dan
+`listener_sessions`. Yang belum ada adalah isinya.
 
-Satu hal yang harus dipegang di E10: decline atau timeout sebuah offer **tidak
-menurunkan skor** listener (TECH-SPEC §4.7). Listener yang dihukum karena
-istirahat akan berhenti jadi listener.
+Dua hal yang harus dipegang di E11: membership dicek **per event**, bukan sekali
+saat join (TECH-SPEC §3.5), dan klasifikasi pesan berjalan asynchronous supaya
+delivery tetap di bawah 2 detik — dengan aksi yang tetap additive di semua
+level, termasuk L3 (PRD §15.5).
 
-Setelahnya: `E11 (Private Room) → E12 (Notification)`.
+Satu utang dari E10 yang jatuh tempo di sini: `BurnoutService.recordSessionEnd()`
+harus dipanggil saat sesi ditutup (E11-T07), kalau tidak cap harian tidak pernah
+bertambah di produksi.
+
+Setelahnya: `E12 (Notification) → E13 (Search)`.
 
 **Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
 punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.

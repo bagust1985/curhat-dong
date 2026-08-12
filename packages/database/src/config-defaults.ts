@@ -124,6 +124,12 @@ export type AppConfigKey = keyof typeof APP_CONFIG_DEFAULTS;
  * the defaults themselves live in `@curhat/ai`, next to the code that reads
  * them. Absent rows fall back to those built-ins (E08-T03, E08-T05).
  */
+/** Matching rows whose value is a JSON object (E10-T06). */
+export const MATCHING_JSON_CONFIG_KEYS = {
+  /** Ranking weights over 0..1 rates — see `@curhat/api` matching.ts. */
+  rankWeights: 'matching.rank_weights',
+} as const;
+
 export const AI_JSON_CONFIG_KEYS = {
   /** Cheap/advanced model ids and the ambiguity band. */
   routing: 'ai.routing',

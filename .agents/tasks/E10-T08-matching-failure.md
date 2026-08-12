@@ -2,7 +2,7 @@
 id: E10-T08
 epic: E10
 title: State gagal matching & alternatif
-status: todo
+status: done
 estimate: 0.5d
 depends_on: [E10-T07]
 refs: [TECH-SPEC §4.5, DESIGN-REF §2.10]

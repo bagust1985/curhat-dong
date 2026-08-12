@@ -2,7 +2,7 @@
 id: E10-T03
 epic: E10
 title: Availability toggle + mirror Redis
-status: todo
+status: done
 estimate: 1d
 depends_on: [E10-T02]
 refs: [TECH-SPEC §1.6, §4.5, §8.1]

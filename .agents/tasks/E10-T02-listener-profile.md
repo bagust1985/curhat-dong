@@ -2,7 +2,7 @@
 id: E10-T02
 epic: E10
 title: Preferensi listener (topik, bahasa, max concurrent)
-status: todo
+status: done
 estimate: 1d
 depends_on: [E10-T01]
 refs: [TECH-SPEC §3.4, PRD §11, §11.2]

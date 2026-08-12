@@ -2,7 +2,7 @@
 id: E10-T09
 epic: E10
 title: Cap burnout — konkuren, harian, cooldown
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E10-T07]
 refs: [PRD §11.2, TECH-SPEC §4.7, DESIGN-REF §2.20]

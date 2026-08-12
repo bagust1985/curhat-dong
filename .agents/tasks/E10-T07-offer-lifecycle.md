@@ -2,7 +2,7 @@
 id: E10-T07
 epic: E10
 title: Offer lifecycle — TTL 60s, maksimum 5 kandidat
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E10-T06]
 refs: [TECH-SPEC §4.5, DESIGN-REF §2.9c]

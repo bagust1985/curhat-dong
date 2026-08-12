@@ -2,7 +2,7 @@
 id: E10-T01
 epic: E10
 title: Aktivasi listener + accept guidelines
-status: todo
+status: done
 estimate: 1d
 depends_on: [E03-T10]
 refs: [PRD §11.1, DESIGN-REF §2.9a]

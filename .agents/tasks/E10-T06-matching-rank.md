@@ -2,7 +2,7 @@
 id: E10-T06
 epic: E10
 title: Matching — ranking kandidat
-status: todo
+status: done
 estimate: 1d
 depends_on: [E10-T05]
 refs: [TECH-SPEC §4.5, PRD §11.2]

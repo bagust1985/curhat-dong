@@ -2,7 +2,7 @@
 id: E10-T05
 epic: E10
 title: Matching — filter kandidat
-status: todo
+status: done
 estimate: 1.5d
 depends_on: [E10-T04]
 refs: [TECH-SPEC §4.5, CLAUDE.md test minimal]
