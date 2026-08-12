@@ -53,15 +53,10 @@ pnpm test       561 test          hijau
 Pemecahan: api 337 · @curhat/ai 57 · notifications 56 · web 41 · auth 33 ·
 database 14 · types 10 · config 9 · admin 4.
 
-Catatan jujur soal cara menjalankannya: `pnpm test` satu proses untuk seluruh
-workspace butuh belasan menit — suite `@curhat/api` membuat setiap user test
-lewat OTP yang di-brute-force terhadap database sungguhan — dan di lingkungan
-ini prosesnya dibunuh sebelum selesai. Angka di atas dikumpulkan dari dua
-jalur: delapan workspace non-api dalam satu putaran penuh, dan `@curhat/api`
-dari putaran penuh (309 lulus) ditambah `src/modules/listener` yang dijalankan
-terpisah setelah perbaikan di bawah (58 lulus, mencakup 28 test yang sebelumnya
-tidak sempat jalan). Tidak ada satu pun test yang gagal — tapi belum pernah
-semuanya hijau dalam **satu** proses, dan itu pantas dicatat.
+Satu putaran penuh, 13m17s. Sebagian besar waktunya di `@curhat/api`: tiap
+user test dibuat lewat OTP yang di-brute-force terhadap database sungguhan.
+Kalau durasinya nanti mengganggu, yang perlu diganti adalah helper test-nya —
+menyuntik user langsung lewat Prisma — bukan cakupan test-nya.
 
 ### Postgres tidak punya stemmer bahasa Indonesia
 
@@ -240,8 +235,8 @@ Pemecahan: api 337 · @curhat/ai 57 · notifications 56 · web 41 · auth 33 ·
 database 14 · types 10 · config 9 · admin 4.
 
 **Angka ini dikonfirmasi belakangan, saat E13.** Commit E12 dibuat sebelum
-suite `@curhat/api` sempat melapor, dan konsekuensinya nyata — lihat regresi
-di bawah.
+suite `@curhat/api` sempat melapor, dan konsekuensinya nyata — lihat regresi di
+bawah. Angka di atas berasal dari putaran penuh setelah perbaikan itu.
 
 ### Regresi yang lolos ke commit E12
 
