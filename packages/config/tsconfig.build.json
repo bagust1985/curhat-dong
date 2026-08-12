@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig/base.json",
+  "compilerOptions": {
+    // Emitted as CommonJS so both NestJS (CJS runtime) and Next.js can consume
+    // this package without a dual-package hazard.
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "node_modules", "dist"]
+}

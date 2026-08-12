@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "CURHAT DONG Expo (mobile)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "moduleResolution": "Bundler",
+    "types": ["expo/types", "nativewind/types"]
+  }
+}

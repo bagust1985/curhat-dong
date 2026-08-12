@@ -1,0 +1,39 @@
+{
+  "name": "@curhat/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@curhat/config": "workspace:*",
+    "@curhat/types": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "compression": "1.8.1",
+    "helmet": "8.3.0",
+    "ioredis": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "11.0.24",
+    "@nestjs/schematics": "11.1.0",
+    "@nestjs/testing": "catalog:",
+    "@types/compression": "1.8.1",
+    "@types/express": "5.0.6",
+    "@types/node": "catalog:",
+    "@types/pg": "8.21.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

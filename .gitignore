@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Prisma generated client (TECH-SPEC §1.6: generated client is not source)
+packages/database/generated/
+
+# Environment — never commit secrets (TECH-SPEC §7.2)
+.env
+.env.*
+!.env.example
+
+# Expo / EAS
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+*.apk
+*.aab
+*.keystore
+
+# Test & coverage
+coverage/
+.vitest/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local infrastructure volumes
+infrastructure/.data/

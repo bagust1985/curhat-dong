@@ -1,0 +1,47 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Centralised version pins.
+#
+# CLAUDE.md non-negotiable #6: production dependencies must never use "latest".
+# The catalog is the single place where a version is declared; workspaces
+# reference it as "catalog:" so a bump happens in exactly one file.
+#
+# apps/mobile is deliberately excluded from the tailwind entry below — it needs
+# Tailwind 3.4.x for NativeWind 4 and declares its own devDependency
+# (TECH-SPEC §1.2).
+catalog:
+  # --- Web / Admin ---
+  next: 16.3.0
+  react: 19.2.8
+  react-dom: 19.2.8
+  '@types/react': 19.2.18
+  '@types/react-dom': 19.2.4
+  tailwindcss: 4.3.3
+  '@tailwindcss/postcss': 4.3.3
+
+  # --- API ---
+  '@nestjs/common': 11.1.29
+  '@nestjs/core': 11.1.29
+  '@nestjs/platform-express': 11.1.29
+  '@nestjs/config': 4.0.4
+  '@nestjs/testing': 11.1.29
+  reflect-metadata: 0.2.2
+  rxjs: 7.8.2
+
+  # --- Data ---
+  prisma: 7.9.1
+  '@prisma/client': 7.9.1
+  '@prisma/adapter-pg': 7.9.1
+  pg: 8.23.0
+  ioredis: 6.0.0
+
+  # --- Shared ---
+  zod: 4.4.3
+
+  # --- Tooling ---
+  typescript: 5.9.3
+  '@types/node': 24.13.3
+  vitest: 4.1.10
+  tsx: 4.23.12

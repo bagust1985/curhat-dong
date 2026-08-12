@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.20.0'
+  PNPM_VERSION: '10.30.0'
+
+jobs:
+  verify:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # --frozen-lockfile fails if package.json and the lockfile disagree.
+      # That is the enforcement point for CLAUDE.md non-negotiable #6: a
+      # floating version cannot silently resolve differently in CI.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      # Shared packages emit dist/ that the apps typecheck against.
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+  # Guards that are cheap to run and expensive to discover late.
+  policy:
+    name: Repo policy checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No "latest" versions in production dependencies
+        run: |
+          # CLAUDE.md non-negotiable #6.
+          if grep -rn '"\(latest\|\*\)"' --include=package.json \
+               --exclude-dir=node_modules . ; then
+            echo "::error::Floating dependency version found. Pin it."
+            exit 1
+          fi
+          echo "No floating versions."
+
+      - name: No committed .env
+        run: |
+          # TECH-SPEC §7.2.
+          if git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.' | grep -v '\.env\.example'; then
+            echo "::error::A .env file is tracked by git. Remove it and rotate the secrets."
+            exit 1
+          fi
+          echo "No tracked .env files."

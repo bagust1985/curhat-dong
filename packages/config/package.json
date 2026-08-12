@@ -1,0 +1,48 @@
+{
+  "name": "@curhat/config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./env/server": {
+      "types": "./dist/env/server.d.ts",
+      "default": "./dist/env/server.js"
+    },
+    "./env/client": {
+      "types": "./dist/env/client.d.ts",
+      "default": "./dist/env/client.js"
+    },
+    "./env/schema": {
+      "types": "./dist/env/schema.d.ts",
+      "default": "./dist/env/schema.js"
+    },
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/next.json": "./tsconfig/next.json",
+    "./tsconfig/nest.json": "./tsconfig/nest.json",
+    "./tsconfig/expo.json": "./tsconfig/expo.json"
+  },
+  "files": [
+    "dist",
+    "tsconfig"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist .turbo",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
