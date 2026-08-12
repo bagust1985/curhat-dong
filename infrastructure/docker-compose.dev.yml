@@ -2,6 +2,10 @@ name: curhat-dong-dev
 
 # Local development infrastructure only (E01-T08).
 # Production compose lands in E17-T02 and adds caddy, api, worker, web, admin.
+#
+# PORTS: this VPS is shared with other projects. Host ports are deliberately
+# outside the default range — 5432 and 6379 are NOT used. See PORTS.md.
+# Run `pnpm infra:check` before `up` to catch a conflict early.
 
 services:
   postgres:
@@ -16,8 +20,8 @@ services:
       POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
     ports:
       # Bound to loopback: never reachable from the network, even in dev
-      # (TECH-SPEC §7.1).
-      - '127.0.0.1:5432:5432'
+      # (TECH-SPEC §7.1). Host port 54329, container port stays 5432.
+      - '127.0.0.1:54329:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -36,7 +40,9 @@ services:
     # queued work on every `docker compose restart` during development.
     command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - '127.0.0.1:6379:6379'
+      # Host port 63799, NOT 6379 — the system Redis already owns 6379 and
+      # belongs to another project. See PORTS.md for why we do not share it.
+      - '127.0.0.1:63799:6379'
     volumes:
       - redis-data:/data
     healthcheck:

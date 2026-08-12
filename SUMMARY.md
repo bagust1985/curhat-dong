@@ -107,13 +107,43 @@ Empat sisanya (#1 safety fallback, #2 L3 no auto-punish, #7 migration review,
 5. **`.env` dicari ke atas dari cwd.** API biasanya dijalankan dari `apps/api`
    sementara `.env` ada di root monorepo.
 
+### Alokasi port — VPS ini dipakai bersama proyek lain
+
+Survei 12 Agustus 2026 menemukan **dua bentrokan nyata** dengan konfigurasi awal:
+
+| Port | Sudah dipakai oleh | Akibatnya |
+|---|---|---|
+| `6379` | `redis-server` sistem (jalan sejak 18 Juli) | Redis compose gagal bind |
+| `3000` | `next-server` proyek lain | `apps/web` merebut port proyek orang |
+
+Seluruh port CURHAT DONG dipindah ke blok sendiri:
+
+| Service | Port | Sebelumnya |
+|---|---|---|
+| Web | `3100` | ~~3000~~ |
+| API | `3101` | ~~3001~~ |
+| Admin | `3102` | ~~3002~~ |
+| PostgreSQL | `54329` | ~~5432~~ |
+| Redis | `63799` | ~~6379~~ |
+
+Postgres & Redis tetap di-bind `127.0.0.1` saja (TECH-SPEC §7.1).
+
+**Redis sistem sengaja tidak ditumpangi** meski secara teknis bisa pakai nomor DB
+berbeda: satu `FLUSHALL` dari proyek mana pun akan menghapus antrian BullMQ kita,
+dan keyspace-nya saling terlihat. Detail di `infrastructure/PORTS.md`.
+
+`pnpm infra:check` menolak menyalakan container kalau ada port terpakai —
+sudah diuji: benar mendeteksi `6379` dan `3000` sebagai bentrok lalu keluar
+dengan exit 1.
+
 ### Catatan & keterbatasan
 
-- **Docker tidak terpasang di mesin ini.** `docker-compose.dev.yml` sudah ditulis
-  dan tervalidasi secara struktur, tapi **belum pernah dijalankan**. Perlu
-  `docker compose up -d` di mesin yang punya Docker sebelum E02 (Prisma butuh
-  Postgres hidup). Ini satu-satunya kriteria E01 yang belum diverifikasi
-  langsung.
+- **Docker belum terpasang dan belum bisa dipasang.** `sudo` di VPS ini butuh
+  password, dan rootless Docker juga tidak memungkinkan (`newuidmap` tidak ada,
+  paket `uidmap` butuh sudo). `docker-compose.dev.yml` sudah ditulis dan
+  port-nya sudah aman, tapi **belum pernah dijalankan**. Ini satu-satunya
+  kriteria E01 yang belum diverifikasi langsung, dan **E02 diblokir** olehnya
+  (Prisma butuh Postgres hidup).
 - `.env` lokal berisi nilai dev dummy — **bukan** kredensial asli, dan tidak
   ter-track git.
 - Halaman `/` di web sekarang halaman token sementara; diganti landing page

@@ -2,7 +2,7 @@
   "name": "curhat-dong",
   "version": "0.1.0",
   "private": true,
-  "description": "CURHAT DONG — emotional social network (anonymous curhat + human listener + DONG AI)",
+  "description": "CURHAT DONG \u2014 emotional social network (anonymous curhat + human listener + DONG AI)",
   "packageManager": "pnpm@10.30.0",
   "engines": {
     "node": ">=20.19.0 <23"
@@ -16,8 +16,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
     "clean": "turbo run clean && rm -rf node_modules",
-    "infra:up": "docker compose -f infrastructure/docker-compose.dev.yml up -d",
-    "infra:down": "docker compose -f infrastructure/docker-compose.dev.yml down"
+    "infra:up": "pnpm infra:check && docker compose -f infrastructure/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infrastructure/docker-compose.dev.yml down",
+    "infra:check": "bash infrastructure/scripts/check-ports.sh"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
