@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **13 Agustus 2026** — **deploy pertama berhasil**.
+> Terakhir: **13 Agustus 2026 (malam)** — **Revisi 1–3 pasca-deploy**.
 > https://curhatdong.com tayang, API `ready: true`, worker jalan, migrasi + seed
 > masuk. E01–E16 selesai; E17 berjalan.
 >
@@ -10,6 +10,55 @@
 > yang sudah dipastikan benar"), bukan layar kosong — tapi ini tetap alasan
 > kenapa E17-T12 disebut blocker rilis, dan sekarang risikonya nyata, bukan
 > teoretis.
+
+## Revisi pasca-deploy (13 Agu 2026, malam)
+
+Tiga permintaan product owner setelah melihat produksi, semuanya mendarat:
+
+**1. Password login (deviasi sadar dari PRD "passwordless").** Setiap login OTP
+membakar satu email Resend; user yang login 10–20×/hari menghabiskan kuota
+untuk hal yang bukan pendaftaran. Sekarang: daftar lewat OTP → **wajib bikin
+password** → login rutin email+password tanpa satu pun email terkirim. OTP
+tetap jalur daftar + lupa-password (login OTP = re-auth, sesi segar < 15 menit
+boleh set password baru tanpa password lama); Google & admin tidak berubah.
+Detail teknis di TECH-SPEC §5.4 (baru): scrypt-v1 self-describing di
+`packages/auth/src/password.ts`, kolom `users.password_hash` nullable
+(migration `20260813090000_user_password`, additive saja), anti-enumeration
+dijaga sampai ke biaya scrypt (dummy verification untuk email tak dikenal),
+rate limit fail-closed per email + per IP, ganti password mencabut semua sesi
+lain. Ditutup test: 23 kasus integration auth (termasuk
+"wrong-password vs unknown-email identik" dan "login password = nol baris
+OTP"), 17 unit KDF, sweep `ENUMERATION_TELLS` web+mobile dengan **test paritas
+copy web↔mobile yang selama ini cuma dijanjikan komentar, sekarang beneran
+ada**.
+
+**2. Rombak UI web ke mock brand (`docs/contoh web.png`).** Landing dibangun
+ulang: navbar pill (maskot + wordmark HTML), hero dua kolom "Ada tempat buat
+cerita." dengan maskot (di-crop dari logo via sharp → `public/brand/`),
+divider SVG bergelombang, baris 4 fitur persis mock. **Nunito akhirnya
+benar-benar dimuat** — globals.css sudah menamainya sejak E15-T01 tapi file
+fontnya tidak pernah ada; sekarang lewat `next/font` (download saat build,
+self-host, nol request pihak ketiga). `--radius-action` jadi pill penuh — satu
+token me-restyle semua tombol aksi. **Tab bar sekarang ada di semua layar
+in-app** lewat `AppChrome` di layout `(app)` — sebelumnya cuma /home yang
+punya nav, layar lain jalan buntu. Deviasi mock yang disengaja: **Blog
+dihilangkan** (blognya tidak ada — link mati melanggar aturan kejujuran), dan
+"Unduh Aplikasi" hanya muncul saat `NEXT_PUBLIC_ANDROID_APK_URL` terisi.
+Seluruh guardrail E15 lolos tanpa diubah: no-fetch saat render, regex nomor
+telepon, preview nol link, robots/noindex, kontras AA.
+
+**3. Tab "Akun" 404 diperbaiki.** `NAV_ITEMS` menunjuk `/profile` tapi yang
+ada cuma `/profile/[alias]`. Halaman redirect baru menyelesaikan alias dari
+sesi: authenticated → profil sendiri, anonymous → /auth, onboarding →
+/onboarding, loading → skeleton.
+
+Catatan sadar-scope: restyle per-layar yang lebih dalam (spacing halus,
+adopsi primitif `Button`/`Card` ke 16 layar lama) sengaja tidak dipaksakan
+dari editor tanpa melihat renderan — bahasa visual mock sudah sampai lewat
+token (pill, Nunito, lavender) + shell nav + landing. Sisanya pantas
+dikerjakan sambil melihat layar sungguhan.
+
+---
 
 ## Status Keseluruhan
 
