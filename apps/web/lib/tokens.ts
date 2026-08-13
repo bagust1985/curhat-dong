@@ -165,7 +165,7 @@ export const SPACING = {
  * uses would make this feel like software rather than somewhere to talk.
  */
 export const FONT_STACK =
-  "'Nunito', ui-rounded, 'Segoe UI', system-ui, -apple-system, sans-serif";
+  "var(--font-nunito), 'Nunito', ui-rounded, 'Segoe UI', system-ui, -apple-system, sans-serif";
 
 /**
  * The smallest interactive box — PRD §23.1.

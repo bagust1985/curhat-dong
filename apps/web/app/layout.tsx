@@ -1,8 +1,22 @@
 import type { Metadata, Viewport } from 'next';
+import { Nunito } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import './globals.css';
 import { ThemeScript } from '../components/theme-script';
+
+/**
+ * Nunito — the brand kit's rounded face (docs/, Revisi 2). Downloaded at
+ * BUILD time and self-hosted by next/font: the served page makes no request
+ * to Google, which is what keeps the landing page's no-fetch test honest and
+ * visitors' IPs out of a third party's logs.
+ */
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-nunito',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   // Needed so the landing page's canonical URL resolves to an absolute one
@@ -25,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning className={nunito.variable}>
       <head>
         <ThemeScript />
       </head>

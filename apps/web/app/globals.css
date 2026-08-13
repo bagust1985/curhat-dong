@@ -17,8 +17,16 @@
  */
 
 @theme {
+  /*
+   * var(--font-nunito) is populated by next/font in app/layout.tsx — the file
+   * itself is built and self-hosted, so naming it here costs no request. The
+   * literal 'Nunito' stays as the second entry for surfaces rendered outside
+   * the root layout (tests, storybook-like harnesses) where a locally
+   * installed Nunito may exist.
+   */
   --font-sans:
-    'Nunito', ui-rounded, 'Segoe UI Rounded', system-ui, -apple-system, sans-serif;
+    var(--font-nunito), 'Nunito', ui-rounded, 'Segoe UI Rounded', system-ui, -apple-system,
+    sans-serif;
 
   /* Generous radii — nothing sharp or clinical (DESIGN-REF §0). */
   --radius-curhat: 1rem; /* 16px — cards, sheets */
