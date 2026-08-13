@@ -4,6 +4,8 @@
 > Terakhir: **13 Agustus 2026** — E17 berjalan (1/14 selesai, 10 kode mendarat
 > tapi **belum terverifikasi di mesin sungguhan**). E01–E16 selesai.
 > **Pekerjaan kode praktis habis** — sisanya butuh VPS, akun, atau keputusan manusia.
+> Deploy direvisi untuk **VPS bersama**: nginx (bukan Caddy), semua container
+> bind loopback, dan IP asli dibaca dari `CF-Connecting-IP`.
 
 ## Status Keseluruhan
 
@@ -2266,8 +2268,8 @@ test web        292              hijau
 
 | Task | Yang mendarat | Yang menahannya |
 |---|---|---|
-| T01 Caddy | 3 domain, HSTS+preload, CSP terpisah web/admin | Scan SSL Labs, cek header dari luar |
-| T02 Compose prod | 9 service, healthcheck, non-root, tag SHA | Belum dijalankan di VPS |
+| T01 **nginx** (bukan Caddy) | 3 domain, HSTS+preload, CSP terpisah web/admin, real IP Cloudflare | Terbitkan cert, `nginx -t && reload` |
+| T02 Compose prod | 8 service (tanpa Caddy), semua bind loopback, tag SHA | Belum dijalankan di VPS |
 | T03 Image GHCR | Multi-stage, standalone Next, cek secret di image | Build belum pernah jalan |
 | T04 Pipeline | Gate destruktif → migrate → health → rollback | Belum end-to-end |
 | T05 Sentry | Paket `@curhat/observability` + 19 test, **terpasang di 5 entrypoint** | Error sungguhan ke DSN produksi |
@@ -2310,6 +2312,36 @@ sambil menahan insidennya. `scopeFromAudit` mengembalikan **id dan kategori,
 bukan isinya** — respons insiden yang menumpahkan curhat terdampak ke file
 kerja sudah memperlebar kebocoran sambil mengukurnya.
 
+### Revisi setelah melihat VPS-nya (13 Agt, sore)
+
+VPS `139.180.223.100` ternyata **menjalankan empat proyek lain** di `/var/www/`
+(POH, selsila-web, selsipad, selsipad-docs), dan **nginx sudah aktif memegang
+port 80/443** untuk mereka. Dua hal berubah karenanya.
+
+**Caddy dibatalkan.** Compose yang mem-bind `80:80`/`443:443` akan gagal start
+atau merebut port itu — dan yang mati empat proyek orang lain. Di mesin bersama,
+edge proxy adalah sumber daya tunggal: dua proxy berebut 443 tidak punya solusi
+bagus, yang ada cuma siapa yang menang. Server block pindah ke
+`infrastructure/nginx/curhatdong.conf`, dan **tidak ada satu pun container yang
+mem-bind port publik** — web `127.0.0.1:3110`, api `3111`, admin `3112`
+(PORTS.md diperbarui).
+
+**Bug IP asli — ini yang lebih berbahaya karena diam.** Di belakang Cloudflare +
+nginx, `request.ip` bernilai `127.0.0.1` untuk **semua orang**. Seluruh bucket
+rate limit, cooldown age gate, dan audit ip hash menyatu jadi satu nilai: rate
+limit yang berlaku ke seluruh internet sekaligus, dan cooldown yang bisa dipicu
+satu orang untuk semua orang. **Tidak ada error apa pun** — limitnya cuma
+berhenti jadi per-orang, dan baru ketahuan sebagai "kenapa orang asing kena
+rate limit".
+
+`clientIpOf` mendahulukan `CF-Connecting-IP` (Cloudflare membuangnya dari input
+klien, jadi satu-satunya yang tidak bisa dipalsukan dari luar). Saat jatuh ke
+`X-Forwarded-For` diambil entri **paling kanan** — yang paling kiri di-prepend
+klien, dan mempercayainya berarti siapa pun lolos rate limit dengan satu header.
+`trust proxy` di-set `1`, bukan `true`, dengan alasan yang sama. Ditambah
+`proxy_buffering off` di nginx untuk SSE DONG AI: dengan buffering menyala,
+balasan streaming baru sampai setelah selesai.
+
 ### Tiga lubang yang ditemukan test/skrip sendiri
 
 0. **Nama tabel di job retensi salah** — `entity` memakai nama model Prisma,
@@ -2351,10 +2383,19 @@ itu curhat seseorang.
 
 ### Yang harus dikerjakan manusia
 
-**Infrastruktur & akun:** VPS Vultr 4vCPU/8GB + Docker + clone di
-`/srv/curhat-dong`; DNS empat host; GitHub Secrets (`DEPLOY_HOST`,
-`DEPLOY_USER`, `DEPLOY_SSH_KEY`) + Variables `NEXT_PUBLIC_*`;
-`.env.production` di VPS; akun EAS untuk APK.
+**Infrastruktur & akun:** VPS sudah ada (`139.180.223.100`, 6 vCPU / 16 GB,
+Singapore) dan DNS empat host sudah mengarah ke sana lewat Cloudflare
+(proxied). Yang belum: **SSL/TLS mode Cloudflare harus `Full (strict)`** —
+kalau `Flexible` hasilnya redirect loop; sertifikat origin (certbot untuk empat
+host); pasang `curhatdong.conf` ke `sites-available` lalu **`nginx -t &&
+systemctl reload nginx`** (reload, bukan restart — restart memutus koneksi empat
+proyek tetangga); GitHub Secrets (`DEPLOY_HOST`, `DEPLOY_USER`,
+`DEPLOY_SSH_KEY`) + Variables `NEXT_PUBLIC_*`; `.env.production` di VPS; akun
+EAS untuk APK.
+
+**Catatan yang gampang terlupa:** daftar range Cloudflare di `curhatdong.conf`
+bisa berubah. Kalau suatu saat IP asli kembali terbaca sebagai IP Cloudflare,
+perbarui dari `curl https://www.cloudflare.com/ips-v4`.
 
 **Verifikasi yang cuma bisa di mesin sungguhan:** SSL Labs + header dari luar;
 port DB/Redis tertutup diuji dari luar VPS; matikan satu service → restart
