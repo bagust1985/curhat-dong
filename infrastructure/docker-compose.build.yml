@@ -1,0 +1,54 @@
+# Build lokal — E17-T03 (jalur sementara).
+#
+# `docker-compose.prod.yml` menarik image dari GHCR, dan itu memang cara yang
+# benar: tag berisi commit SHA, jadi dua server tidak pernah menjalankan kode
+# berbeda sambil melaporkan versi yang sama.
+#
+# Tapi repo ini **belum punya git remote**, jadi CI belum pernah jalan dan GHCR
+# masih kosong. Override ini membangun image langsung di VPS supaya boot pertama
+# bisa terjadi tanpa menunggu pipeline.
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml up -d
+#
+# ## Ini jalur sementara, bukan pengganti CI
+#
+# Build di mesin produksi memakai CPU yang sedang melayani empat proyek lain,
+# dan tag `local` tidak memberi tahu siapa pun kode mana yang sedang jalan —
+# persis masalah yang `IMAGE_TAG` berisi SHA dibuat untuk mencegah. Begitu repo
+# punya remote, kembali ke GHCR.
+
+services:
+  api:
+    image: curhat/api:local
+    build:
+      context: ..
+      dockerfile: infrastructure/docker/api.Dockerfile
+
+  worker:
+    # Image yang sama dengan api; tidak di-build dua kali.
+    image: curhat/api:local
+
+  web:
+    image: curhat/web:local
+    build:
+      context: ..
+      dockerfile: infrastructure/docker/next.Dockerfile
+      args:
+        APP: web
+        # Nilai publik saja — apa pun di sini masuk ke bundle browser
+        # (TECH-SPEC §7.2).
+        NEXT_PUBLIC_APP_URL: https://curhatdong.com
+        NEXT_PUBLIC_API_URL: https://api.curhatdong.com
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+
+  admin:
+    image: curhat/admin:local
+    build:
+      context: ..
+      dockerfile: infrastructure/docker/next.Dockerfile
+      args:
+        APP: admin
+        NEXT_PUBLIC_APP_URL: https://admin.curhatdong.com
+        NEXT_PUBLIC_API_URL: https://api.curhatdong.com
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}

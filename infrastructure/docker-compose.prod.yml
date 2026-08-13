@@ -28,10 +28,6 @@ x-logging: &logging
     max-file: '3'
 
 services:
-  api: { condition: service_healthy }
-      admin: { condition: service_healthy }
-    logging: *logging
-
   api:
     image: ghcr.io/${GITHUB_REPOSITORY}/api:${IMAGE_TAG}
     restart: unless-stopped
