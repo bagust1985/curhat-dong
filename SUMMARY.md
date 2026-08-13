@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **12 Agustus 2026** — E15 berjalan (5/17). E01–E14 selesai.
+> Terakhir: **13 Agustus 2026** — E15 selesai (17/17). E01–E15 selesai.
 
 ## Status Keseluruhan
 
@@ -21,15 +21,15 @@
 | **E12** | Notification | 9/9 | ✅ **Selesai** |
 | **E13** | Search | 4/4 | ✅ **Selesai** |
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
-| E15 | Web UI | 5/17 | 🟡 **Berjalan** (T01–T04 fondasi + 19 komponen, T05 landing) |
+| **E15** | Web UI | 17/17 | ✅ **Selesai** |
 | E16 | Mobile (Android) | 0/13 | ⬜ Belum |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 141 / 182 task (77,5%).**
+**Progres: 153 / 182 task (84,1%).**
 
 ---
 
-## E15 — Web UI 🟡 (5/17)
+## E15 — Web UI ✅ (17/17)
 
 Fondasi visual, pustaka komponen, dan halaman pertama. Sisanya (T06–T17) belum
 dikerjakan.
@@ -93,8 +93,11 @@ pindah ke `/dev/tokens`.
 pnpm lint       15/15 workspace  hijau
 pnpm typecheck  15/15 workspace  hijau
 pnpm build      9/9              hijau
-pnpm test       120 test (web)   hijau
+pnpm test       976 test         hijau
 ```
+
+Pemecahan: api 478 · web 292 · ai 57 · auth 56 · notifications 56 · database 14 ·
+types 10 · config 9 · admin 4. Web naik dari 120 ke 292 sepanjang T05–T17.
 
 ### Dua warna brand kit gagal AA — dan itu inti T01
 
@@ -196,16 +199,72 @@ Assertion "konsekuensi di atas tombol" mencari string `"Hapus"`, yang juga cocok
 dengan judul dialog di indeks 0 — jadi dia membandingkan elemen yang salah dan
 akan **lolos untuk alasan yang salah**. Diganti `compareDocumentPosition`.
 
-### Sisa E15 (12 task)
+### Halaman (T06–T17)
 
-T06 auth · T07 onboarding · T08 home feed · T09 create curhat ·
-T10 supportive intervention · T11 post detail · T12 DONG AI · T13 listener ·
-T14 request + room · T15 explore/search/notif · T16 profil & settings ·
-T17 audit aksesibilitas.
+| Task | Hasil |
+|---|---|
+| E15-T06 | `/auth` — OTP, Google, age gate · plus **fondasi klien**: `lib/api.ts`, `lib/session.tsx`, route group `app/(app)/` |
+| E15-T07 | `/onboarding` 7 langkah, consent terpisah, submit atomik |
+| E15-T08 | `/home` 4 tab, anti-duplikat scroll, Midnight copy |
+| E15-T09 | `/curhat/baru` — peringatan doxxing inline, draft autosave |
+| E15-T10 | Layar Supportive Intervention — aturan copy jadi assertion |
+| E15-T11 | `/post/:id` — held / dihapus / komentar dikunci |
+| E15-T12 | `/ai` — streaming SSE, disclaimer permanen, bridge kontekstual |
+| E15-T13 | `/listen` — gate panduan, dashboard, tawaran match |
+| E15-T14 | `/listener/request` + `/room/:id` + session feedback |
+| E15-T15 | `/explore`, `/search`, `/notifications` |
+| E15-T16 | `/profile/:alias`, `/settings`, `/settings/data`, `/moderation/actions` |
+| E15-T17 | Audit aksesibilitas — axe atas 16 layar |
 
-Semuanya menyusun komponen yang sudah ada, jadi seharusnya lebih cepat. T10
-(Supportive Intervention) adalah layar paling hati-hati di seluruh produk dan
-pantas dikerjakan dengan tenang.
+### Keputusan yang menentukan bentuk kodenya
+
+**Access token di memori, bukan storage.** TECH-SPEC §5.1 melarang localStorage
+untuk token, dan API memang menolak mengirim refresh token ke browser. Jadi
+reload selalu mulai tanpa token dan menanyakannya ke cookie HttpOnly. Refresh
+dijaga **satu in-flight**: lima request dengan token kedaluwarsa akan memutar
+rotating refresh lima kali, dan reuse detection membaca empat di antaranya
+sebagai token curian lalu mencabut seluruh family.
+
+**`SessionProvider` di route group, bukan root layout.** Dia menembak request
+begitu mount; landing page tidak boleh menanyakan apa pun tentang pengunjung
+yang belum melakukan apa-apa (E15-T05).
+
+**Peringatan doxxing menginformasikan, tidak memblokir.** Muncul saat mengetik,
+tombol kirim tetap hidup. Orang bisa punya alasan menyertakan detail yang kami
+tandai, dan produk ini tidak menimpa keputusannya soal ceritanya sendiri.
+
+**Balasan AI baru masuk daftar saat `message.complete`.** Stream yang putus di
+tengah tidak meninggalkan sesuatu yang tampak seperti jawaban selesai.
+
+**Dismiss ≠ "belum".** Prompt Felt Heard yang di-dismiss dikirim ke endpoint
+dismiss. Kalau dihitung "belum", North Star berubah jadi ukuran seberapa
+mengganggu prompt-nya.
+
+**Toggle notifikasi mengirim satu tipe saja.** Mengirim seluruh set balik adalah
+cara layar basi diam-diam mengembalikan setelan yang baru diubah di perangkat
+lain.
+
+### Dua bug yang ditemukan test sendiri
+
+1. **Room crash karena id `undefined`.** Kalau respons POST pesan tidak membawa
+   `id`, pesan lokal jadi ber-id `undefined` dan jalur dedupe pesan masuk
+   melempar `TypeError` — seluruh ruang mati. Sekarang fallback ke id lokal.
+2. **FAB memotong glyph-nya sendiri di teks 200%.** `h-14` tetap dengan
+   `text-2xl`. Diganti `min-h-14 min-w-14 aspect-square`. Ditemukan oleh scan
+   sumber di E15-T17, bukan oleh mata.
+
+### Yang tidak dikerjakan dan alasannya
+
+- **Pull-to-refresh gestur di web.** Browser mobile sudah punya gestur itu;
+  implementasi kedua bertabrakan dengan yang asli di layar yang sama. Tersedia
+  tombol "Muat ulang" yang juga terjangkau keyboard. Gestur asli tetap E16.
+- **Halaman legal masih placeholder** dan tetap `noindex` sampai E17-T10 mengisi
+  naskah hasil review hukum.
+- **Uji screen reader sungguhan, penskalaan 200% di browser, dan uji perangkat
+  belum dijalankan.** `docs/A11Y-AUDIT-E15.md` menuliskan itu apa adanya berikut
+  prosedurnya, bukan mengklaim tercakup.
+- **Tombol "Download APK"** hanya muncul kalau `NEXT_PUBLIC_ANDROID_APK_URL`
+  diisi.
 
 ### Catatan untuk sesi berikutnya
 
@@ -2141,23 +2200,22 @@ dan sign-off 13 nilai usulan di PRD §25.7.
 
 ## Langkah Berikutnya
 
-**E12 — Notification** (9 task): registrasi device, adapter push
-provider-agnostic, web push, privasi payload, quiet hours, fanout, in-app,
-realtime, listener nudge.
+**E16 — Mobile (Android)** (13 task), lalu **E17 — Compliance, Deploy &
+Observability** (14 task).
 
-Kanal socket-nya sudah berdiri: `notification:new`, `match:offer`, dan
-`match:accepted` tinggal dipancarkan lewat `RoomEventsService`.
+Tiga hal dari web yang akan dipakai ulang di mobile: kosakata mood/intent/reaction
+di `@curhat/types`, aturan copy yang sudah jadi assertion (Supportive
+Intervention, rest state listener, notifikasi tanpa isi curhat), dan kontrak
+error `code` yang sama.
 
-Satu hal yang harus dipegang di E12: **notifikasi tidak pernah memuat isi
-curhat atau chat** (non-negotiable #3). `NOTIFICATION_TEMPLATES` sudah dibuat
-sebagai himpunan tertutup di E01 dan `NotificationPayload` sengaja tidak punya
-field `body` — E12 tinggal tidak merusaknya.
+Yang **tidak** boleh diulang di mobile: token di storage biasa (pakai
+SecureStore), dan preview feed dari data asli di layar publik mana pun.
 
-Setelahnya: `E13 (Search) → E14 (Admin Panel)`.
+**Blocker rilis tidak berubah:** hotline terverifikasi (E17-T12), pendaftaran
+PSE (E17-T11), rotasi moderator malam, dan naskah legal (E17-T10) yang sampai
+sekarang bikin `/legal/*` masih placeholder.
 
 **Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
 punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.
-Itu memang desainnya, bukan kelalaian — tapi jangan sampai terlewat.
-
-Catatan urutan: syarat "E07 sebelum E09" sudah terpenuhi — DONG AI berjalan di
-atas safety engine sungguhan, bukan di sampingnya.
+Panel admin (`apps/admin`) masih scaffold — DESIGN-REF §3 menyebut 14 halaman
+dan itu belum masuk hitungan epic mana pun.
