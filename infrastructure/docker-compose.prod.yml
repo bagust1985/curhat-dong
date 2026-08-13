@@ -12,6 +12,10 @@ name: curhat-dong
 #     `latest` means two servers can run different code while reporting the
 #     same version (TECH-SPEC §9.2).
 
+# NGINX, BUKAN CADDY. VPS ini menjalankan empat proyek lain dan nginx sudah
+# memegang port 80/443 — lihat infrastructure/nginx/curhatdong.conf. Tidak ada
+# service di file ini yang boleh mem-bind port publik.
+
 x-app-env: &app-env
   NODE_ENV: production
   DATABASE_URL: postgres://curhat:${POSTGRES_PASSWORD}@postgres:5432/curhat_dong
@@ -24,22 +28,7 @@ x-logging: &logging
     max-file: '3'
 
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-      - '443:443/udp'
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    environment:
-      ACME_EMAIL: ${ACME_EMAIL}
-    depends_on:
-      web: { condition: service_healthy }
-      api: { condition: service_healthy }
+  api: { condition: service_healthy }
       admin: { condition: service_healthy }
     logging: *logging
 
@@ -47,6 +36,9 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}/api:${IMAGE_TAG}
     restart: unless-stopped
     user: '1001:1001'
+    ports:
+      # Loopback saja: nginx yang menghadap publik.
+      - '127.0.0.1:3111:3001'
     environment:
       <<: *app-env
       PORT: 3001
@@ -84,6 +76,8 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}/web:${IMAGE_TAG}
     restart: unless-stopped
     user: '1001:1001'
+    ports:
+      - '127.0.0.1:3110:3000'
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -100,6 +94,8 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}/admin:${IMAGE_TAG}
     restart: unless-stopped
     user: '1001:1001'
+    ports:
+      - '127.0.0.1:3112:3002'
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -174,6 +170,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  caddy-data:
-  caddy-config:
   uptime-data:

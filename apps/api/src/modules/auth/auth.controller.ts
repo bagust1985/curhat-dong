@@ -4,6 +4,7 @@ import { hashIp } from '@curhat/auth';
 import type { CookieOptions, Request, Response } from 'express';
 
 import { ApiException } from '../../common/api-error.js';
+import { clientIpOf } from '../../common/client-ip.js';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { ENV } from '../../config/env.config.js';
 import { AuthService, type AuthResult } from './auth.service.js';
@@ -171,6 +172,6 @@ export class AuthController {
   }
 
   private ipHashOf(request: Request): string {
-    return hashIp(request.ip ?? 'unknown', this.env.TOKEN_ENCRYPTION_KEY);
+    return hashIp(clientIpOf(request), this.env.TOKEN_ENCRYPTION_KEY);
   }
 }

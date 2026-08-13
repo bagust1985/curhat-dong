@@ -51,3 +51,26 @@ pnpm infra:check
 
 Skrip ini menolak menyalakan container kalau ada port yang sudah terpakai —
 lebih baik gagal dengan pesan jelas daripada menabrak layanan proyek lain.
+
+## Produksi (E17) — VPS bersama
+
+VPS `139.180.223.100` menjalankan **empat proyek lain** di `/var/www/`
+(POH, selsila-web, selsipad, selsipad-docs), dan **nginx sudah memegang port
+80/443** untuk mereka.
+
+Karena itu stack produksi CURHAT DONG **tidak pernah mem-bind port publik**.
+Semua container bind ke loopback dan nginx yang mem-proxy:
+
+| Service | Host (loopback) | Container |
+|---|---|---|
+| web | `127.0.0.1:3110` | 3000 |
+| api | `127.0.0.1:3111` | 3001 |
+| admin | `127.0.0.1:3112` | 3002 |
+| uptime-kuma | `127.0.0.1:3103` | 3001 |
+| dozzle | `127.0.0.1:3104` | 8080 |
+| postgres | — (tanpa port) | 5432 |
+| redis | — (tanpa port) | 6379 |
+
+Caddy **sengaja dihapus** dari compose produksi. Di mesin bersama, edge proxy
+adalah sumber daya tunggal: dua proxy berebut 443 tidak punya solusi bagus,
+yang ada cuma siapa yang menang — dan yang kalah adalah empat proyek orang lain.

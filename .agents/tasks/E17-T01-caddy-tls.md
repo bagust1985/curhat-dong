@@ -30,3 +30,22 @@ Scan SSL Labs + cek header; coba akses port DB dari luar → harus tertutup.
   dibatalkan oleh satu edit firewall.
 - **Belum diverifikasi**: SSL Labs, cek header dari luar, dan uji port DB
   tertutup — butuh VPS dan domain yang sudah mengarah.
+
+
+## Revisi (VPS bersama) — Caddy dibatalkan
+
+Setelah melihat VPS-nya: **nginx sudah aktif memegang port 80/443** untuk empat
+proyek lain di `/var/www/`. Compose yang mem-bind `80:80`/`443:443` akan gagal
+start atau merebut port itu — dan yang mati empat proyek orang lain.
+
+`Caddyfile` **dihapus**, diganti `infrastructure/nginx/curhatdong.conf`. Di
+mesin bersama, edge proxy itu sumber daya tunggal; dua proxy berebut 443 tidak
+punya solusi bagus, yang ada cuma siapa yang menang.
+
+Yang ikut pindah ke nginx: HSTS, security header, CSP terpisah web/admin,
+`X-Robots-Tag`, upgrade websocket untuk `/rt`, dan **`proxy_buffering off`
+untuk SSE DONG AI** — dengan buffering menyala, balasan streaming baru sampai
+setelah selesai, persis kebalikan dari streaming.
+
+Ditambahkan `set_real_ip_from` untuk seluruh range Cloudflare +
+`real_ip_header CF-Connecting-IP`, karena keempat record di-proxy CF.

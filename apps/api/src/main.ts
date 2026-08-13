@@ -6,6 +6,7 @@ import { initSentry } from './observability/sentry.js';
 
 import { Logger } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { loadServerEnv } from '@curhat/config/env/server';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -54,7 +55,18 @@ async function bootstrap(): Promise<void> {
   // process here, not halfway through wiring modules.
   const env = loadServerEnv();
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
+
+  /*
+   * Behind nginx on the same host, itself behind Cloudflare (E17).
+   *
+   * `1` and not `true`: trusting every proxy would make `X-Forwarded-For`
+   * entirely client-controlled, and the client is exactly who the rate limiter
+   * is defending against. One hop is what actually sits in front of this.
+   */
+  app.set('trust proxy', 1);
 
   app.setGlobalPrefix('v1');
   app.use(helmet());

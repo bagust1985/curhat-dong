@@ -3,6 +3,7 @@ import type { ServerEnv } from '@curhat/config/env/server';
 import { hashIp } from '@curhat/auth';
 import type { Request } from 'express';
 
+import { clientIpOf } from '../../common/client-ip.js';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { ENV } from '../../config/env.config.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/jwt-auth.guard.js';
@@ -138,6 +139,6 @@ export class OnboardingController {
    * identity system on a platform whose premise is anonymity.
    */
   private deviceKeyOf(request: Request, deviceId?: string): string {
-    return deviceId ?? hashIp(request.ip ?? 'unknown', this.env.TOKEN_ENCRYPTION_KEY);
+    return deviceId ?? hashIp(clientIpOf(request), this.env.TOKEN_ENCRYPTION_KEY);
   }
 }

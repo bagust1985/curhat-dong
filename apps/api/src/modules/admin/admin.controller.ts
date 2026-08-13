@@ -4,6 +4,7 @@ import type { ServerEnv } from '@curhat/config/env/server';
 import { Inject } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
+import { clientIpOf } from '../../common/client-ip.js';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe.js';
 import { ENV } from '../../config/env.config.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/jwt-auth.guard.js';
@@ -179,7 +180,7 @@ export class AdminController {
   }
 
   private ipHash(request: Request): string | undefined {
-    const ip = request.ip;
+    const ip = clientIpOf(request);
     return ip ? hashIp(ip, this.env.TOKEN_ENCRYPTION_KEY) : undefined;
   }
 }
