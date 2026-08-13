@@ -23,7 +23,13 @@ export type RetentionJobName =
 
 export interface RetentionStep {
   job: RetentionJobName;
-  /** The table this job trims, recorded on `retention_runs.entity`. */
+  /**
+   * The **physical** table name, not the Prisma model name.
+   *
+   * `curhat_posts` and `messages` are `@@map`ed away from what the models are
+   * called, and a wrong name here fails only against a real database — which is
+   * how `retention.db.test.ts` caught it.
+   */
   entity: string;
   /** Config key holding the retention period. */
   configKey: string;
@@ -60,7 +66,7 @@ export function retentionPlan(config: RetentionConfig, now: Date): RetentionStep
   return [
     {
       job: 'posts',
-      entity: 'posts',
+      entity: 'curhat_posts',
       configKey: 'retention.days.post_grace_after_delete',
       // Only soft-deleted posts age out. A live post is kept for as long as its
       // author wants it there — retention is not a cleanup of the feed.
@@ -69,7 +75,7 @@ export function retentionPlan(config: RetentionConfig, now: Date): RetentionStep
     },
     {
       job: 'room_messages',
-      entity: 'room_messages',
+      entity: 'messages',
       configKey: 'retention.days.room_messages',
       cutoff: daysAgo(config['retention.days.room_messages']),
       respectsOpenCases: true,
@@ -83,7 +89,7 @@ export function retentionPlan(config: RetentionConfig, now: Date): RetentionStep
     },
     {
       job: 'safety',
-      entity: 'safety_analyses',
+      entity: 'safety_events',
       configKey: 'retention.days.safety',
       cutoff: daysAgo(config['retention.days.safety']),
       respectsOpenCases: true,

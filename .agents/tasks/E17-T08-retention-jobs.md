@@ -2,7 +2,7 @@
 id: E17-T08
 epic: E17
 title: Job retensi data
-status: in_progress
+status: done
 estimate: 1.5d
 depends_on: [E02-T07]
 refs: [PRD §25.4, TECH-SPEC §18.2]
@@ -49,3 +49,25 @@ Uji dengan data lama buatan; verifikasi hanya baris kedaluwarsa yang terhapus.
   terhapus" **belum dijalankan** — butuh seed data lama di database. Yang sudah
   diuji: seluruh aritmetika cutoff, guard open-case per job, dan aturan alert
   zero-delete (11 test).
+
+## Verifikasi atas data sungguhan (penutup)
+
+`retention.db.test.ts` menjalankan SQL-nya terhadap Postgres beneran dengan data
+yang di-seed. **Dan itu menemukan bug asli:** `entity` di plan memakai nama
+model Prisma, bukan nama tabel fisiknya. `posts` sebenarnya `curhat_posts`,
+`room_messages` sebenarnya `messages`, dan `safety_analyses` sebenarnya
+`safety_events` — ketiganya `@@map`. Seluruh unit test lolos dengan nama yang
+salah itu, karena aritmetika cutoff tidak pernah menyentuh database. Di produksi
+job-nya bakal gagal tiap malam dengan `relation ... does not exist`, dan
+`deleted_count` tetap 0 — persis pola yang `looksStuck` anggap "rusak", tapi baru
+ketahuan setelah 7 hari.
+
+Yang diuji sekarang (24 test di `src/worker`):
+
+- OTP kedaluwarsa terhapus, OTP segar **tidak**;
+- baris tepat di batas jendela **tidak** terhapus (`<`, bukan `<=`) — umur yang
+  sama persis dengan periode retensi belum melewatinya;
+- sapuan kedua atas tabel bersih mengembalikan 0 (nol sekali itu benar; nol tujuh
+  hari berturut-turut yang jadi alarm);
+- query guard open-case **valid secara SQL** terhadap skema sungguhan — guard
+  yang tidak valid akan diam-diam tidak cocok apa pun lalu menghapus semuanya.
