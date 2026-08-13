@@ -1,8 +1,9 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **13 Agustus 2026** — E17 berjalan (11/14 kode mendarat,
-> **0 terverifikasi di mesin sungguhan**). E01–E16 selesai.
+> Terakhir: **13 Agustus 2026** — E17 berjalan (1/14 selesai, 10 kode mendarat
+> tapi **belum terverifikasi di mesin sungguhan**). E01–E16 selesai.
+> **Pekerjaan kode praktis habis** — sisanya butuh VPS, akun, atau keputusan manusia.
 
 ## Status Keseluruhan
 
@@ -24,12 +25,11 @@
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
 | **E15** | Web UI | 17/17 | ✅ **Selesai** |
 | **E16** | Mobile (Android) | 13/13 | ✅ **Selesai** (kode; verifikasi perangkat tertunda) |
-| E17 | Compliance, Deploy & Observability | 0/14 | 🟡 **Berjalan** — 11 task kodenya mendarat, 3 butuh manusia |
+| E17 | Compliance, Deploy & Observability | 1/14 | 🟡 **Berjalan** — 10 kodenya mendarat, 3 butuh manusia |
 
-**Progres: 166 / 182 task selesai (91,2%).** Sebelas task E17 lagi berstatus
-`in_progress`: kodenya mendarat dan teruji, tapi **belum satu pun dijalankan di
-VPS, registry, atau domain sungguhan**. Tidak dihitung selesai karena memang
-belum.
+**Progres: 167 / 182 task selesai (91,8%).** Sepuluh task E17 lagi berstatus
+`in_progress`: kodenya mendarat dan teruji, tapi **belum dijalankan di VPS,
+registry, atau domain sungguhan**. Tidak dihitung selesai karena memang belum.
 
 ---
 
@@ -2262,7 +2262,7 @@ test web        292              hijau
 
 ---
 
-## E17 — Compliance, Deploy & Observability 🟡 (11/14 mendarat, 0 selesai)
+## E17 — Compliance, Deploy & Observability 🟡 (1/14 selesai, 10 mendarat)
 
 | Task | Yang mendarat | Yang menahannya |
 |---|---|---|
@@ -2270,10 +2270,10 @@ test web        292              hijau
 | T02 Compose prod | 9 service, healthcheck, non-root, tag SHA | Belum dijalankan di VPS |
 | T03 Image GHCR | Multi-stage, standalone Next, cek secret di image | Build belum pernah jalan |
 | T04 Pipeline | Gate destruktif → migrate → health → rollback | Belum end-to-end |
-| T05 Sentry | Paket `@curhat/observability` + 15 test | Belum dipasang ke app mana pun |
+| T05 Sentry | Paket `@curhat/observability` + 19 test, **terpasang di 5 entrypoint** | Error sungguhan ke DSN produksi |
 | T06 Uptime | 5 monitor terdokumentasi, alert Telegram | Belum dibuat di UI, alert belum pernah berbunyi |
 | T07 Backup | `backup.sh` + `restore.sh` | Restore sungguhan belum dilakukan |
-| T08 Retensi | Worker + 8 job + 11 test | Belum diuji atas data lama |
+| **T08 Retensi** ✅ | Worker + 8 job + **24 test, diuji atas data sungguhan** | — |
 | T09 SOP breach | `breach-scope.ts` + 9 test + SOP + template | PIC belum ada, table-top belum jalan |
 | T13 Load test | Skrip k6 peak-night + threshold | Belum ada VPS staging |
 | T14 Security review | Skrip: **10 lolos, 0 gagal** | 6 item sisa butuh mesin/manusia |
@@ -2310,8 +2310,16 @@ sambil menahan insidennya. `scopeFromAudit` mengembalikan **id dan kategori,
 bukan isinya** — respons insiden yang menumpahkan curhat terdampak ke file
 kerja sudah memperlebar kebocoran sambil mengukurnya.
 
-### Lubang yang ditemukan test/skrip sendiri
+### Tiga lubang yang ditemukan test/skrip sendiri
 
+0. **Nama tabel di job retensi salah** — `entity` memakai nama model Prisma,
+   bukan nama tabel fisik: `posts` sebenarnya `curhat_posts`, `room_messages`
+   sebenarnya `messages`, `safety_analyses` sebenarnya `safety_events`. Sebelas
+   unit test lolos dengan nama salah itu karena aritmetika cutoff tidak pernah
+   menyentuh database. Di produksi tiga dari delapan job gagal tiap malam dengan
+   `relation ... does not exist` sementara `deleted_count` tetap 0 — persis pola
+   yang `looksStuck` anggap rusak, tapi baru ketahuan setelah tujuh hari data
+   yang dijanjikan terhapus ternyata masih ada. Ditemukan `retention.db.test.ts`.
 1. **Pesan exception yang menginterpolasi isi curhat lolos dari semua aturan
    scrubbing berbasis nama field** (`body gagal divalidasi: "..."`). Itu justru
    jalur paling mungkin curhat sampai ke pihak ketiga. Ditambal aturan
@@ -2326,13 +2334,20 @@ kerja sudah memperlebar kebocoran sambil mengukurnya.
 ### Hasil verifikasi
 
 ```
-pnpm lint       17/17 workspace  hijau
-pnpm typecheck  17/17 workspace  hijau
+pnpm lint       18/18 workspace  hijau
+pnpm typecheck  18/18 workspace  hijau
 security-review 10 lolos, 0 gagal
-test worker     20               hijau
-test scrubbing  15               hijau
+test worker     24               hijau (termasuk 4 atas database sungguhan)
+test scrubbing  19               hijau
 test guard      15               hijau
 ```
+
+Scrubbing Sentry terpasang di **lima** entrypoint (api, worker, web server +
+browser, admin, mobile), semuanya lewat satu `sentryOptions()` yang sama —
+lupa memasang `beforeSend` di salah satu dari lima tempat itu persis kesalahan
+yang berakhir dengan curhat di dashboard pihak ketiga. Session Replay dan
+screenshot sengaja tidak diaktifkan: keduanya merekam layar, dan di sini layar
+itu curhat seseorang.
 
 ### Yang harus dikerjakan manusia
 
@@ -2360,11 +2375,9 @@ exercise, rotasi moderator malam, dan keputusan nav mobile vs web.
 
 ## Langkah Berikutnya
 
-**Sisa pekerjaan kode tinggal dua:** memasang hook `beforeSend` scrubbing ke
-api, worker, web, admin, dan mobile (E17-T05 — aturannya sudah ada dan teruji,
-tinggal dipasang), lalu menguji job retensi atas data lama buatan (E17-T08).
+**Pekerjaan kode praktis habis.** Sisa E17 tidak bisa diselesaikan dari editor.
 
-**Selebihnya bukan pekerjaan kode.** Sebelas task E17 menunggu mesin sungguhan:
+**Sepuluh task E17 menunggu mesin sungguhan:**
 VPS, DNS, registry, DSN Sentry, dan akun EAS. Daftar lengkap apa yang harus
 disiapkan dan apa yang harus diuji manual ada di bagian E17 di atas.
 
