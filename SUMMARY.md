@@ -1,7 +1,7 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **13 Agustus 2026** — E15 selesai (17/17). E01–E15 selesai.
+> Terakhir: **13 Agustus 2026** — E16 selesai (13/13). E01–E16 selesai.
 
 ## Status Keseluruhan
 
@@ -22,10 +22,10 @@
 | **E13** | Search | 4/4 | ✅ **Selesai** |
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
 | **E15** | Web UI | 17/17 | ✅ **Selesai** |
-| E16 | Mobile (Android) | 0/13 | ⬜ Belum |
+| **E16** | Mobile (Android) | 13/13 | ✅ **Selesai** (kode; verifikasi perangkat tertunda) |
 | E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
 
-**Progres: 153 / 182 task (84,1%).**
+**Progres: 166 / 182 task (91,2%).**
 
 ---
 
@@ -2195,6 +2195,66 @@ Tiga hal ini menahan go-live dan tidak bisa diselesaikan dengan menulis kode:
 
 Plus: naskah Privacy Policy / ToS / Community Guidelines (butuh review hukum),
 dan sign-off 13 nilai usulan di PRD §25.7.
+
+---
+
+## E16 — Mobile (Android) ✅ (13/13)
+
+Expo SDK 57 · RN 0.86.2 · NativeWind 4 dengan Tailwind 3.4.x **khusus mobile**.
+
+### Keputusan yang menentukan bentuk kodenya
+
+**`expo/fetch`, bukan `fetch` bawaan RN, untuk DONG AI.** `fetch` RN tidak punya
+`response.body` — balasan streaming baru sampai setelah selesai, kebalikan dari
+streaming. Tanpa ini fiturnya mustahil, bukan sekadar jelek.
+
+**`react-native-css-interop` dideklarasikan eksplisit.** `node-linker=isolated`
+bikin JSX hasil kompilasi NativeWind gagal resolve paket yang tidak dideklarasikan
+app. Ketahuan karena `expo export` gagal — persis fungsi strict linking.
+
+**Kosakata mood/intent/reaction pindah ke `@curhat/types`.** Sebelumnya hanya di
+`apps/web/lib/vocabulary.ts`; menyalinnya ke mobile berarti dua salinan yang
+melenceng pada edit pertama. Web sekarang me-re-export dan 292 test-nya tetap hijau.
+
+**Refresh token hanya di SecureStore, access token cuma di memori** — ada test
+yang memastikan tidak ada nilai access token yang pernah masuk store.
+
+**Permission notifikasi tidak pernah diminta saat launch.** Di Android,
+POST_NOTIFICATIONS yang ditolak tidak bisa diminta lagi; prompt yang terlalu dini
+itu permanen.
+
+**Force update `installed < minimum`, bukan `installed !== latest`.** Tertinggal
+dari versi terbaru itu normal. API belum mengirim `x-min-app-version` sama sekali,
+jadi untuk sekarang setiap respons dibaca `ok` — arah aman: klien yang memblokir
+secara default akan mem-brick dirinya sendiri saat sebuah proxy membuang header.
+
+### Perbedaan yang butuh keputusan
+
+Nav mobile ikut DESIGN-REF §1 (HOME · EXPLORE · [+ CURHAT] · LISTEN · PROFILE);
+nav web ikut brand mock (Beranda · Chat · Komunitas · Notifikasi · Akun). Ini
+jatuh dari dua dokumen yang bertentangan, **bukan keputusan siapa pun**. Dicatat
+di `apps/mobile/lib/navigation.ts`. Salah satunya harus berubah.
+
+### Yang belum diverifikasi — dan tidak diklaim lolos
+
+Tidak ada Android SDK, emulator, perangkat, maupun akun EAS di lingkungan ini.
+Yang membuktikan kode ini berdiri: `expo export --platform android` menghasilkan
+bundle Hermes 4MB, plus 39 unit test atas aturannya.
+
+**Belum dijalankan:** TalkBack, penskalaan font OS, screenshot/FLAG_SECURE,
+notifikasi di lock screen, quiet hours dari timezone device, offer via push saat
+app tertutup, mode pesawat per layar, build EAS (APK/AAB), dan kirim/rollback OTA.
+Tiap file task menuliskan kriteria mana miliknya yang masih terbuka.
+
+### Hasil verifikasi
+
+```
+pnpm lint       16/16 workspace  hijau
+pnpm typecheck  16/16 workspace  hijau
+expo export     bundle Hermes 4MB
+test mobile     39               hijau
+test web        292              hijau
+```
 
 ---
 
