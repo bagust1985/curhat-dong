@@ -298,6 +298,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.8(react@19.2.8)
+      socket.io-client:
+        specifier: 'catalog:'
+        version: 4.8.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: 'catalog:'
