@@ -71,7 +71,9 @@ export function BottomNav({
         type="button"
         onClick={onCreate}
         aria-label="Tulis curhat baru"
-        className="absolute -top-7 left-1/2 z-10 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[var(--color-primary)] text-2xl font-bold text-[var(--color-primary-fg)] shadow-lg"
+        // `min-h`/`min-w` with `aspect-square` rather than a fixed 56px box:
+        // at 200% text scaling a fixed circle clips its own glyph (E15-T17).
+        className="absolute -top-7 left-1/2 z-10 flex min-h-14 min-w-14 -translate-x-1/2 aspect-square items-center justify-center rounded-full bg-[var(--color-primary)] p-2 text-2xl font-bold text-[var(--color-primary-fg)] shadow-lg"
       >
         <span aria-hidden="true">+</span>
       </button>
