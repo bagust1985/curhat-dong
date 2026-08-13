@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { FEED_TABS, ListenerNudgeBanner } from './feed';
+import { FEED_TABS, ListenerNudgeBanner, QUICK_LINKS } from './feed';
 import { mergePages, toCardData, toIntent, toMood, type FeedApiItem } from '../lib/feed';
 import { DAY_GREETING, MIDNIGHT_GREETING, feedGreeting, isMidnightHour } from '../lib/midnight';
 import { relativeTime } from '../lib/relative-time';
@@ -154,6 +154,54 @@ describe('the feed page (mocked API)', () => {
       </SessionProvider>,
     );
   }
+
+  it('opens with the greeting, the start-curhat card and the feature shelf (Revisi 2)', async () => {
+    stubFeed({ 'terbaru:': { items: [item('a')], nextCursor: null } });
+    await renderHome();
+
+    // Greeting carries the alias — this product has no real names to use.
+    expect(await screen.findByRole('heading', { name: /hai, senja/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Mulai curhat sekarang' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Mulai Curhat' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Fitur Utama' })).toBeTruthy();
+
+    // ...and the feed is still on this screen, below the shelf.
+    expect(screen.getByRole('tab', { name: 'Terbaru' })).toBeTruthy();
+  });
+
+  it('every feature tile goes somewhere that exists', async () => {
+    // The mock's shelf lists Jurnal and Relaksasi, which are not features of
+    // this product, and Komunitas, which is Phase 2 with no backend. A tile
+    // that leads nowhere teaches people the buttons here are decorative.
+    const routes = new Set([
+      '/ai',
+      '/listener/request',
+      '/explore',
+      '/search',
+      '/home',
+      '/notifications',
+      '/curhat/baru',
+      '/settings',
+    ]);
+    for (const link of QUICK_LINKS) {
+      expect(routes.has(link.href), `${link.label} → ${link.href}`).toBe(true);
+    }
+    expect(QUICK_LINKS.map((link) => link.label)).not.toContain('Jurnal');
+    expect(QUICK_LINKS.map((link) => link.label)).not.toContain('Relaksasi');
+  });
+
+  it('each feature tile is announced by words, not only a glyph', async () => {
+    stubFeed({ 'terbaru:': { items: [], nextCursor: null } });
+    await renderHome();
+
+    await screen.findByRole('heading', { name: 'Fitur Utama' });
+    for (const link of QUICK_LINKS) {
+      const tile = screen.getByRole('button', { name: link.description });
+      expect(tile, link.key).toBeTruthy();
+      // The glyph is decoration; a reader must never land on it alone.
+      expect(within(tile).getByText(link.glyph).getAttribute('aria-hidden')).toBe('true');
+    }
+  });
 
   it('offers all four tabs and the AI entry, and no leaderboard anywhere', async () => {
     stubFeed({ 'terbaru:': { items: [item('a')], nextCursor: null } });

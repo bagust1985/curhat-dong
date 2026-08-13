@@ -16,6 +16,8 @@ import {
   ListenerNudgeBanner,
   OfflineBanner,
   PrivateAiEntryCard,
+  QuickLinksGrid,
+  StartCurhatCard,
   type FeedTabKey,
 } from '../../../components/feed';
 
@@ -175,13 +177,23 @@ export default function HomePage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col">
       <main className="flex-1 px-[var(--spacing-gutter)] pt-8 pb-28">
-        <h1 className="text-xl font-bold text-[var(--color-text)]">{feedGreeting()}</h1>
+        {/*
+         * The mock's opening: a personal greeting, then the one action this
+         * screen exists to offer, then the shelf of features. The feed follows
+         * — it stays on this screen because it *is* the product (E05, PRD §6)
+         * and the North Star depends on people answering each other; a home
+         * screen that only launches features would quietly demote it.
+         */}
+        <h1 className="text-2xl font-extrabold text-[var(--color-text)]">
+          {user ? `Hai, ${user.alias} 👋` : 'Hai 👋'}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">{feedGreeting()}</p>
 
-        <div className="mt-4">
-          <FeedTabs active={tab} onSelect={setTab} />
-        </div>
+        <div className="mt-5 flex flex-col gap-5">
+          <StartCurhatCard onStart={() => router.push('/curhat/baru')} />
 
-        <div className="mt-4 flex flex-col gap-4">
+          <QuickLinksGrid onOpen={(link) => router.push(link.href)} />
+
           {user?.isListener && !nudgeDismissed ? (
             <ListenerNudgeBanner
               waiting={waitingCount}
@@ -191,6 +203,12 @@ export default function HomePage() {
           ) : null}
 
           <PrivateAiEntryCard onOpen={() => router.push('/ai')} />
+        </div>
+
+        <h2 className="mt-8 text-base font-bold text-[var(--color-text)]">Cerita Terbaru</h2>
+
+        <div className="mt-3">
+          <FeedTabs active={tab} onSelect={setTab} />
         </div>
 
         <section

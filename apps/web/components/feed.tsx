@@ -90,6 +90,134 @@ export function FeedSkeleton({ count = 3 }: { count?: number }) {
 }
 
 /** DESIGN-REF §2.4 — the way into DONG AI for someone not ready to talk to a person. */
+/**
+ * The mock's hero card — Revisi 2. Mascot, one sentence, one pill button.
+ *
+ * "+ Curhat" already exists as the FAB, but the FAB is a glyph: it only reads
+ * as "write something" to someone who already knows the product. This is the
+ * same action stated in words, on the first screen after logging in.
+ */
+export function StartCurhatCard({ onStart }: { onStart: () => void }) {
+  return (
+    <section
+      aria-labelledby="mulai-curhat-heading"
+      className="flex items-center gap-4 rounded-[var(--radius-curhat)] bg-[var(--color-surface-alt)] p-5"
+    >
+      {/* Decorative: the heading beside it says the same thing in words. */}
+      <img
+        src="/brand/mascot.png"
+        alt=""
+        width={297}
+        height={232}
+        className="h-auto w-16 shrink-0 sm:w-20"
+      />
+      <div className="min-w-0">
+        <h2 id="mulai-curhat-heading" className="text-base font-bold text-[var(--color-text)]">
+          Mulai curhat sekarang
+        </h2>
+        <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted)]">
+          Nggak harus rapi. Tulis apa adanya aja.
+        </p>
+        <button
+          type="button"
+          onClick={onStart}
+          className="mt-3 inline-flex min-h-[var(--size-touch)] items-center rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-bold text-[var(--color-primary-fg)]"
+        >
+          Mulai Curhat
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export interface QuickLink {
+  key: string;
+  label: string;
+  /** Decorative — the label carries the meaning. */
+  glyph: string;
+  href: string;
+  /** Announced to screen readers; the tile itself is short by design. */
+  description: string;
+}
+
+/**
+ * "Fitur Utama" — Revisi 2, from the brand mock.
+ *
+ * The mock's four tiles are AI Mendengar · Komunitas · Jurnal · Relaksasi.
+ * Three of those do not exist: Komunitas is Phase 2 with no backend
+ * (`communities.enabled: false`), and Jurnal and Relaksasi appear nowhere in
+ * the product, the PRD or the tech spec — "journal" exists only as a DONG AI
+ * personality mode, which is a different thing wearing the same word.
+ *
+ * So the shelf keeps the mock's shape and fills it with the features that are
+ * actually behind it. A grid of tiles where three lead nowhere teaches people
+ * that this product's buttons are decorative, and that lesson is expensive to
+ * un-teach.
+ */
+export const QUICK_LINKS: readonly QuickLink[] = [
+  {
+    key: 'ai',
+    label: 'DONG AI',
+    glyph: '💬',
+    href: '/ai',
+    description: 'Ngobrol sama DONG AI, teman ngobrol yang selalu ada',
+  },
+  {
+    key: 'listener',
+    label: 'Cari Listener',
+    glyph: '🤍',
+    href: '/listener/request',
+    description: 'Minta ditemani listener manusia',
+  },
+  {
+    key: 'explore',
+    label: 'Jelajah',
+    glyph: '🧭',
+    href: '/explore',
+    description: 'Lihat cerita dari topik lain',
+  },
+  {
+    key: 'search',
+    label: 'Cari',
+    glyph: '🔍',
+    href: '/search',
+    description: 'Cari cerita, topik, atau listener',
+  },
+];
+
+export function QuickLinksGrid({ onOpen }: { onOpen: (link: QuickLink) => void }) {
+  return (
+    <section aria-labelledby="fitur-utama-heading">
+      <h2 id="fitur-utama-heading" className="text-base font-bold text-[var(--color-text)]">
+        Fitur Utama
+      </h2>
+
+      <ul className="mt-3 grid grid-cols-4 gap-2">
+        {QUICK_LINKS.map((link) => (
+          <li key={link.key}>
+            <button
+              type="button"
+              onClick={() => onOpen(link)}
+              aria-label={link.description}
+              className="flex min-h-[var(--size-touch)] w-full flex-col items-center gap-1.5 rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-3 text-center"
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-11 items-center justify-center rounded-[var(--radius-curhat)] bg-[var(--color-surface-alt)] text-xl"
+              >
+                {link.glyph}
+              </span>
+              <span className="text-xs leading-tight font-semibold text-[var(--color-text)]">
+                {link.label}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function PrivateAiEntryCard({ onOpen }: { onOpen: () => void }) {
   return (
     <section
