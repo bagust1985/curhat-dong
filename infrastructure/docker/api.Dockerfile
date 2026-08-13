@@ -37,13 +37,21 @@ ENV NODE_ENV=production
 # Non-root. The app writes nothing to disk; it has no reason to own any of it.
 RUN addgroup -g 1001 curhat && adduser -u 1001 -G curhat -s /bin/sh -D curhat
 
+# Tata letak workspace dipertahankan persis seperti di stage build.
+#
+# Versi sebelumnya meratakan `apps/api/node_modules` ke `/app/node_modules`.
+# Dengan pnpm `node-linker=isolated`, isi direktori itu adalah symlink relatif
+# (`@curhat/types -> ../../../packages/types`), jadi meratakannya membuat
+# targetnya meleset satu tingkat. Build tetap lolos; container-nya yang mati
+# dengan `Cannot find module` saat start.
 COPY --from=build --chown=curhat:curhat /app/node_modules ./node_modules
 COPY --from=build --chown=curhat:curhat /app/packages ./packages
-COPY --from=build --chown=curhat:curhat /app/apps/api/dist ./dist
-COPY --from=build --chown=curhat:curhat /app/apps/api/node_modules ./node_modules
-COPY --from=build --chown=curhat:curhat /app/apps/api/package.json ./package.json
+COPY --from=build --chown=curhat:curhat /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build --chown=curhat:curhat /app/apps/api/dist ./apps/api/dist
+COPY --from=build --chown=curhat:curhat /app/apps/api/package.json ./apps/api/package.json
 
 USER curhat
+WORKDIR /app/apps/api
 EXPOSE 3001
 
 # No .env is copied at any stage. Configuration arrives as environment

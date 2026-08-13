@@ -94,7 +94,7 @@ jobs:
             # anything is restarted. `migrate deploy` applies what exists and
             # never generates or resets.
             if ! docker compose -f infrastructure/docker-compose.prod.yml run --rm \
-                 --entrypoint sh api -c 'npx prisma migrate deploy --schema packages/database/prisma/schema'; then
+                 --entrypoint sh api -c 'cd /app && npx prisma migrate deploy --schema packages/database/prisma/schema'; then
               echo "::error::migration gagal — deployment dihentikan, versi lama tetap jalan"
               exit 1
             fi
