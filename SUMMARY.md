@@ -52,11 +52,39 @@ ada cuma `/profile/[alias]`. Halaman redirect baru menyelesaikan alias dari
 sesi: authenticated → profil sendiri, anonymous → /auth, onboarding →
 /onboarding, loading → skeleton.
 
-Catatan sadar-scope: restyle per-layar yang lebih dalam (spacing halus,
-adopsi primitif `Button`/`Card` ke 16 layar lama) sengaja tidak dipaksakan
-dari editor tanpa melihat renderan — bahasa visual mock sudah sampai lewat
-token (pill, Nunito, lavender) + shell nav + landing. Sisanya pantas
-dikerjakan sambil melihat layar sungguhan.
+**Beranda (`/home`) menyusul setelah user melapor "dashboard belum match".**
+Penundaan awalnya salah panggil — "rombak total" memang berarti layar dalam
+juga. Sekarang mengikuti irama mock: sapaan personal (pakai alias — produk ini
+tidak punya nama asli), kartu "Mulai curhat sekarang" + maskot, lalu rak
+"Fitur Utama", baru feed.
+
+Dua penyimpangan yang **disengaja dan penting**, ditemukan waktu mencocokkan
+mock ke kode:
+
+1. **Feed tetap ada di Beranda.** Mock sama sekali tidak punya feed — padahal
+   feed itu produknya (E05, PRD §6) dan North Star bergantung pada orang saling
+   membalas. Layar utama yang cuma jadi peluncur fitur diam-diam menurunkan
+   derajat fitur intinya.
+2. **Isi rak "Fitur Utama" diganti.** Empat tile di mock: AI Mendengar ·
+   Komunitas · Jurnal · Relaksasi. Dicek satu per satu ke kode: Komunitas Phase
+   2 tanpa backend (`communities.enabled: false`), sementara **Jurnal dan
+   Relaksasi tidak ada di mana pun** — bukan di kode, bukan di PRD, bukan di
+   tech spec ("journal" cuma nama mode kepribadian DONG AI). "Artikel Pilihan"
+   juga tidak punya CMS maupun tabel. Rak-nya mempertahankan bentuk mock tapi
+   diisi fitur yang benar-benar ada: DONG AI, Cari Listener, Jelajah, Cari.
+   Ada test yang memastikan tiap tile menuju rute yang ada. Grid dengan tiga
+   tile menuju ruang kosong mengajari orang bahwa tombol di produk ini cuma
+   hiasan — pelajaran yang mahal untuk dihapus.
+
+Kesimpulan yang pantas dicatat: **mock itu arahan visual, bukan spesifikasi
+fitur.** Dia menggambarkan aplikasi wellness generik; yang dibangun jaringan
+sosial emosional. Kalau Jurnal/Relaksasi/Artikel memang diinginkan, itu tiga
+epic baru, bukan revisi UI.
+
+Sisa sadar-scope: spacing halus dan adopsi primitif `Button`/`Card` ke layar
+lama lainnya (post detail, explore, settings, dst) belum disapu — bahasa
+visualnya sudah sampai lewat token (pill, Nunito, lavender) + shell nav +
+landing + Beranda.
 
 ---
 
