@@ -5,6 +5,7 @@ import { Switch, Text, TextInput, View } from 'react-native';
 import { ApiError, api } from '../../lib/api';
 import { EMPTY_DRAFT, clearDraft, loadDraft, saveDraft, type Draft } from '../../lib/draft';
 import { PERSONAL_DATA_WARNING, detectPersonalData } from '../../lib/personal-data';
+import { maybeEnablePush } from '../../lib/push';
 import { Body, ErrorText, Heading, PrimaryButton, ScreenScroll, SecondaryButton } from '../../components/ui';
 import { MOODS, MOOD_VOCABULARY, INTENTS, INTENT_VOCABULARY } from '@curhat/types';
 import { TOUCH_TARGET } from '../../lib/tokens';
@@ -80,6 +81,9 @@ export default function CreateCurhatScreen() {
       });
 
       await clearDraft();
+      // First real thing they did. Asking now means the prompt is about
+      // something they just chose (E16-T09).
+      void maybeEnablePush('after_first_post');
 
       if (data.intervention) {
         setInterventionMessage(data.intervention.message);

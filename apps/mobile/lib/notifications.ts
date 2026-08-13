@@ -16,9 +16,9 @@ import type { NotificationTemplate } from '@curhat/types';
  */
 
 export interface IncomingPush {
-  title?: string;
-  body?: string;
-  data?: Record<string, unknown>;
+  title?: string | undefined;
+  body?: string | undefined;
+  data?: Record<string, unknown> | undefined;
 }
 
 export interface SafeNotification {

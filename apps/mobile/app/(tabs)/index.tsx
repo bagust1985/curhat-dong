@@ -7,6 +7,7 @@ import { mergePages, toCardData, type FeedApiItem } from '../../lib/feed';
 import { useSession } from '../../lib/session';
 import { feedGreeting } from '../../lib/theme';
 import { CurhatCard, EmptyState, Loading, SecondaryButton } from '../../components/ui';
+import { OfflineBanner } from '../../components/status-screens';
 import { EMPTY_STATES } from '@curhat/types';
 
 /**
@@ -152,14 +153,7 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            {offline ? (
-              <View className="rounded-curhat border border-border bg-surface p-4">
-                <Text className="text-sm font-semibold text-text">Koneksinya lagi putus-putus.</Text>
-                <Text className="mt-1 text-sm text-muted">
-                  Yang udah kebuka tetap bisa dibaca. Sisanya nunggu sinyal balik.
-                </Text>
-              </View>
-            ) : null}
+            {offline ? <OfflineBanner onRetry={() => void load(tab, 'refresh')} /> : null}
           </View>
         }
         ListEmptyComponent={

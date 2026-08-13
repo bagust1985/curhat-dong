@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
 import { ApiError, api } from '../../lib/api';
+import { maybeEnablePush } from '../../lib/push';
 import { Body, ErrorText, Heading, Loading, PrimaryButton, SecondaryButton } from '../../components/ui';
 
 /**
@@ -135,6 +136,8 @@ export default function ListenScreen() {
         body: { guidelinesVersion: guidelines.version },
       });
       await loadProfile();
+      // A listener without notifications never hears about an offer.
+      void maybeEnablePush('after_listener_activation');
     } catch {
       setError('Belum bisa diaktifkan. Coba lagi sebentar lagi ya.');
     }

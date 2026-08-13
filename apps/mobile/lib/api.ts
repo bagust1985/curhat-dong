@@ -1,5 +1,6 @@
 import type { ApiMeta, ApiResponse, ErrorCode } from '@curhat/types';
 
+import { evaluate, setAppStatus } from './app-status';
 import { clearRefreshToken, readRefreshToken, writeRefreshToken } from './token-storage';
 
 /**
@@ -67,6 +68,18 @@ export function setSessionEndedHandler(handler: ((error: SessionEndedError) => v
   onSessionEnded = handler;
 }
 
+/**
+ * The installed app version, compared against `x-min-app-version` (E16-T11).
+ *
+ * Read from the bundled config rather than hardcoded, so a release cannot ship
+ * with a version string that disagrees with its own manifest.
+ */
+let installedVersion = '0.0.0';
+
+export function setInstalledVersion(version: string): void {
+  installedVersion = version;
+}
+
 export function apiBaseUrl(): string {
   // EXPO_PUBLIC_* only. Anything else would not reach the bundle, and anything
   // secret would be readable by unzipping the APK (TECH-SPEC §7.2).
@@ -111,6 +124,13 @@ async function once<T>(path: string, request: ApiRequest): Promise<ApiResult<T>>
   } catch {
     throw new NetworkError();
   }
+
+  // Every response is a chance to learn the server has moved on or gone away
+  // (E16-T11). Checked before the body, because a maintenance 503 may not have
+  // one worth parsing.
+  setAppStatus(
+    evaluate({ status: response.status, header: (name) => response.headers.get(name) }, installedVersion),
+  );
 
   let payload: ApiResponse<T> | null;
   try {

@@ -50,6 +50,7 @@ function stubFetch(handler: (url: string, init: RequestInit) => StubbedCall) {
     return {
       ok: result.status < 400,
       status: result.status,
+      headers: new Headers(),
       json: async () => result.body,
     } as Response;
   });

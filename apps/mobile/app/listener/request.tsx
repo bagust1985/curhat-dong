@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Text, TextInput } from 'react-native';
 
 import { ApiError, api } from '../../lib/api';
+import { maybeEnablePush } from '../../lib/push';
 import { Body, ErrorText, Heading, PrimaryButton, ScreenScroll, SecondaryButton } from '../../components/ui';
 import { TOUCH_TARGET } from '../../lib/tokens';
 
@@ -56,6 +57,9 @@ export default function ListenerRequestScreen() {
       });
       setRequestId(data.id);
       setPhase('searching');
+      // The search can outlive the screen — "kamu boleh tutup halaman ini"
+      // is only true if we can reach them afterwards.
+      void maybeEnablePush('after_listener_request');
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === 'LISTENER_REQUEST_ALREADY_ACTIVE') {
         setPhase('searching');
