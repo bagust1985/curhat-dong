@@ -1,11 +1,15 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **13 Agustus 2026** — E17 berjalan (1/14 selesai, 10 kode mendarat
-> tapi **belum terverifikasi di mesin sungguhan**). E01–E16 selesai.
-> **Pekerjaan kode praktis habis** — sisanya butuh VPS, akun, atau keputusan manusia.
-> Deploy direvisi untuk **VPS bersama**: nginx (bukan Caddy), semua container
-> bind loopback, dan IP asli dibaca dari `CF-Connecting-IP`.
+> Terakhir: **13 Agustus 2026** — **deploy pertama berhasil**.
+> https://curhatdong.com tayang, API `ready: true`, worker jalan, migrasi + seed
+> masuk. E01–E16 selesai; E17 berjalan.
+>
+> ⚠️ **Aplikasinya sekarang bisa diakses publik sementara daftar hotline masih
+> kosong.** Layar krisis L3 menampilkan fallback jujur ("kami belum punya daftar
+> yang sudah dipastikan benar"), bukan layar kosong — tapi ini tetap alasan
+> kenapa E17-T12 disebut blocker rilis, dan sekarang risikonya nyata, bukan
+> teoretis.
 
 ## Status Keseluruhan
 
@@ -2268,10 +2272,10 @@ test web        292              hijau
 
 | Task | Yang mendarat | Yang menahannya |
 |---|---|---|
-| T01 **nginx** (bukan Caddy) | 3 domain, HSTS+preload, CSP terpisah web/admin, real IP Cloudflare | Terbitkan cert, `nginx -t && reload` |
-| T02 Compose prod | 8 service (tanpa Caddy), semua bind loopback, tag SHA | Belum dijalankan di VPS |
-| T03 Image GHCR | Multi-stage, standalone Next, cek secret di image | Build belum pernah jalan |
-| T04 Pipeline | Gate destruktif → migrate → health → rollback | Belum end-to-end |
+| T01 **nginx** ✅ | Cert terbit, 3 domain tayang, HSTS+CSP aktif, real IP Cloudflare | Scan SSL Labs |
+| T02 Compose prod | **8 service jalan di VPS**, healthcheck hijau, semua bind loopback | Uji restart otomatis |
+| T03 Image | **3 image ter-build & jalan** (lokal, bukan GHCR) | Repo belum punya remote → CI belum ada |
+| T04 Pipeline | Gate destruktif teruji; migrate deploy **sudah jalan sungguhan** | Pipeline end-to-end belum (butuh CI) |
 | T05 Sentry | Paket `@curhat/observability` + 19 test, **terpasang di 5 entrypoint** | Error sungguhan ke DSN produksi |
 | T06 Uptime | 5 monitor terdokumentasi, alert Telegram | Belum dibuat di UI, alert belum pernah berbunyi |
 | T07 Backup | `backup.sh` + `restore.sh` | Restore sungguhan belum dilakukan |
@@ -2311,6 +2315,48 @@ jendela itu tidak ada yang akan menulis query ke skema yang baru dia lihat
 sambil menahan insidennya. `scopeFromAudit` mengembalikan **id dan kategori,
 bukan isinya** — respons insiden yang menumpahkan curhat terdampak ke file
 kerja sudah memperlebar kebocoran sambil mengukurnya.
+
+### Deploy pertama (13 Agt, malam) — tiga bug yang tidak mungkin ditemukan test
+
+Stack-nya naik, dan prosesnya menemukan tiga cacat yang **semuanya butuh
+dijalankan sungguhan** untuk muncul.
+
+**1. Client Prisma memakai `import.meta.url`.** Itu sintaks khusus ESM; tsc
+membiarkannya apa adanya saat mengompilasi ke CommonJS, jadi parser CJS Node
+gagal, mendeteksi sintaks modul, memuat ulang file sebagai ESM, lalu mati di
+`exports is not defined`. **478 test API lolos** karena vitest dan `nest start`
+sama-sama mentransformasi file itu — kegagalannya butuh output hasil build
+dijalankan `node` polos, dan itu baru terjadi di produksi. Diperbaiki dengan
+`moduleFormat = "cjs"` di generator.
+
+**2. Endpoint health kena guard JWT global** dan balas 401. Ini yang paling
+berbahaya: Docker menandai container `unhealthy` padahal API-nya sehat, dan
+**health gate di pipeline deploy (T04) akan me-rollback setiap deploy yang
+sebenarnya baik-baik saja** — sambil log menunjukkan aplikasi normal. Ditambah
+test yang memeriksa metadata `@Public()`, jadi gagalnya di titik seseorang
+menghapus dekorator, bukan menunggu deploy berikutnya.
+
+**3. `node_modules` diratakan di runtime image.** Dengan pnpm isolated, isinya
+symlink relatif; meratakannya membuat targetnya meleset satu tingkat. Build
+tetap lolos, container yang mati. Diperbaiki sebelum sempat menggigit.
+
+Plus satu kesalahan yang perlu dicatat karena mudah terulang: menyarankan
+`EMAIL_PROVIDER=console` di `NODE_ENV=production`. Penjaganya benar dan menolak
+boot — provider console mencetak kode OTP ke log container.
+
+Cacat kecil lain yang ikut ketemu: `http2 on;` (butuh nginx 1.25, VPS-nya 1.18),
+YAML compose rusak karena sisa `depends_on` Caddy, `next.Dockerfile` tidak
+menyalin `packages/observability`, `apps/admin/public` tidak ada, `.dockerignore`
+belum ada, dan perintah migrasi dijalankan dari direktori yang salah sehingga
+Prisma 7 tidak menemukan `prisma.config.ts`.
+
+### Setelan sementara yang WAJIB diganti sebelum rilis
+
+| Setelan | Sekarang | Kenapa sementara |
+|---|---|---|
+| `EMAIL_FROM` | `onboarding@resend.dev` | Resend hanya mengizinkan kirim ke email pemilik akun sampai domain terverifikasi |
+| Image | `curhat/*:local` | Tidak memberi tahu commit mana yang jalan — itu guna tag SHA |
+| Build | Di VPS produksi | Memakai CPU yang melayani empat proyek lain |
 
 ### Revisi setelah melihat VPS-nya (13 Agt, sore)
 
@@ -2366,6 +2412,9 @@ balasan streaming baru sampai setelah selesai.
 ### Hasil verifikasi
 
 ```
+produksi        https://curhatdong.com  200
+                api /health/ready       ready: true (pg 1ms, redis 1ms)
+                seed                    15 kategori · 63 config · 6 flag
 pnpm lint       18/18 workspace  hijau
 pnpm typecheck  18/18 workspace  hijau
 security-review 10 lolos, 0 gagal
@@ -2383,15 +2432,23 @@ itu curhat seseorang.
 
 ### Yang harus dikerjakan manusia
 
-**Infrastruktur & akun:** VPS sudah ada (`139.180.223.100`, 6 vCPU / 16 GB,
-Singapore) dan DNS empat host sudah mengarah ke sana lewat Cloudflare
-(proxied). Yang belum: **SSL/TLS mode Cloudflare harus `Full (strict)`** —
-kalau `Flexible` hasilnya redirect loop; sertifikat origin (certbot untuk empat
-host); pasang `curhatdong.conf` ke `sites-available` lalu **`nginx -t &&
-systemctl reload nginx`** (reload, bukan restart — restart memutus koneksi empat
-proyek tetangga); GitHub Secrets (`DEPLOY_HOST`, `DEPLOY_USER`,
-`DEPLOY_SSH_KEY`) + Variables `NEXT_PUBLIC_*`; `.env.production` di VPS; akun
-EAS untuk APK.
+**Sudah beres:** VPS, DNS, sertifikat, nginx, `.env.production`, migrasi, seed,
+dan seluruh stack berjalan.
+
+**Yang belum, urut prioritas:**
+
+1. **Hotline terverifikasi (E17-T12)** — sekarang mendesak, bukan lagi teoretis:
+   aplikasinya sudah bisa diakses siapa pun.
+2. **Verifikasi domain di Resend** — sampai itu, OTP hanya sampai ke email
+   pemilik akun Resend, jadi tidak ada orang lain yang bisa login.
+3. **Git remote + CI** — supaya image punya tag SHA dan pipeline deploy
+   (termasuk gate migration destruktif) benar-benar dipakai, bukan cuma ada.
+4. Uptime Kuma + alert Telegram yang **benar-benar pernah berbunyi**.
+5. Restore drill + catat durasinya (itu dasar RTO).
+6. Naskah legal + PSE.
+
+GitHub Secrets (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`) dan Variables
+`NEXT_PUBLIC_*` baru relevan setelah nomor 3.
 
 **Catatan yang gampang terlupa:** daftar range Cloudflare di `curhatdong.conf`
 bisa berubah. Kalau suatu saat IP asli kembali terbaca sebagai IP Cloudflare,
