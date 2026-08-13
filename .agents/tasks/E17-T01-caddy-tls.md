@@ -49,3 +49,23 @@ setelah selesai, persis kebalikan dari streaming.
 
 Ditambahkan `set_real_ip_from` untuk seluruh range Cloudflare +
 `real_ip_header CF-Connecting-IP`, karena keempat record di-proxy CF.
+
+
+## Penerbitan sertifikat
+
+`infrastructure/scripts/issue-certs.sh` + `nginx/curhatdong-bootstrap.conf`.
+
+- Pakai `certbot certonly --webroot`, **bukan `--nginx`**. Plugin nginx mengedit
+  file config, dan di mesin yang melayani empat proyek lain, editor otomatis
+  pada config nginx adalah risiko yang tidak sebanding dengan kenyamanannya.
+  `certonly` tidak menyentuh config sama sekali.
+- **Urutan bootstrap → terbitkan → config penuh** ada alasannya: `curhatdong.conf`
+  menunjuk sertifikat yang belum ada, jadi memasangnya duluan bikin `nginx -t`
+  gagal — dan config rusak berarti tidak ada yang bisa reload nginx, sementara
+  siapa pun yang me-restart menjatuhkan kelima situs.
+- Script memverifikasi `nginx -t` **sebelum** menambah apa pun: menumpuk file
+  baru di atas config yang sudah rusak bikin penyebabnya makin susah dicari.
+- `--dry-run` dijalankan lebih dulu. Let's Encrypt membatasi 5 kegagalan/jam per
+  akun; percobaan yang gagal karena salah ketik domain bisa mengunci penerbitan
+  satu jam.
+- Semua `reload`, tidak pernah `restart`.
