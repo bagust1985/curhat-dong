@@ -2,7 +2,7 @@
 id: E15-T09
 epic: E15
 title: Create curhat (modal web)
-status: todo
+status: done
 estimate: 2d
 depends_on: [E15-T02, E05-T02]
 refs: [DESIGN-REF §2.6, PRD §7]
@@ -18,3 +18,14 @@ Prompt "Hari ini kamu mau cerita apa?", title opsional, body autosave, category 
 
 ## Verifikasi
 Uji ketiga state hasil submit; uji pemulihan draft.
+
+## Catatan implementasi
+
+- **Modal-nya punya URL** (`/curhat/baru`). Tampilannya modal seperti di desain,
+  tapi rute-nya yang bikin tulisan setengah jadi selamat dari refresh dan tombol
+  back berperilaku wajar.
+- Peringatan doxxing muncul **saat mengetik** lewat detektor lokal yang meniru
+  pola server, dan **tidak pernah** mematikan tombol kirim. Checkbox "aku ngerti"
+  itu yang dikirim sebagai `acknowledgedPersonalDataWarning`.
+- Draft di `localStorage` (bukan token — itu tetap dilarang TECH-SPEC §5.1),
+  dihapus begitu terkirim, dan kedaluwarsa 7 hari.
