@@ -32,6 +32,7 @@ const POST = {
   commentCount: 1,
   createdAt: new Date().toISOString(),
   isOwn: false,
+  status: undefined as string | undefined,
 };
 
 const COMMENT = {
