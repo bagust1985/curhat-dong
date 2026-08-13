@@ -1,0 +1,127 @@
+name: Deploy
+
+# Deploy to the Vultr VPS — E17-T04. TECH-SPEC §9.3, CLAUDE.md non-negotiable #7.
+#
+# The order is the design:
+#
+#   1. refuse unapproved destructive migrations — before anything is pulled;
+#   2. pull the images for this exact SHA;
+#   3. `prisma migrate deploy`, and **stop the deployment if it fails**. A
+#      failed migration means the schema is not what the new code expects, and
+#      starting it anyway is how a half-migrated database meets code that
+#      assumes the other half;
+#   4. bring the stack up;
+#   5. wait for health. If it never comes, roll back to the previous SHA.
+#
+# Production runs `migrate deploy` only. `migrate dev` writes migrations and
+# can reset the database; it has no business on a machine with real curhat on it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA to deploy (defaults to the current one)'
+        required: false
+  workflow_run:
+    workflows: [Images]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Migration guard
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the SQL rather than trusting that somebody read it. Approving a
+      # destructive migration means typing a marker into the migration file,
+      # where it shows up in the diff and in `git blame`.
+      - name: Refuse unapproved destructive migrations
+        run: node infrastructure/scripts/check-destructive-migration.mjs packages/database/prisma/migrations
+
+  deploy:
+    name: Deploy
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the SHA being deployed
+        id: target
+        run: echo "sha=${{ inputs.sha || github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Ship it
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE_TAG: ${{ steps.target.outputs.sha }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: IMAGE_TAG
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /srv/curhat-dong
+
+            # The SHA currently serving traffic, kept so a failed health gate
+            # has something specific to go back to.
+            PREVIOUS=$(grep '^IMAGE_TAG=' .env || echo "IMAGE_TAG=")
+            PREVIOUS=${PREVIOUS#IMAGE_TAG=}
+            echo "versi sekarang: ${PREVIOUS:-belum ada}"
+
+            git fetch --quiet origin main
+            git checkout --quiet "$IMAGE_TAG" -- infrastructure packages/database/prisma
+
+            echo "IMAGE_TAG=$IMAGE_TAG" > .env.deploy
+            export IMAGE_TAG
+
+            docker compose -f infrastructure/docker-compose.prod.yml pull
+
+            # Migrations run in a one-shot container on the new image, before
+            # anything is restarted. `migrate deploy` applies what exists and
+            # never generates or resets.
+            if ! docker compose -f infrastructure/docker-compose.prod.yml run --rm \
+                 --entrypoint sh api -c 'npx prisma migrate deploy --schema packages/database/prisma/schema'; then
+              echo "::error::migration gagal — deployment dihentikan, versi lama tetap jalan"
+              exit 1
+            fi
+
+            docker compose -f infrastructure/docker-compose.prod.yml up -d --remove-orphans
+
+            # Health gate: the API must report ready, not merely alive. Ready
+            # means it can reach Postgres and Redis.
+            ok=0
+            for attempt in $(seq 1 20); do
+              if curl -fsS --max-time 5 https://api.curhatdong.com/v1/health/ready >/dev/null; then
+                ok=1
+                break
+              fi
+              sleep 10
+            done
+
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::healthcheck gagal setelah deploy — rollback ke ${PREVIOUS:-tidak diketahui}"
+              if [ -n "$PREVIOUS" ]; then
+                IMAGE_TAG="$PREVIOUS" docker compose -f infrastructure/docker-compose.prod.yml up -d
+              fi
+              exit 1
+            fi
+
+            # Only written once the new version is actually serving, so the
+            # rollback target is always a version that worked.
+            echo "IMAGE_TAG=$IMAGE_TAG" > .env
+            docker image prune -f --filter 'until=168h'
+            echo "deploy selesai: $IMAGE_TAG"

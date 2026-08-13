@@ -1,7 +1,15 @@
+import { join } from 'node:path';
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
   reactStrictMode: true,
+  // Traced standalone server for the Docker image (E17-T03): the runtime layer
+  // gets the server and the modules it actually imports, not the whole
+  // node_modules tree.
+  output: 'standalone',
+  // The trace has to start at the repo root or it misses the workspace
+  // packages this app imports.
+  outputFileTracingRoot: join(import.meta.dirname, '../..'),
   // Workspace packages ship TypeScript-built CJS; Next compiles them in-app.
   transpilePackages: ['@curhat/types', '@curhat/config'],
   poweredByHeader: false,

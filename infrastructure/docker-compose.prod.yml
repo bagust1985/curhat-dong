@@ -1,0 +1,179 @@
+name: curhat-dong
+
+# Production stack — E17-T02. TECH-SPEC §7.1, §9.2.
+#
+# Two rules this file exists to enforce:
+#
+#  1. **Postgres and Redis have no published ports at all.** Not bound to
+#     loopback, not firewalled — absent. They are reachable only over the
+#     internal compose network (TECH-SPEC §7.1), which is the only version of
+#     this that cannot be undone by an edit to a firewall rule.
+#  2. **Every image is pinned to a commit SHA** through IMAGE_TAG. Deploying
+#     `latest` means two servers can run different code while reporting the
+#     same version (TECH-SPEC §9.2).
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://curhat:${POSTGRES_PASSWORD}@postgres:5432/curhat_dong
+  REDIS_URL: redis://redis:6379
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      web: { condition: service_healthy }
+      api: { condition: service_healthy }
+      admin: { condition: service_healthy }
+    logging: *logging
+
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY}/api:${IMAGE_TAG}
+    restart: unless-stopped
+    user: '1001:1001'
+    environment:
+      <<: *app-env
+      PORT: 3001
+    env_file: [.env.production]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      # `ready`, not `live`: Caddy must not send traffic to an API that is up
+      # but cannot reach its database.
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3001/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
+    logging: *logging
+
+  worker:
+    # Same image as the API, different command. One build, one set of rules
+    # (see apps/api/src/worker/worker.main.ts).
+    image: ghcr.io/${GITHUB_REPOSITORY}/api:${IMAGE_TAG}
+    command: ['node', 'dist/worker/worker.main.js']
+    restart: unless-stopped
+    user: '1001:1001'
+    environment: *app-env
+    env_file: [.env.production]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    # No healthcheck endpoint: the worker opens no port on purpose. Liveness is
+    # observed through `retention_runs` and the queue, not through HTTP.
+    logging: *logging
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY}/web:${IMAGE_TAG}
+    restart: unless-stopped
+    user: '1001:1001'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: '0.0.0.0'
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+    logging: *logging
+
+  admin:
+    image: ghcr.io/${GITHUB_REPOSITORY}/admin:${IMAGE_TAG}
+    restart: unless-stopped
+    user: '1001:1001'
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      HOSTNAME: '0.0.0.0'
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3002/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+    logging: *logging
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    # No `ports:` — see the note at the top of this file.
+    environment:
+      POSTGRES_USER: curhat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: curhat_dong
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U curhat -d curhat_dong']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # appendonly so a restart does not drop queued BullMQ jobs. Redis is still
+    # not a source of truth (non-negotiable #5); this only avoids losing work.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    volumes:
+      - uptime-data:/app/data
+    # Reachable over an SSH tunnel only. A monitoring dashboard on the public
+    # internet is a list of your endpoints and their weak moments.
+    ports:
+      - '127.0.0.1:3103:3001'
+    logging: *logging
+
+  dozzle:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Container logs contain enough to be sensitive even with scrubbing;
+      # loopback only, same reasoning as uptime-kuma.
+      DOZZLE_NO_ANALYTICS: 'true'
+    ports:
+      - '127.0.0.1:3104:8080'
+    logging: *logging
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:
+  uptime-data:
