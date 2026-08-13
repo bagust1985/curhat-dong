@@ -1,0 +1,287 @@
+'use client';
+
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+
+import { RESEND_COOLDOWN_SECONDS } from '../lib/auth-copy';
+
+/**
+ * Auth screens — E15-T06. DESIGN-REF §2.2.
+ *
+ * Presentational only: every one of these takes its error text as a prop and
+ * renders it. The mapping from API error code to sentence lives in
+ * `lib/auth-copy.ts` so it can be asserted as a closed set — the enumeration
+ * rule (TECH-SPEC §3.1) is a property of the whole vocabulary, not of one
+ * screen.
+ */
+
+const REASSURANCE = 'Email kamu nggak akan pernah ditampilkan ke siapa pun.';
+
+function FieldError({ message }: { message: string | null }) {
+  return (
+    // Always mounted so a screen reader announces the text when it appears;
+    // a live region that is added to the DOM at the same time as its content
+    // frequently announces nothing.
+    <p role="alert" aria-live="polite" className="mt-2 min-h-5 text-sm text-[var(--color-danger)]">
+      {message}
+    </p>
+  );
+}
+
+export interface EmailStepProps {
+  onSubmit: (email: string) => void;
+  pending: boolean;
+  error: string | null;
+  /** Rendered under the form when the API demands a bot check. */
+  challenge?: React.ReactNode;
+  google?: React.ReactNode;
+}
+
+export function EmailStep({ onSubmit, pending, error, challenge, google }: EmailStepProps) {
+  const [email, setEmail] = useState('');
+
+  return (
+    <section aria-labelledby="auth-email-heading">
+      <h1 id="auth-email-heading" className="text-2xl font-bold text-[var(--color-text)]">
+        Masuk atau bikin akun
+      </h1>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+        Kami kirim kode 6 digit ke emailmu. Nggak perlu password.
+      </p>
+
+      <form
+        className="mt-6"
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault();
+          if (!pending) onSubmit(email.trim());
+        }}
+      >
+        <label htmlFor="auth-email" className="block text-sm font-semibold text-[var(--color-text)]">
+          Email
+        </label>
+        <input
+          id="auth-email"
+          type="email"
+          name="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          aria-describedby="auth-email-reassurance"
+          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+        />
+        <p id="auth-email-reassurance" className="mt-2 text-sm text-[var(--color-muted)]">
+          {REASSURANCE}
+        </p>
+
+        <FieldError message={error} />
+        {challenge}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+        >
+          {pending ? 'Lagi dikirim…' : 'Kirim Kode'}
+        </button>
+      </form>
+
+      {google ? (
+        <div className="mt-6">
+          <p className="text-center text-sm text-[var(--color-muted)]">atau</p>
+          <div className="mt-3">{google}</div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+export interface OtpStepProps {
+  email: string;
+  onVerify: (code: string) => void;
+  onResend: () => void;
+  onBack: () => void;
+  pending: boolean;
+  error: string | null;
+  /** Restarts the countdown; bump it after every successful send. */
+  sentAt: number;
+}
+
+export function OtpStep({
+  email,
+  onVerify,
+  onResend,
+  onBack,
+  pending,
+  error,
+  sentAt,
+}: OtpStepProps) {
+  const [code, setCode] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
+
+  useEffect(() => {
+    setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+    const timer = setInterval(() => {
+      setSecondsLeft((value) => (value <= 1 ? 0 : value - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sentAt]);
+
+  return (
+    <section aria-labelledby="auth-otp-heading">
+      <h1 id="auth-otp-heading" className="text-2xl font-bold text-[var(--color-text)]">
+        Masukin kodenya
+      </h1>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+        Kode 6 digit sudah kami kirim ke {email}. Cek folder spam juga ya.
+      </p>
+
+      <form
+        className="mt-6"
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault();
+          if (!pending) onVerify(code.trim());
+        }}
+      >
+        <label htmlFor="auth-otp" className="block text-sm font-semibold text-[var(--color-text)]">
+          Kode 6 digit
+        </label>
+        {/*
+         * One field, not six boxes. Six boxes look tidy and are hostile to
+         * paste, to autofill, and to a screen reader that announces six
+         * unlabelled inputs; `one-time-code` lets the OS offer the code.
+         */}
+        <input
+          id="auth-otp"
+          name="code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          pattern="\d{6}"
+          required
+          value={code}
+          onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-center text-xl tracking-[0.4em] text-[var(--color-text)]"
+        />
+
+        <FieldError message={error} />
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+        >
+          {pending ? 'Lagi dicek…' : 'Lanjut'}
+        </button>
+      </form>
+
+      <div className="mt-6 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={secondsLeft > 0 || pending}
+          className="min-h-[var(--size-touch)] text-sm font-semibold text-[var(--color-text)] underline underline-offset-4 disabled:no-underline disabled:opacity-70"
+        >
+          {secondsLeft > 0 ? `Kirim ulang kode dalam ${secondsLeft} detik` : 'Kirim ulang kode'}
+        </button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="min-h-[var(--size-touch)] text-sm text-[var(--color-muted)] underline underline-offset-4"
+        >
+          Ganti email
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export interface AgeGateProps {
+  onConfirm: () => void;
+  onReject: () => void;
+  pending: boolean;
+  error: string | null;
+}
+
+export function AgeGate({ onConfirm, onReject, pending, error }: AgeGateProps) {
+  const [checked, setChecked] = useState(false);
+
+  const confirm = useCallback(() => {
+    if (checked && !pending) onConfirm();
+  }, [checked, pending, onConfirm]);
+
+  return (
+    <section aria-labelledby="auth-age-heading">
+      <h1 id="auth-age-heading" className="text-2xl font-bold text-[var(--color-text)]">
+        Sebelum lanjut
+      </h1>
+      <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+        CURHAT DONG ditujukan untuk 18 tahun ke atas. Bukan karena ceritamu nggak penting kalau
+        kamu lebih muda — tapi karena di sini orang bercerita soal hal-hal berat, dan kami belum
+        bisa mendampingi anak di bawah umur dengan layak.
+      </p>
+
+      <label className="mt-6 flex min-h-[var(--size-touch)] items-start gap-3 text-sm text-[var(--color-text)]">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => setChecked(event.target.checked)}
+          className="mt-1 size-5"
+        />
+        <span>Iya, umurku 18 tahun ke atas.</span>
+      </label>
+
+      <FieldError message={error} />
+
+      <button
+        type="button"
+        onClick={confirm}
+        disabled={!checked || pending}
+        className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+      >
+        Lanjut
+      </button>
+
+      <button
+        type="button"
+        onClick={onReject}
+        className="mt-3 min-h-[var(--size-touch)] w-full text-sm text-[var(--color-muted)] underline underline-offset-4"
+      >
+        Umurku belum 18
+      </button>
+    </section>
+  );
+}
+
+/**
+ * The under-18 screen.
+ *
+ * Nothing here scolds. Someone who answered honestly has done the right thing,
+ * and the last thing they should read is a sentence implying they tried to
+ * cheat. It also does not say "come back tomorrow" — the cooldown is an
+ * anti-retry measure, not an invitation to lie later.
+ */
+export function AgeBlocked({ onHome }: { onHome: () => void }) {
+  return (
+    <section aria-labelledby="auth-blocked-heading">
+      <h1 id="auth-blocked-heading" className="text-2xl font-bold text-[var(--color-text)]">
+        Makasih udah jujur 🤍
+      </h1>
+      <p className="mt-3 text-sm leading-relaxed text-[var(--color-text)]">
+        CURHAT DONG memang dibatasi untuk 18 tahun ke atas, jadi kami belum bisa nemenin kamu di
+        sini sekarang.
+      </p>
+      <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+        Bukan berarti yang kamu rasain nggak penting. Kalau lagi berat, cerita ke orang dewasa yang
+        kamu percaya — guru BK, keluarga, atau layanan konseling remaja di sekitarmu.
+      </p>
+
+      <button
+        type="button"
+        onClick={onHome}
+        className="mt-6 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] border border-[var(--color-brand)] px-6 font-semibold text-[var(--color-text)]"
+      >
+        Kembali ke halaman depan
+      </button>
+    </section>
+  );
+}

@@ -127,6 +127,12 @@ export const clientEnvSchema = z.object({
    * rather than rendering a dead button.
    */
   NEXT_PUBLIC_ANDROID_APK_URL: z.string().optional(),
+  /**
+   * Google Identity Services client id (E15-T06). Public by design — it is in
+   * every page that offers Google sign-in. Optional so local dev works without
+   * a Google project; the button is hidden rather than broken when unset.
+   */
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
