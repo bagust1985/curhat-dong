@@ -1,5 +1,9 @@
 import 'reflect-metadata';
 
+// Before every other import that could throw: an SDK started after the
+// framework's error handlers reports nothing (E17-T05).
+import { initSentry } from './observability/sentry.js';
+
 import { Logger } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { loadServerEnv } from '@curhat/config/env/server';
@@ -40,6 +44,8 @@ function loadDotEnvForDevelopment(): void {
     dir = parent;
   }
 }
+
+initSentry('api');
 
 async function bootstrap(): Promise<void> {
   loadDotEnvForDevelopment();

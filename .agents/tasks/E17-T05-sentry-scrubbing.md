@@ -39,3 +39,33 @@ Sentry di web, admin, mobile, api, worker + aturan scrubbing.
 - **Belum dipasang ke aplikasi mana pun.** Wiring `beforeSend` di api, worker,
   web, admin, dan mobile belum dikerjakan, dan verifikasi "picu error sungguhan
   lalu cek event di dashboard Sentry" belum bisa dilakukan tanpa DSN.
+
+## Wiring (lanjutan)
+
+Terpasang di **lima** entrypoint, semuanya lewat `sentryOptions()` yang sama:
+
+| App | Entrypoint |
+|---|---|
+| api | `src/observability/sentry.ts`, dipanggil di `main.ts` **sebelum import lain** |
+| worker | init yang sama, tag `process: worker` — biar crash jam 03.00 bisa dibedakan |
+| web | `instrumentation.ts` (server) + `instrumentation-client.ts` (browser) |
+| admin | idem |
+| mobile | `lib/sentry.ts`, dipanggil sebelum render pertama |
+
+- **Opsi datang dari satu fungsi bersama**, bukan config per app. Lupa memasang
+  `beforeSend` di salah satu dari lima tempat itu persis kesalahan yang berakhir
+  dengan curhat di dashboard pihak ketiga, dan tidak akan kelihatan sampai
+  kejadian.
+- **Breadcrumb `console` dibuang seluruhnya**, bukan disaring: isinya apa pun
+  yang dilempar orang ke `console.log`, dan di produk ini itu pernah body post.
+- **Session Replay dan screenshot sengaja tidak diaktifkan** di web maupun
+  mobile — keduanya merekam layar, dan di sini layar itu curhat seseorang.
+- `sendDefaultPii: false` di semua app.
+- Tanpa DSN, SDK `enabled: false` — bukan client yang diam-diam membuang semua
+  event sambil terlihat terkonfigurasi.
+- `EXPO_PUBLIC_SENTRY_DSN` **tidak** dimasukkan ke `clientEnvSchema`: skema itu
+  khusus permukaan Next (`NEXT_PUBLIC_*`) dan ada test yang menjaganya. Mobile
+  membaca env-nya langsung, sama seperti `EXPO_PUBLIC_API_URL`.
+
+**Yang masih belum:** memicu error sungguhan terhadap DSN produksi lalu memeriksa
+event-nya di dashboard. Itu satu-satunya bagian AC yang belum tertutup.

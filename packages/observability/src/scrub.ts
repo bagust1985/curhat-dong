@@ -307,3 +307,64 @@ export function bodyKeysOnly(data: unknown): unknown {
 
   return Object.fromEntries(Object.keys(data as Record<string, unknown>).map((key) => [key, REDACTED]));
 }
+
+// ---------------------------------------------------------------------------
+// The options every Sentry SDK in this repo is initialised with — E17-T05.
+// ---------------------------------------------------------------------------
+
+export interface SentryInitOptions {
+  dsn: string | undefined;
+  environment: string;
+  release?: string | undefined;
+  /** Server, browser and device all get the same rules; only the SDK differs. */
+  tracesSampleRate?: number;
+}
+
+export interface SharedSentryOptions {
+  dsn: string | undefined;
+  environment: string;
+  release?: string | undefined;
+  enabled: boolean;
+  tracesSampleRate: number;
+  sendDefaultPii: false;
+  beforeSend: (event: ScrubbableEvent) => ScrubbableEvent;
+  beforeBreadcrumb: (crumb: ScrubbableBreadcrumb) => ScrubbableBreadcrumb | null;
+}
+
+/**
+ * Builds the options object each app passes to `Sentry.init`.
+ *
+ * Shared so no app can be initialised *without* the scrubbing: forgetting
+ * `beforeSend` in one of five call sites is exactly the mistake that ends with
+ * a curhat in a third-party dashboard, and it would look like nothing at all
+ * until it happened.
+ *
+ * `enabled: false` when there is no DSN, rather than initialising a client that
+ * silently drops everything — a disabled SDK that looks configured is worse
+ * than an obviously absent one.
+ */
+export function sentryOptions(options: SentryInitOptions): SharedSentryOptions {
+  return {
+    dsn: options.dsn,
+    environment: options.environment,
+    release: options.release,
+    enabled: Boolean(options.dsn),
+    // Low by default. Traces carry URLs and timings from every request, and the
+    // value of a 100% sample here is far below the cost of the extra surface.
+    tracesSampleRate: options.tracesSampleRate ?? 0.1,
+    // Never attach IP addresses, cookies or user agents automatically.
+    sendDefaultPii: false,
+    beforeSend: (event) => scrubEvent(event),
+    beforeBreadcrumb: (crumb) => {
+      // A console breadcrumb is whatever somebody passed to console.log, which
+      // on this product has been a post body more than once. Dropped outright
+      // rather than scrubbed.
+      if (crumb.category === 'console') return null;
+      return {
+        ...crumb,
+        ...(crumb.message ? { message: maskText(crumb.message) } : {}),
+        ...(crumb.data ? { data: scrubValue(crumb.data) as Record<string, unknown> } : {}),
+      };
+    },
+  };
+}

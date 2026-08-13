@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { Queue, Worker, type Job } from 'bullmq';
 import IORedis from 'ioredis';
 
+import { initSentry } from '../observability/sentry.js';
 import { AppModule } from '../app.module.js';
 import { AnalyticsService } from '../modules/admin/analytics.service.js';
 import { RoomsService } from '../modules/chat/rooms.service.js';
@@ -30,6 +31,8 @@ import { JOBS, WORKER_QUEUE, WORKER_TIMEZONE, type JobName } from './jobs.js';
  *
  * So: one image, two commands (`start` and `start:worker`), one set of rules.
  */
+
+initSentry('worker');
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Worker');

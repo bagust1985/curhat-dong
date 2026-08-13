@@ -227,3 +227,41 @@ describe('immutability', () => {
     expect((event.request?.data as Record<string, unknown>)['body']).toBe(CURHAT);
   });
 });
+
+describe('the shared init options', () => {
+  it('always carries the scrubbing hooks', async () => {
+    const { sentryOptions } = await import('./scrub');
+    const options = sentryOptions({ dsn: 'https://x@y.ingest.sentry.io/1', environment: 'production' });
+
+    // Forgetting beforeSend in one of five call sites is the mistake that ends
+    // with a curhat in a third-party dashboard.
+    expect(typeof options.beforeSend).toBe('function');
+    expect(typeof options.beforeBreadcrumb).toBe('function');
+    expect(options.sendDefaultPii).toBe(false);
+  });
+
+  it('scrubs through the hook, not only through the standalone function', async () => {
+    const { sentryOptions } = await import('./scrub');
+    const options = sentryOptions({ dsn: 'https://x@y.ingest.sentry.io/1', environment: 'production' });
+
+    const scrubbed = options.beforeSend({
+      request: { url: 'https://api.curhatdong.com/v1/posts', data: { body: CURHAT } },
+    });
+
+    expect(JSON.stringify(scrubbed)).not.toContain(CURHAT);
+  });
+
+  it('drops console breadcrumbs entirely', async () => {
+    const { sentryOptions } = await import('./scrub');
+    const options = sentryOptions({ dsn: 'https://x@y.ingest.sentry.io/1', environment: 'production' });
+
+    // Whatever somebody passed to console.log — which on this product has been
+    // a post body more than once.
+    expect(options.beforeBreadcrumb({ category: 'console', message: CURHAT })).toBeNull();
+  });
+
+  it('stays disabled without a DSN instead of pretending to be configured', async () => {
+    const { sentryOptions } = await import('./scrub');
+    expect(sentryOptions({ dsn: undefined, environment: 'development' }).enabled).toBe(false);
+  });
+});

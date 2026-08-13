@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, useColorScheme, View } from 'react-native';
 
 import '../global.css';
+import { initSentry } from '../lib/sentry';
 import { setInstalledVersion } from '../lib/api';
 import { appStatus, subscribeAppStatus, type AppStatus } from '../lib/app-status';
 import { resolveDeepLink } from '../lib/navigation';
@@ -13,6 +14,10 @@ import { enablePush } from '../lib/push';
 import { resolveTheme, tokensFor, type ResolvedTheme } from '../lib/theme';
 import { SessionProvider, useSession } from '../lib/session';
 import { ForceUpdateScreen, MaintenanceScreen } from '../components/status-screens';
+
+// Before the first render: an SDK started later misses the crash that
+// happened during startup, which is the one worth having.
+initSentry();
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.curhatdong.app';
 
