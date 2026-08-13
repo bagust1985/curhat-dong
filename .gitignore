@@ -44,3 +44,9 @@ pnpm-debug.log*
 
 # Local infrastructure volumes
 infrastructure/.data/
+
+# Expo (E16)
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/android/
+apps/mobile/ios/

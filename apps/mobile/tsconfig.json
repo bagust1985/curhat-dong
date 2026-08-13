@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/config/tsconfig/expo.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "types": ["expo/types", "nativewind/types", "vitest/globals"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts", ".expo/types/**/*.ts"],
+  "exclude": ["node_modules", ".expo", "dist"]
+}

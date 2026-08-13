@@ -2,7 +2,7 @@
 id: E16-T05
 epic: E16
 title: Feed & create curhat (mobile)
-status: todo
+status: done
 estimate: 2d
 depends_on: [E16-T04, E05-T07]
 refs: [DESIGN-REF §2.4, §2.6]
@@ -18,3 +18,12 @@ refs: [DESIGN-REF §2.4, §2.6]
 
 ## Verifikasi
 Uji di device fisik dengan koneksi lambat.
+
+## Catatan implementasi
+
+- Pull-to-refresh **asli** di mobile (`RefreshControl`) — di web sengaja tidak
+  dibuat karena browser sudah punya gesturnya; di sini gestur itu idiom platform.
+- Anti-duplikat sama seperti web: guard in-flight + `mergePages`.
+- Draft di AsyncStorage, **bukan** SecureStore: draft itu teks user sendiri, bukan
+  kredensial, dan menaruhnya di keystore mengaburkan untuk apa SecureStore ada.
+- **Belum diuji di perangkat fisik / koneksi lambat.**

@@ -74,6 +74,22 @@ export default tseslint.config(
   },
 
   {
+    /**
+     * Expo's build tooling loads these as CommonJS from Node before any bundler
+     * runs (E16-T01), so `require`, `module` and `__dirname` are the correct
+     * idiom here rather than a style slip.
+     */
+    files: ['apps/mobile/{babel,metro,tailwind}.config.js'],
+    languageOptions: {
+      globals: { module: 'writable', require: 'readonly', __dirname: 'readonly' },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
+    },
+  },
+
+  {
     files: ['**/*.test.ts', '**/*.spec.ts', '**/*.test.tsx'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

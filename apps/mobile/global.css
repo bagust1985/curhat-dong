@@ -1,0 +1,9 @@
+/*
+ * NativeWind entry — E16-T01.
+ *
+ * The three directives are all NativeWind needs; there is no CSS runtime on
+ * React Native, so this file exists to be compiled, not to be shipped.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
