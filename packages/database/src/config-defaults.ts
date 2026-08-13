@@ -12,6 +12,12 @@ export const APP_CONFIG_DEFAULTS = {
   'rate_limit.report_per_day': 20,
   'rate_limit.otp_per_hour_per_email': 5,
   /**
+   * Revisi 1 (Aug 2026) — password login. Higher than the OTP limit because a
+   * typo'd password is far more common than a typo'd emailed code; low enough
+   * that online guessing stays useless against the scrypt-hashed store.
+   */
+  'rate_limit.password_attempts_per_hour': 10,
+  /**
    * PRD §13 — search (E13-T02).
    *
    * Scraping the feed one query at a time is the cheapest way to build a

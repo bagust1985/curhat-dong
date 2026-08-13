@@ -70,9 +70,9 @@ export class AdminController {
   /**
    * Second factor, exchanged for an admin session.
    *
-   * The first factor is the ordinary email OTP every account uses — there are
-   * no passwords in this product — so this is a genuine second factor:
-   * something emailed, then something held.
+   * The first factor is the ordinary email OTP. User passwords exist since
+   * Revisi 1 (Aug 2026), but admin login deliberately stays OTP-only — so this
+   * is a genuine second factor: something emailed, then something held.
    */
   @Post('auth/login')
   async login(

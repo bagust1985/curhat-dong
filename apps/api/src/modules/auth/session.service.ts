@@ -112,10 +112,20 @@ export class SessionService {
     });
   }
 
-  /** Revokes every session for a user — logout-all, ban, password reset. */
-  async revokeAllForUser(userId: string): Promise<number> {
+  /**
+   * Revokes every session for a user — logout-all, ban, password reset.
+   *
+   * `exceptSessionId` exists for password changes: every *other* session dies,
+   * but the one doing the changing survives, so users are not logged out by
+   * their own act of caution.
+   */
+  async revokeAllForUser(userId: string, exceptSessionId?: string): Promise<number> {
     const result = await this.prisma.userSession.updateMany({
-      where: { userId, revokedAt: null },
+      where: {
+        userId,
+        revokedAt: null,
+        ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}),
+      },
       data: { revokedAt: new Date() },
     });
     return result.count;

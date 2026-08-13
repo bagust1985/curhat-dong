@@ -72,6 +72,14 @@ model User {
   /// Last consumed TOTP step, so a code cannot be replayed inside its window.
   mfaLastStep        Int?      @map("mfa_last_step")
 
+  /// scrypt hash, format `scrypt-v1$...` (packages/auth/src/password.ts).
+  /// Nullable on purpose: accounts predating password auth (Revisi 1, Aug
+  /// 2026) and Google-only accounts have none until they set one. Lives on
+  /// users, not auth_accounts — a password belongs to the account, not to a
+  /// provider link.
+  passwordHash  String?   @map("password_hash")
+  passwordSetAt DateTime? @map("password_set_at") @db.Timestamptz(6)
+
   deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz(6)
   deletionMode DeletionMode? @map("deletion_mode")
 

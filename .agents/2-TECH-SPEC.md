@@ -1143,6 +1143,41 @@ Client tidak menentukan sendiri status user.
 
 ---
 
+## 5.4 Password (Revisi 1 — 13 Agustus 2026)
+
+Deviasi sadar dari PRD §"passwordless auth aman", diputuskan product owner:
+setiap login OTP mengirim satu email Resend, dan user yang login berkali-kali
+sehari menghabiskan kuota untuk hal yang bukan pendaftaran.
+
+```text
+Registrasi:  email OTP  →  wajib buat password  →  age gate  →  onboarding
+Login rutin: email + password  (nol email terkirim)
+Recovery:    email OTP (jalur yang sama dengan registrasi)  →  set password baru
+Google:      tidak berubah
+Admin:       tetap OTP + TOTP MFA, tanpa password
+```
+
+Ketentuan:
+
+- Hash: scrypt, format self-describing `scrypt-v1$N=...,r=...,p=...$salt$hash`
+  (`packages/auth/src/password.ts`); parameter bisa dinaikkan tanpa migrasi,
+  baris lama di-rehash saat login sukses berikutnya.
+- Kolom `users.password_hash` nullable — akun lama dan akun Google-only sah
+  tanpa password.
+- Anti-enumeration: email tak dikenal, akun tanpa password, dan password salah
+  semuanya `AUTH_CREDENTIALS_INVALID` dengan bentuk, status, dan biaya scrypt
+  identik (dummy verification).
+- Rate limit fail-closed per email-hash dan per IP
+  (`rate_limit.password_attempts_per_hour`), Turnstile pada anomali.
+- "Wajib saat daftar" ditegakkan klien, di-gate `hasPassword` pada respons
+  login. Server tidak pernah memblokir user terautentikasi yang belum punya
+  password — user yang hard-refresh di tengah langkah buat-password diminta
+  lagi pada login OTP berikutnya.
+- Ganti password: wajib `currentPassword` ATAU sesi berumur < 15 menit (jalur
+  lupa-password); perubahan mencabut semua sesi lain.
+
+---
+
 # BAGIAN 6 — Push Notification
 
 ## 6.1 MVP Android

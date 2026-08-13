@@ -7,6 +7,7 @@ import { PRISMA } from '../../common/prisma.service.js';
 import { ENV } from '../../config/env.config.js';
 import { GoogleAuthService } from './google.service.js';
 import { OtpService } from './otp.service.js';
+import { PasswordService } from './password.service.js';
 import { SessionService, type SessionContext, type TokenPair } from './session.service.js';
 import { TurnstileService } from './turnstile.service.js';
 
@@ -15,6 +16,13 @@ export interface AuthResult extends TokenPair {
   isNewUser: boolean;
   /** False until onboarding completes (E04). */
   hasProfile: boolean;
+  /**
+   * False → the client must show the password-create step (Revisi 1: password
+   * is required at registration, and existing accounts are prompted once on
+   * their next OTP login). Client-gated on purpose; the server never blocks an
+   * authenticated user for not having one yet.
+   */
+  hasPassword: boolean;
 }
 
 @Injectable()
@@ -23,6 +31,7 @@ export class AuthService {
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     @Inject(ENV) private readonly env: ServerEnv,
     private readonly otp: OtpService,
+    private readonly password: PasswordService,
     private readonly sessions: SessionService,
     private readonly google: GoogleAuthService,
     private readonly turnstile: TurnstileService,
@@ -45,6 +54,36 @@ export class AuthService {
     });
 
     return this.completeLogin(userId, isNewUser, context);
+  }
+
+  /**
+   * Email + password login — Revisi 1 (Aug 2026). The whole point: a returning
+   * user's login sends no email, so it costs no Resend quota.
+   */
+  async loginWithPassword(
+    email: string,
+    password: string,
+    ipHash: string,
+    turnstileToken: string | undefined,
+    context: SessionContext,
+  ): Promise<AuthResult> {
+    // Same anomaly gate as the OTP path: repeated failures from one address
+    // eventually have to answer a Turnstile challenge.
+    if (await this.turnstile.isChallengeRequired(ipHash)) {
+      await this.turnstile.verify(turnstileToken, ipHash);
+    }
+
+    const { userId } = await this.password.login(email, password, ipHash);
+
+    return this.completeLogin(userId, false, context);
+  }
+
+  async setPassword(
+    userId: string,
+    sessionId: string,
+    input: { password: string; currentPassword?: string | undefined },
+  ): Promise<{ changed: boolean }> {
+    return this.password.set(userId, sessionId, input);
   }
 
   async loginWithGoogle(idToken: string, context: SessionContext): Promise<AuthResult> {
@@ -139,13 +178,24 @@ export class AuthService {
     isNewUser: boolean,
     context: SessionContext,
   ): Promise<AuthResult> {
-    const profile = await this.prisma.userProfile.findUnique({
-      where: { userId },
-      select: { userId: true },
-    });
+    const [profile, user] = await Promise.all([
+      this.prisma.userProfile.findUnique({
+        where: { userId },
+        select: { userId: true },
+      }),
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { passwordHash: true },
+      }),
+    ]);
 
     const tokens = await this.sessions.issue(userId, context);
 
-    return { ...tokens, isNewUser, hasProfile: profile !== null };
+    return {
+      ...tokens,
+      isNewUser,
+      hasProfile: profile !== null,
+      hasPassword: user.passwordHash !== null,
+    };
   }
 }

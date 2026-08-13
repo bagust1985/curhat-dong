@@ -54,9 +54,9 @@ const LOCKOUT_SECONDS = 15 * 60;
  * mistake, and it leaves a token that works on every endpoint that forgot to
  * re-check.
  *
- * Admins authenticate with the same email OTP as everyone else (there are no
- * passwords in this product), so MFA is genuinely a second factor: something
- * emailed, then something held.
+ * Admins authenticate with email OTP. User passwords exist since Revisi 1
+ * (Aug 2026), but admin login deliberately stays OTP-only, so MFA is genuinely
+ * a second factor: something emailed, then something held.
  */
 @Injectable()
 export class AdminAuthService {

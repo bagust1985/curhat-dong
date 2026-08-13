@@ -52,6 +52,7 @@ describeAuth('auth security', () => {
     const keys = [
       ...(await redis.keys('turnstile:attempts:*')),
       ...(await redis.keys('ratelimit:otp:*')),
+      ...(await redis.keys('ratelimit:password:*')),
     ];
     if (keys.length > 0) await redis.del(...keys);
   }
@@ -359,6 +360,225 @@ describeAuth('auth security', () => {
       for (const forbidden of ['emailHash', 'providerId', 'trustScore', 'trust_score']) {
         expect(serialised).not.toContain(forbidden);
       }
+    });
+  });
+
+  describe('password login (Revisi 1)', () => {
+    const password = 'akhirnya-bisa-istirahat-99';
+
+    async function setPassword(accessToken: string, value: string): Promise<void> {
+      await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({ password: value })
+        .expect(200);
+    }
+
+    it('register → set → login works and sends no email', async () => {
+      const { accessToken } = await login();
+      await setPassword(accessToken, password);
+
+      const before = await prisma.otpChallenge.count();
+
+      const response = await http
+        .post('/v1/auth/password/login')
+        .set('x-client-platform', 'mobile')
+        .send({ email, password })
+        .expect(201);
+
+      expect(response.body.data.accessToken).toBeTruthy();
+      expect(response.body.data.refreshToken).toBeTruthy();
+      expect(response.body.data.hasPassword).toBe(true);
+
+      // The whole point of the feature: no OTP row means no email was sent.
+      expect(await prisma.otpChallenge.count()).toBe(before);
+    });
+
+    it('answers wrong-password and unknown-email identically', async () => {
+      const { accessToken } = await login();
+      await setPassword(accessToken, password);
+      await resetAbuseCounters();
+
+      const wrongPassword = await http
+        .post('/v1/auth/password/login')
+        .send({ email, password: 'jelas-bukan-passwordnya' });
+
+      const unknownEmail = await http
+        .post('/v1/auth/password/login')
+        .send({ email: `hantu-${Date.now()}@curhatdong.test`, password });
+
+      // Same status, same code, same body shape — the login form must not be
+      // usable to ask "does this address have an account here?".
+      expect(wrongPassword.status).toBe(401);
+      expect(unknownEmail.status).toBe(401);
+      expect(wrongPassword.body.error.code).toBe('AUTH_CREDENTIALS_INVALID');
+      expect(unknownEmail.body.error.code).toBe('AUTH_CREDENTIALS_INVALID');
+      expect(wrongPassword.body).toEqual(unknownEmail.body);
+    });
+
+    it('never stores the password in plaintext', async () => {
+      const { accessToken } = await login();
+      await setPassword(accessToken, password);
+
+      const account = await prisma.authAccount.findFirstOrThrow({
+        where: {
+          emailHash: hashEmail(
+            email,
+            app.get<{ TOKEN_ENCRYPTION_KEY: string }>(ENV).TOKEN_ENCRYPTION_KEY,
+          ),
+        },
+        select: { userId: true },
+      });
+      const user = await prisma.user.findUniqueOrThrow({ where: { id: account.userId } });
+
+      expect(user.passwordHash).toMatch(/^scrypt-v1\$/);
+      expect(JSON.stringify(user)).not.toContain(password);
+    });
+
+    it('rejects a weak password with a specific code', async () => {
+      const { accessToken } = await login();
+
+      const short = await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({ password: 'pendek7' });
+      expect(short.status).toBe(400);
+
+      const sameAsEmail = await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({ password: email });
+      expect(sameAsEmail.status).toBe(400);
+      expect(sameAsEmail.body.error.code).toBe('AUTH_PASSWORD_WEAK');
+    });
+
+    it('requires re-auth to change: stale session without currentPassword → 401', async () => {
+      const { accessToken } = await login();
+      await setPassword(accessToken, password);
+
+      // Age the session past the freshness window straight in the database.
+      const account = await prisma.authAccount.findFirstOrThrow({
+        where: {
+          emailHash: hashEmail(
+            email,
+            app.get<{ TOKEN_ENCRYPTION_KEY: string }>(ENV).TOKEN_ENCRYPTION_KEY,
+          ),
+        },
+        select: { userId: true },
+      });
+      await prisma.userSession.updateMany({
+        where: { userId: account.userId },
+        data: { createdAt: new Date(Date.now() - 60 * 60 * 1000) },
+      });
+
+      const withoutCurrent = await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({ password: 'password-baru-yang-lain' });
+      expect(withoutCurrent.status).toBe(401);
+      expect(withoutCurrent.body.error.code).toBe('AUTH_CREDENTIALS_INVALID');
+
+      const withCurrent = await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({ password: 'password-baru-yang-lain', currentPassword: password });
+      expect(withCurrent.status).toBe(200);
+      expect(withCurrent.body.data.changed).toBe(true);
+
+      // Restore for later cases.
+      await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${accessToken}`)
+        .send({ password, currentPassword: 'password-baru-yang-lain' })
+        .expect(200);
+    });
+
+    it('a password change revokes every other session but keeps the current one', async () => {
+      const first = await login();
+      await setPassword(first.accessToken, password);
+
+      // A second, independent session for the same account.
+      const second = await http
+        .post('/v1/auth/password/login')
+        .set('x-client-platform', 'mobile')
+        .send({ email, password })
+        .expect(201);
+      const secondRefresh = second.body.data.refreshToken as string;
+
+      // Change the password from the second session (fresh, so no
+      // currentPassword needed — the forgot-password shape).
+      await http
+        .post('/v1/auth/password')
+        .set('authorization', `Bearer ${second.body.data.accessToken}`)
+        .send({ password: 'ganti-karena-khawatir-1' })
+        .expect(200);
+
+      // The first session's refresh token is now dead...
+      await http
+        .post('/v1/auth/refresh')
+        .set('x-client-platform', 'mobile')
+        .send({ refreshToken: first.refreshToken })
+        .expect(401);
+
+      // ...the changing session's still works.
+      await http
+        .post('/v1/auth/refresh')
+        .set('x-client-platform', 'mobile')
+        .send({ refreshToken: secondRefresh })
+        .expect(201);
+
+      // Restore for any case after this one.
+      const fresh = await http
+        .post('/v1/auth/password/login')
+        .set('x-client-platform', 'mobile')
+        .send({ email, password: 'ganti-karena-khawatir-1' })
+        .expect(201);
+      await setPassword(fresh.body.data.accessToken, password);
+    });
+
+    it('rate limits repeated failures per email', async () => {
+      const { accessToken } = await login();
+      await setPassword(accessToken, password);
+      await resetAbuseCounters();
+
+      // The default budget is 10/hour; burn it with wrong guesses. The
+      // Turnstile anomaly gate fires from the same loopback address after a
+      // handful of attempts — that is the *other* defence working — so its
+      // counters are cleared each round to keep this case about the rate
+      // limit itself.
+      let limited = false;
+      for (let i = 0; i < 12; i++) {
+        const turnstileKeys = await redis.keys('turnstile:attempts:*');
+        if (turnstileKeys.length > 0) await redis.del(...turnstileKeys);
+
+        const attempt = await http
+          .post('/v1/auth/password/login')
+          .send({ email, password: `salah-${i}` });
+        if (attempt.status === 429) {
+          limited = true;
+          expect(attempt.body.error.code).toBe('RATE_LIMITED');
+          break;
+        }
+      }
+      expect(limited).toBe(true);
+    });
+
+    it('verifyOtp reports hasPassword so the client knows to show the create step', async () => {
+      const tokens = await login();
+      expect(typeof tokens).toBe('object');
+
+      await resetAbuseCounters();
+      await http.post('/v1/auth/otp/request').send({ email }).expect(202);
+      const code = await latestOtpCodeFor(email);
+      const response = await http
+        .post('/v1/auth/otp/verify')
+        .set('x-client-platform', 'mobile')
+        .send({ email, code })
+        .expect(201);
+
+      // This account set a password in an earlier case, so the flag is true;
+      // what matters is that the field exists and is a boolean.
+      expect(typeof response.body.data.hasPassword).toBe('boolean');
     });
   });
 });

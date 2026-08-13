@@ -12,11 +12,15 @@ import {
   googleAuthSchema,
   otpRequestSchema,
   otpVerifySchema,
+  passwordLoginSchema,
   refreshSchema,
+  setPasswordSchema,
   type GoogleAuthDto,
   type OtpRequestDto,
   type OtpVerifyDto,
+  type PasswordLoginDto,
   type RefreshDto,
+  type SetPasswordDto,
 } from './auth.dto.js';
 import { CurrentUser, Public, type AuthenticatedUser } from './jwt-auth.guard.js';
 import type { SessionContext, TokenPair } from './session.service.js';
@@ -58,6 +62,45 @@ export class AuthController {
   ): Promise<Omit<AuthResult, 'refreshToken'> & { refreshToken?: string }> {
     const result = await this.auth.verifyOtp(body.email, body.code, this.contextOf(request, body));
     return this.respondWithTokens(request, response, result);
+  }
+
+  /**
+   * Email + password login — Revisi 1. The login that costs no Resend email.
+   *
+   * One error for every failure mode (`AUTH_CREDENTIALS_INVALID`): wrong
+   * password, unknown address and password-less account are indistinguishable
+   * from out here, by design.
+   */
+  @Public()
+  @Post('password/login')
+  async passwordLogin(
+    @Body(new ZodValidationPipe(passwordLoginSchema)) body: PasswordLoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<Omit<AuthResult, 'refreshToken'> & { refreshToken?: string }> {
+    const result = await this.auth.loginWithPassword(
+      body.email,
+      body.password,
+      this.ipHashOf(request),
+      body.turnstileToken,
+      this.contextOf(request, body),
+    );
+    return this.respondWithTokens(request, response, result);
+  }
+
+  /**
+   * Sets or changes the password. Authenticated: setting the first password
+   * happens right after an OTP/Google login, and a change requires either the
+   * current password or a session fresh enough to count as re-auth.
+   */
+  @Post('password')
+  @HttpCode(HttpStatus.OK)
+  async setPassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(setPasswordSchema)) body: SetPasswordDto,
+  ): Promise<{ status: 'ok'; changed: boolean }> {
+    const result = await this.auth.setPassword(user.userId, user.sessionId, body);
+    return { status: 'ok', changed: result.changed };
   }
 
   @Public()

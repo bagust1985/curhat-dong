@@ -52,6 +52,12 @@ export const ERROR_CODES = [
   'AUTH_GOOGLE_TOKEN_INVALID',
   'AUTH_TURNSTILE_REQUIRED',
   'AUTH_TURNSTILE_INVALID',
+  // One code for wrong password, unknown email AND account-without-password:
+  // three different truths, one answer, so the login form cannot be used to
+  // ask "does this address have an account here?".
+  'AUTH_CREDENTIALS_INVALID',
+  // Safe to be specific — it describes the password just typed, not the account.
+  'AUTH_PASSWORD_WEAK',
 
   // Onboarding & consent
   'CONSENT_REQUIRED',

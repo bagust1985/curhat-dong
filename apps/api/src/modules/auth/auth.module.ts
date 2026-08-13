@@ -10,6 +10,7 @@ import { EMAIL_PROVIDER } from './auth.tokens.js';
 import { GoogleAuthService } from './google.service.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { OtpService } from './otp.service.js';
+import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
 import { TurnstileService } from './turnstile.service.js';
 
@@ -24,6 +25,7 @@ import { TurnstileService } from './turnstile.service.js';
   providers: [
     AuthService,
     OtpService,
+    PasswordService,
     SessionService,
     GoogleAuthService,
     TurnstileService,
