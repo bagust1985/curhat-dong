@@ -27,6 +27,226 @@ function FieldError({ message }: { message: string | null }) {
   );
 }
 
+export interface PasswordLoginStepProps {
+  onSubmit: (email: string, password: string) => void;
+  /** "Masuk pakai kode email" — the OTP path, also how you register. */
+  onUseOtp: () => void;
+  /** "Lupa password?" — OTP login, then the create step with reset intent. */
+  onForgot: () => void;
+  pending: boolean;
+  error: string | null;
+  /** Rendered under the form when the API demands a bot check. */
+  challenge?: React.ReactNode;
+  google?: React.ReactNode;
+}
+
+/**
+ * The default screen since Revisi 1: email + password, no email sent.
+ *
+ * OTP moved behind "Masuk pakai kode email" — still how registration and
+ * recovery work, no longer what every single login costs a Resend email on.
+ */
+export function PasswordLoginStep({
+  onSubmit,
+  onUseOtp,
+  onForgot,
+  pending,
+  error,
+  challenge,
+  google,
+}: PasswordLoginStepProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  return (
+    <section aria-labelledby="auth-login-heading">
+      <h1 id="auth-login-heading" className="text-2xl font-bold text-[var(--color-text)]">
+        Masuk
+      </h1>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+        Belum punya akun? Pilih “Masuk pakai kode email” di bawah — akunmu dibuat dari sana.
+      </p>
+
+      <form
+        className="mt-6"
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault();
+          if (!pending) onSubmit(email.trim(), password);
+        }}
+      >
+        <label htmlFor="auth-login-email" className="block text-sm font-semibold text-[var(--color-text)]">
+          Email
+        </label>
+        <input
+          id="auth-login-email"
+          type="email"
+          name="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          aria-describedby="auth-login-reassurance"
+          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+        />
+        <p id="auth-login-reassurance" className="mt-2 text-sm text-[var(--color-muted)]">
+          {REASSURANCE}
+        </p>
+
+        <label
+          htmlFor="auth-login-password"
+          className="mt-4 block text-sm font-semibold text-[var(--color-text)]"
+        >
+          Password
+        </label>
+        <input
+          id="auth-login-password"
+          type="password"
+          name="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+        />
+
+        <FieldError message={error} />
+        {challenge}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+        >
+          {pending ? 'Lagi masuk…' : 'Masuk'}
+        </button>
+      </form>
+
+      <div className="mt-4 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onUseOtp}
+          className="min-h-[var(--size-touch)] text-sm font-semibold text-[var(--color-text)] underline underline-offset-4"
+        >
+          Masuk pakai kode email
+        </button>
+        <button
+          type="button"
+          onClick={onForgot}
+          className="min-h-[var(--size-touch)] text-sm text-[var(--color-muted)] underline underline-offset-4"
+        >
+          Lupa password?
+        </button>
+      </div>
+
+      {google ? (
+        <div className="mt-6">
+          <p className="text-center text-sm text-[var(--color-muted)]">atau</p>
+          <div className="mt-3">{google}</div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+export interface PasswordCreateStepProps {
+  onSubmit: (password: string) => void;
+  /** Existing accounts prompted mid-login may defer; new registrations may not. */
+  allowSkip: boolean;
+  onSkip?: () => void;
+  pending: boolean;
+  error: string | null;
+}
+
+/** Minimum the API accepts (auth.dto.ts). Mirrored so the button can disable early. */
+export const PASSWORD_MIN_LENGTH = 8;
+
+export function PasswordCreateStep({
+  onSubmit,
+  allowSkip,
+  onSkip,
+  pending,
+  error,
+}: PasswordCreateStepProps) {
+  const [password, setPassword] = useState('');
+  const [visible, setVisible] = useState(false);
+
+  const tooShort = password.length < PASSWORD_MIN_LENGTH;
+
+  return (
+    <section aria-labelledby="auth-create-password-heading">
+      <h1
+        id="auth-create-password-heading"
+        className="text-2xl font-bold text-[var(--color-text)]"
+      >
+        Bikin password dulu ya
+      </h1>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
+        Biar masuk berikutnya nggak perlu nunggu kode email.
+      </p>
+
+      <form
+        className="mt-6"
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault();
+          if (!pending && !tooShort) onSubmit(password);
+        }}
+      >
+        <label
+          htmlFor="auth-new-password"
+          className="block text-sm font-semibold text-[var(--color-text)]"
+        >
+          Password baru
+        </label>
+        <div className="relative mt-2">
+          <input
+            id="auth-new-password"
+            type={visible ? 'text' : 'password'}
+            name="new-password"
+            required
+            minLength={PASSWORD_MIN_LENGTH}
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            aria-describedby="auth-new-password-hint"
+            className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 pr-24 text-[var(--color-text)]"
+          />
+          <button
+            type="button"
+            onClick={() => setVisible((value) => !value)}
+            aria-pressed={visible}
+            className="absolute inset-y-0 right-2 my-auto rounded-[var(--radius-chip)] px-3 py-1 text-sm font-semibold text-[var(--color-text)]"
+          >
+            {visible ? 'Sembunyikan' : 'Tampilkan'}
+          </button>
+        </div>
+        <p id="auth-new-password-hint" className="mt-2 text-sm text-[var(--color-muted)]">
+          Minimal {PASSWORD_MIN_LENGTH} karakter.
+        </p>
+
+        <FieldError message={error} />
+
+        <button
+          type="submit"
+          disabled={pending || tooShort}
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+        >
+          {pending ? 'Lagi disimpan…' : 'Simpan Password'}
+        </button>
+      </form>
+
+      {allowSkip && onSkip ? (
+        <button
+          type="button"
+          onClick={onSkip}
+          className="mt-3 min-h-[var(--size-touch)] w-full text-sm text-[var(--color-muted)] underline underline-offset-4"
+        >
+          Nanti aja
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
 export interface EmailStepProps {
   onSubmit: (email: string) => void;
   pending: boolean;
@@ -45,7 +265,7 @@ export function EmailStep({ onSubmit, pending, error, challenge, google }: Email
         Masuk atau bikin akun
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
-        Kami kirim kode 6 digit ke emailmu. Nggak perlu password.
+        Kami kirim kode 6 digit ke emailmu.
       </p>
 
       <form

@@ -23,6 +23,10 @@ export const AUTH_ERROR_COPY: Partial<Record<ErrorCode, string>> = {
   AUTH_TURNSTILE_REQUIRED: 'Bantu kami pastikan kamu bukan robot dulu ya.',
   AUTH_TURNSTILE_INVALID: 'Verifikasinya belum berhasil. Coba sekali lagi ya.',
   AUTH_GOOGLE_TOKEN_INVALID: 'Login Google-nya nggak selesai. Coba lagi ya.',
+  // Deliberately does not say *which* of the two was wrong — the API answers
+  // the same for a wrong password and an address that has no account at all.
+  AUTH_CREDENTIALS_INVALID: 'Email atau password-nya nggak cocok. Coba cek lagi ya.',
+  AUTH_PASSWORD_WEAK: 'Password-nya minimal 8 karakter, dan jangan sama dengan email kamu ya.',
   VALIDATION_ERROR: 'Alamat emailnya kelihatan belum benar. Coba cek lagi ya.',
   SERVICE_UNAVAILABLE: 'Layanannya lagi istirahat sebentar. Coba lagi ya.',
 };

@@ -3,46 +3,49 @@ import { useCallback, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 
 import { ApiError, NetworkError, api } from '../lib/api';
+import { AUTH_FALLBACK, ERROR_COPY, PASSWORD_MIN_LENGTH } from '../lib/auth-copy';
 import { useSession } from '../lib/session';
 import { Body, ErrorText, Heading, PrimaryButton, ScreenScroll, SecondaryButton } from '../components/ui';
 import { TOUCH_TARGET } from '../lib/tokens';
 
 /**
- * `/auth` — E16-T03. DESIGN-REF §2.2.
+ * `/auth` — E16-T03, revised for password login (Revisi 1, Aug 2026).
+ * DESIGN-REF §2.2, TECH-SPEC §5.4.
  *
- * Same three steps as the web (email → code → 18+) and the same rule about what
- * the error messages may say: nothing that reveals whether an address has an
- * account. The copy is duplicated rather than imported because
- * `apps/web/lib/auth-copy.ts` is a web module; `auth-copy.test.ts` asserts the
- * two lists stay identical.
+ * Same steps as the web: password login is the default (the login that sends
+ * no email), OTP is one tap away and is still how accounts are created and
+ * recovered, and anyone landing without a password is walked through creating
+ * one before the age gate. Copy lives in `lib/auth-copy.ts`, kept identical to
+ * the web by `auth-copy.test.ts`.
  */
 
 const REASSURANCE = 'Email kamu nggak akan pernah ditampilkan ke siapa pun.';
 
-const ERROR_COPY: Record<string, string> = {
-  AUTH_OTP_INVALID: 'Kodenya nggak cocok. Coba cek lagi ya.',
-  AUTH_OTP_EXPIRED: 'Kode ini sudah kedaluwarsa. Minta kode baru ya.',
-  AUTH_OTP_TOO_MANY_ATTEMPTS:
-    'Percobaannya sudah terlalu banyak. Tunggu sebentar, lalu minta kode baru.',
-  RATE_LIMITED: 'Terlalu sering mencoba. Istirahat sebentar, lalu coba lagi ya.',
-  AUTH_TURNSTILE_REQUIRED: 'Bantu kami pastikan kamu bukan robot dulu ya.',
-  AUTH_TURNSTILE_INVALID: 'Verifikasinya belum berhasil. Coba sekali lagi ya.',
-  AUTH_GOOGLE_TOKEN_INVALID: 'Login Google-nya nggak selesai. Coba lagi ya.',
-  VALIDATION_ERROR: 'Alamat emailnya kelihatan belum benar. Coba cek lagi ya.',
-  SERVICE_UNAVAILABLE: 'Layanannya lagi istirahat sebentar. Coba lagi ya.',
-};
+type Step = 'login' | 'email' | 'otp' | 'password-create' | 'age' | 'blocked';
 
-const FALLBACK = 'Ada yang nggak beres. Coba lagi sebentar lagi ya.';
+interface AuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  isNewUser: boolean;
+  hasPassword: boolean;
+}
 
 export default function AuthScreen() {
   const router = useRouter();
   const { signedIn, endedMessage, clearEndedMessage } = useSession();
 
-  const [step, setStep] = useState<'email' | 'otp' | 'age' | 'blocked'>('email');
+  const [step, setStep] = useState<Step>('login');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [code, setCode] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** "Lupa password?" — forces the create step even when a password exists. */
+  const [resetIntent, setResetIntent] = useState(false);
+  /** Accounts that existed before this login may defer the create step. */
+  const [mayDefer, setMayDefer] = useState(false);
 
   const fail = useCallback((cause: unknown) => {
     if (cause instanceof NetworkError) {
@@ -50,8 +53,41 @@ export default function AuthScreen() {
       return;
     }
     const code = cause instanceof ApiError ? cause.code : null;
-    setError((code && ERROR_COPY[code]) || FALLBACK);
+    setError((code && ERROR_COPY[code]) || AUTH_FALLBACK);
   }, []);
+
+  const afterTokens = useCallback(
+    async (tokens: AuthTokens) => {
+      await signedIn(tokens);
+      // Password before age gate — the session is seconds old, which is what
+      // the set-password endpoint accepts as re-auth (forgot-password path).
+      if (!tokens.hasPassword || resetIntent) {
+        setMayDefer(!tokens.isNewUser && !resetIntent);
+        setError(null);
+        setStep('password-create');
+        return;
+      }
+      setStep('age');
+    },
+    [signedIn, resetIntent],
+  );
+
+  const loginWithPassword = useCallback(async () => {
+    setPending(true);
+    setError(null);
+    clearEndedMessage();
+    try {
+      const { data } = await api<AuthTokens>('/auth/password/login', {
+        method: 'POST',
+        body: { email: email.trim(), password },
+      });
+      await afterTokens(data);
+    } catch (cause) {
+      fail(cause);
+    } finally {
+      setPending(false);
+    }
+  }, [afterTokens, clearEndedMessage, email, fail, password]);
 
   const sendCode = useCallback(async () => {
     setPending(true);
@@ -71,18 +107,33 @@ export default function AuthScreen() {
     setPending(true);
     setError(null);
     try {
-      const { data } = await api<{ accessToken: string; refreshToken?: string }>(
-        '/auth/otp/verify',
-        { method: 'POST', body: { email: email.trim(), code: code.trim() } },
-      );
-      await signedIn(data);
+      const { data } = await api<AuthTokens>('/auth/otp/verify', {
+        method: 'POST',
+        body: { email: email.trim(), code: code.trim() },
+      });
+      await afterTokens(data);
+    } catch (cause) {
+      fail(cause);
+    } finally {
+      setPending(false);
+    }
+  }, [afterTokens, code, email, fail]);
+
+  const savePassword = useCallback(async () => {
+    setPending(true);
+    setError(null);
+    try {
+      // Fresh session, so no currentPassword — this same call is both the
+      // first-time set and the forgot-password reset.
+      await api('/auth/password', { method: 'POST', body: { password: newPassword } });
+      setResetIntent(false);
       setStep('age');
     } catch (cause) {
       fail(cause);
     } finally {
       setPending(false);
     }
-  }, [code, email, fail, signedIn]);
+  }, [fail, newPassword]);
 
   const rejectAge = useCallback(async () => {
     try {
@@ -109,10 +160,70 @@ export default function AuthScreen() {
         </View>
       ) : null}
 
+      {step === 'login' ? (
+        <>
+          <Heading>Masuk</Heading>
+          <Body muted>
+            Belum punya akun? Pilih “Masuk pakai kode email” di bawah — akunmu dibuat dari sana.
+          </Body>
+
+          <Text className="text-sm font-semibold text-text">Email</Text>
+          <TextInput
+            accessibilityLabel="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            style={{ minHeight: TOUCH_TARGET }}
+            className="rounded-curhat border border-border bg-surface px-4 text-text"
+          />
+          <Text className="text-sm text-muted">{REASSURANCE}</Text>
+
+          <Text className="text-sm font-semibold text-text">Password</Text>
+          <TextInput
+            accessibilityLabel="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            textContentType="password"
+            autoComplete="current-password"
+            style={{ minHeight: TOUCH_TARGET }}
+            className="rounded-curhat border border-border bg-surface px-4 text-text"
+          />
+
+          <ErrorText message={error} />
+          <PrimaryButton
+            label={pending ? 'Lagi masuk…' : 'Masuk'}
+            disabled={pending || email.trim().length === 0 || password.length === 0}
+            onPress={() => void loginWithPassword()}
+          />
+          <SecondaryButton
+            label="Masuk pakai kode email"
+            onPress={() => {
+              setResetIntent(false);
+              setError(null);
+              setStep('email');
+            }}
+          />
+          <SecondaryButton
+            label="Lupa password?"
+            onPress={() => {
+              // Forgot-password IS the OTP path plus the intent to set a new
+              // one after — no separate reset machinery.
+              setResetIntent(true);
+              setError(null);
+              setStep('email');
+            }}
+          />
+        </>
+      ) : null}
+
       {step === 'email' ? (
         <>
-          <Heading>Masuk atau bikin akun</Heading>
-          <Body muted>Kami kirim kode 6 digit ke emailmu. Nggak perlu password.</Body>
+          <Heading>Masuk pakai kode email</Heading>
+          <Body muted>Kami kirim kode 6 digit ke emailmu.</Body>
 
           <Text className="text-sm font-semibold text-text">Email</Text>
           <TextInput
@@ -132,6 +243,13 @@ export default function AuthScreen() {
             label={pending ? 'Lagi dikirim…' : 'Kirim Kode'}
             disabled={pending || email.trim().length === 0}
             onPress={() => void sendCode()}
+          />
+          <SecondaryButton
+            label="Masuk pakai password"
+            onPress={() => {
+              setError(null);
+              setStep('login');
+            }}
           />
         </>
       ) : null}
@@ -161,6 +279,48 @@ export default function AuthScreen() {
             onPress={() => void verify()}
           />
           <SecondaryButton label="Ganti email" onPress={() => setStep('email')} />
+        </>
+      ) : null}
+
+      {step === 'password-create' ? (
+        <>
+          <Heading>Bikin password dulu ya</Heading>
+          <Body muted>Biar masuk berikutnya nggak perlu nunggu kode email.</Body>
+
+          <Text className="text-sm font-semibold text-text">Password baru</Text>
+          <TextInput
+            accessibilityLabel="Password baru"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry={!showNewPassword}
+            autoCapitalize="none"
+            textContentType="newPassword"
+            autoComplete="new-password"
+            style={{ minHeight: TOUCH_TARGET }}
+            className="rounded-curhat border border-border bg-surface px-4 text-text"
+          />
+          <Text className="text-sm text-muted">Minimal {PASSWORD_MIN_LENGTH} karakter.</Text>
+
+          <SecondaryButton
+            label={showNewPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+            onPress={() => setShowNewPassword((value) => !value)}
+          />
+
+          <ErrorText message={error} />
+          <PrimaryButton
+            label={pending ? 'Lagi disimpan…' : 'Simpan Password'}
+            disabled={pending || newPassword.length < PASSWORD_MIN_LENGTH}
+            onPress={() => void savePassword()}
+          />
+          {mayDefer ? (
+            <SecondaryButton
+              label="Nanti aja"
+              onPress={() => {
+                setError(null);
+                setStep('age');
+              }}
+            />
+          ) : null}
         </>
       ) : null}
 

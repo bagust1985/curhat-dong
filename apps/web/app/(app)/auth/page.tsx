@@ -7,16 +7,31 @@ import type { ErrorCode } from '@curhat/types';
 import { ApiError, NetworkError, api } from '../../../lib/api';
 import { authErrorMessage } from '../../../lib/auth-copy';
 import { useSession } from '../../../lib/session';
-import { AgeBlocked, AgeGate, EmailStep, OtpStep } from '../../../components/auth';
+import {
+  AgeBlocked,
+  AgeGate,
+  EmailStep,
+  OtpStep,
+  PasswordCreateStep,
+  PasswordLoginStep,
+} from '../../../components/auth';
 import { GoogleSignIn } from '../../../components/google-signin';
 import { Turnstile } from '../../../components/turnstile';
 
 /**
- * `/auth` — E15-T06. DESIGN-REF §2.2.
+ * `/auth` — E15-T06, revised for password login (Revisi 1, Aug 2026).
+ * DESIGN-REF §2.2, TECH-SPEC §5.4.
  *
- * Four steps in one route: email → code → 18+ → (blocked). One route because
- * they are one decision from the user's side, and a half-finished login should
- * not leave a URL that can be bookmarked and returned to out of order.
+ * One route, six steps, because they are one decision from the user's side and
+ * a half-finished login should not leave a URL that can be bookmarked and
+ * returned to out of order.
+ *
+ * The default screen is email+password — the login that sends no email. OTP is
+ * one tap away and is still how accounts are created and recovered. After an
+ * OTP or Google login, anyone without a password lands on the create step
+ * *before* the age gate: it has to happen while still inside /auth, and the
+ * session is minutes old, which is exactly what lets a forgotten password be
+ * replaced without knowing the old one.
  *
  * The age gate sits here rather than inside onboarding because it decides
  * whether onboarding may start at all (DESIGN-REF §2.2c). Saying "belum 18"
@@ -25,23 +40,29 @@ import { Turnstile } from '../../../components/turnstile';
  * the one with no consequence and the dishonest one free.
  */
 
-type Step = 'email' | 'otp' | 'age' | 'blocked';
+type Step = 'login' | 'email' | 'otp' | 'password-create' | 'age' | 'blocked';
 
 interface AuthTokens {
   accessToken: string;
+  isNewUser: boolean;
+  hasPassword: boolean;
 }
 
 export default function AuthPage() {
   const router = useRouter();
   const { signedIn } = useSession();
 
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('login');
   const [email, setEmail] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsChallenge, setNeedsChallenge] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [sentAt, setSentAt] = useState(0);
+  /** "Lupa password?" — forces the create step even for accounts that have one. */
+  const [resetIntent, setResetIntent] = useState(false);
+  /** True when the account existed before this login — those may defer the create step. */
+  const [mayDeferPassword, setMayDeferPassword] = useState(false);
 
   const fail = useCallback((cause: unknown) => {
     if (cause instanceof NetworkError) {
@@ -83,11 +104,45 @@ export default function AuthPage() {
   const afterTokens = useCallback(
     async (tokens: AuthTokens) => {
       await signedIn(tokens.accessToken);
-      // Age gate before onboarding: the account exists now, but nothing has
-      // been collected about the person yet.
+
+      // Password before age gate: it must happen while still inside /auth,
+      // and the session is seconds old — which is what the change-password
+      // endpoint accepts as re-authentication (the forgot-password path).
+      if (!tokens.hasPassword || resetIntent) {
+        setMayDeferPassword(!tokens.isNewUser && !resetIntent);
+        setError(null);
+        setStep('password-create');
+        return;
+      }
+
       setStep('age');
     },
-    [signedIn],
+    [signedIn, resetIntent],
+  );
+
+  const loginWithPassword = useCallback(
+    async (address: string, password: string) => {
+      setPending(true);
+      setError(null);
+      try {
+        const { data } = await api<AuthTokens>('/auth/password/login', {
+          method: 'POST',
+          body: {
+            email: address,
+            password,
+            ...(turnstileToken ? { turnstileToken } : {}),
+          },
+        });
+        setEmail(address);
+        setNeedsChallenge(false);
+        await afterTokens(data);
+      } catch (cause) {
+        fail(cause);
+      } finally {
+        setPending(false);
+      }
+    },
+    [afterTokens, fail, turnstileToken],
   );
 
   const verifyCode = useCallback(
@@ -128,6 +183,25 @@ export default function AuthPage() {
     [afterTokens, fail],
   );
 
+  const savePassword = useCallback(
+    async (password: string) => {
+      setPending(true);
+      setError(null);
+      try {
+        // The session is fresh (we just logged in), so no currentPassword is
+        // needed — this same call is both first-time set and forgot-reset.
+        await api('/auth/password', { method: 'POST', body: { password } });
+        setResetIntent(false);
+        setStep('age');
+      } catch (cause) {
+        fail(cause);
+      } finally {
+        setPending(false);
+      }
+    },
+    [fail],
+  );
+
   const confirmAdult = useCallback(() => {
     // The declaration travels with the onboarding submit (E15-T07), where the
     // server checks it. Carrying it in the URL keeps it out of storage.
@@ -158,6 +232,35 @@ export default function AuthPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-[var(--spacing-gutter)] py-12">
+      {step === 'login' ? (
+        <PasswordLoginStep
+          onSubmit={(address, password) => void loginWithPassword(address, password)}
+          onUseOtp={() => {
+            setResetIntent(false);
+            setError(null);
+            setStep('email');
+          }}
+          onForgot={() => {
+            // Forgot-password IS the OTP path, plus the intent to set a new
+            // one after — no separate reset machinery to build or attack.
+            setResetIntent(true);
+            setError(null);
+            setStep('email');
+          }}
+          pending={pending}
+          error={error}
+          challenge={
+            needsChallenge ? (
+              <Turnstile
+                onToken={setTurnstileToken}
+                onError={() => setError(authErrorMessage('AUTH_TURNSTILE_INVALID'))}
+              />
+            ) : null
+          }
+          google={<GoogleSignIn onCredential={(token) => void withGoogle(token)} />}
+        />
+      ) : null}
+
       {step === 'email' ? (
         <EmailStep
           onSubmit={(address) => void sendCode(address)}
@@ -187,6 +290,19 @@ export default function AuthPage() {
           pending={pending}
           error={error}
           sentAt={sentAt}
+        />
+      ) : null}
+
+      {step === 'password-create' ? (
+        <PasswordCreateStep
+          onSubmit={(password) => void savePassword(password)}
+          allowSkip={mayDeferPassword}
+          onSkip={() => {
+            setError(null);
+            setStep('age');
+          }}
+          pending={pending}
+          error={error}
         />
       ) : null}
 

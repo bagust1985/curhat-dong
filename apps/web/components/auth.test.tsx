@@ -2,7 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AgeBlocked, AgeGate, EmailStep, OtpStep } from './auth';
+import {
+  AgeBlocked,
+  AgeGate,
+  EmailStep,
+  OtpStep,
+  PasswordCreateStep,
+  PasswordLoginStep,
+} from './auth';
 import {
   AUTH_ERROR_COPY,
   AUTH_ERROR_FALLBACK,
@@ -52,6 +59,139 @@ describe('error copy (no account-existence oracle)', () => {
         expect(message, `${message} vs ${tell}`).not.toMatch(tell);
       }
     }
+  });
+});
+
+describe('password login step (Revisi 1)', () => {
+  const noop = () => {};
+
+  it('is a plain email+password form with both escape hatches', () => {
+    render(
+      <PasswordLoginStep
+        onSubmit={noop}
+        onUseOtp={noop}
+        onForgot={noop}
+        pending={false}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByLabelText('Email')).toBeTruthy();
+    expect(screen.getByLabelText('Password')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Masuk pakai kode email' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lupa password?' })).toBeTruthy();
+  });
+
+  it('submits the trimmed email and the password as typed', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <PasswordLoginStep
+        onSubmit={onSubmit}
+        onUseOtp={noop}
+        onForgot={noop}
+        pending={false}
+        error={null}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Email'), '  a@b.test  ');
+    await user.type(screen.getByLabelText('Password'), ' rahasia-8 ');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    // Password is NOT trimmed: a leading space in a password is a choice.
+    expect(onSubmit).toHaveBeenCalledWith('a@b.test', ' rahasia-8 ');
+  });
+
+  it('says nothing that reveals whether an address has an account', () => {
+    render(
+      <PasswordLoginStep
+        onSubmit={noop}
+        onUseOtp={noop}
+        onForgot={noop}
+        pending={false}
+        error={null}
+      />,
+    );
+    const text = document.body.textContent ?? '';
+    for (const tell of ENUMERATION_TELLS) {
+      expect(text, `screen copy vs ${tell}`).not.toMatch(tell);
+    }
+  });
+});
+
+describe('password create step (Revisi 1)', () => {
+  const noop = () => {};
+
+  it('keeps the submit off until the password reaches 8 characters', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <PasswordCreateStep
+        onSubmit={onSubmit}
+        allowSkip={false}
+        pending={false}
+        error={null}
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Simpan Password' }) as HTMLButtonElement;
+    await user.type(screen.getByLabelText('Password baru'), 'pendek7');
+    expect(button.disabled).toBe(true);
+
+    await user.type(screen.getByLabelText('Password baru'), '8');
+    expect(button.disabled).toBe(false);
+
+    await user.click(button);
+    expect(onSubmit).toHaveBeenCalledWith('pendek78');
+  });
+
+  it('has a show/hide toggle that reports its state', async () => {
+    const user = userEvent.setup();
+    render(
+      <PasswordCreateStep
+        onSubmit={noop}
+        allowSkip={false}
+        pending={false}
+        error={null}
+      />,
+    );
+
+    const field = screen.getByLabelText('Password baru') as HTMLInputElement;
+    const toggle = screen.getByRole('button', { name: 'Tampilkan' });
+    expect(field.type).toBe('password');
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+
+    await user.click(toggle);
+    expect(field.type).toBe('text');
+    expect(screen.getByRole('button', { name: 'Sembunyikan' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+  });
+
+  it('only offers "Nanti aja" to accounts that may defer', () => {
+    const { rerender } = render(
+      <PasswordCreateStep
+        onSubmit={noop}
+        allowSkip={false}
+        onSkip={noop}
+        pending={false}
+        error={null}
+      />,
+    );
+    // New registrations may not skip: the password is the point of Revisi 1.
+    expect(screen.queryByRole('button', { name: 'Nanti aja' })).toBeNull();
+
+    rerender(
+      <PasswordCreateStep
+        onSubmit={noop}
+        allowSkip={true}
+        onSkip={noop}
+        pending={false}
+        error={null}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Nanti aja' })).toBeTruthy();
   });
 });
 
@@ -181,12 +321,12 @@ describe('the flow end to end (mocked API)', () => {
     vi.resetModules();
   });
 
-  it('requests a code, verifies it, then asks about age', async () => {
+  it('logs straight in with a password and sends no email', async () => {
     const user = userEvent.setup();
     const fetchSpy = stubFetch((url) => {
       if (url.includes('/auth/refresh')) return err(401, 'AUTH_TOKEN_INVALID');
-      if (url.includes('/auth/otp/request')) return ok({ status: 'sent' });
-      if (url.includes('/auth/otp/verify')) return ok({ accessToken: 'token-123' });
+      if (url.includes('/auth/password/login'))
+        return ok({ accessToken: 'token-123', isNewUser: false, hasPassword: true });
       if (url.endsWith('/v1/me')) return err(404, 'NOT_FOUND', 'belum onboarding');
       return ok({});
     });
@@ -201,6 +341,42 @@ describe('the flow end to end (mocked API)', () => {
     );
 
     await user.type(screen.getByLabelText('Email'), 'seseorang@contoh.test');
+    await user.type(screen.getByLabelText('Password'), 'rahasia-yang-panjang');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    await screen.findByRole('heading', { name: 'Sebelum lanjut' });
+
+    const requested = requestsOf(fetchSpy);
+    expect(requested).toContain('POST /v1/auth/password/login');
+    // The point of the feature: no OTP request anywhere in a routine login.
+    expect(requested).not.toContain('POST /v1/auth/otp/request');
+  });
+
+  it('registers via OTP, is made to create a password, then asks about age', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = stubFetch((url) => {
+      if (url.includes('/auth/refresh')) return err(401, 'AUTH_TOKEN_INVALID');
+      if (url.includes('/auth/otp/request')) return ok({ status: 'sent' });
+      if (url.includes('/auth/otp/verify'))
+        return ok({ accessToken: 'token-123', isNewUser: true, hasPassword: false });
+      if (url.endsWith('/v1/auth/password')) return ok({ status: 'ok', changed: false });
+      if (url.endsWith('/v1/me')) return err(404, 'NOT_FOUND', 'belum onboarding');
+      return ok({});
+    });
+
+    const { default: AuthPage } = await import('../app/(app)/auth/page');
+    const { SessionProvider } = await import('../lib/session');
+
+    render(
+      <SessionProvider>
+        <AuthPage />
+      </SessionProvider>,
+    );
+
+    // OTP is one tap away from the default password screen.
+    await user.click(screen.getByRole('button', { name: 'Masuk pakai kode email' }));
+
+    await user.type(screen.getByLabelText('Email'), 'seseorang@contoh.test');
     await user.click(screen.getByRole('button', { name: 'Kirim Kode' }));
 
     await screen.findByRole('heading', { name: 'Masukin kodenya' });
@@ -208,11 +384,57 @@ describe('the flow end to end (mocked API)', () => {
     await user.type(screen.getByLabelText('Kode 6 digit'), '123456');
     await user.click(screen.getByRole('button', { name: 'Lanjut' }));
 
+    // New account → the create step is mandatory: no "Nanti aja" here.
+    await screen.findByRole('heading', { name: 'Bikin password dulu ya' });
+    expect(screen.queryByRole('button', { name: 'Nanti aja' })).toBeNull();
+
+    await user.type(screen.getByLabelText('Password baru'), 'password-pertamaku');
+    await user.click(screen.getByRole('button', { name: 'Simpan Password' }));
+
     await screen.findByRole('heading', { name: 'Sebelum lanjut' });
 
     const requested = requestsOf(fetchSpy);
     expect(requested).toContain('POST /v1/auth/otp/request');
     expect(requested).toContain('POST /v1/auth/otp/verify');
+    expect(requested).toContain('POST /v1/auth/password');
+    expect(bodyOf(fetchSpy, 'POST /v1/auth/password')).toEqual({
+      password: 'password-pertamaku',
+    });
+  });
+
+  it('lets an existing account without a password defer the create step', async () => {
+    const user = userEvent.setup();
+    stubFetch((url) => {
+      if (url.includes('/auth/refresh')) return err(401, 'AUTH_TOKEN_INVALID');
+      if (url.includes('/auth/otp/request')) return ok({ status: 'sent' });
+      if (url.includes('/auth/otp/verify'))
+        return ok({ accessToken: 'token-123', isNewUser: false, hasPassword: false });
+      if (url.endsWith('/v1/me')) return err(404, 'NOT_FOUND');
+      return ok({});
+    });
+
+    const { default: AuthPage } = await import('../app/(app)/auth/page');
+    const { SessionProvider } = await import('../lib/session');
+
+    render(
+      <SessionProvider>
+        <AuthPage />
+      </SessionProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Masuk pakai kode email' }));
+    await user.type(screen.getByLabelText('Email'), 'seseorang@contoh.test');
+    await user.click(screen.getByRole('button', { name: 'Kirim Kode' }));
+    await screen.findByRole('heading', { name: 'Masukin kodenya' });
+    await user.type(screen.getByLabelText('Kode 6 digit'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+
+    // Existing account prompted mid-login: the quiet way out exists...
+    await screen.findByRole('heading', { name: 'Bikin password dulu ya' });
+    await user.click(screen.getByRole('button', { name: 'Nanti aja' }));
+
+    // ...and it lands on the age gate, not a dead end.
+    await screen.findByRole('heading', { name: 'Sebelum lanjut' });
   });
 
   it('tells the server when someone says they are under 18', async () => {
@@ -220,8 +442,8 @@ describe('the flow end to end (mocked API)', () => {
     const fetchSpy = stubFetch((url) => {
       if (url.includes('/auth/refresh')) return err(401, 'AUTH_TOKEN_INVALID');
       if (url.endsWith('/v1/me')) return err(404, 'NOT_FOUND');
-      if (url.includes('/auth/otp/request')) return ok({ status: 'sent' });
-      if (url.includes('/auth/otp/verify')) return ok({ accessToken: 'token-123' });
+      if (url.includes('/auth/password/login'))
+        return ok({ accessToken: 'token-123', isNewUser: false, hasPassword: true });
       if (url.endsWith('/v1/onboarding')) return err(403, 'AGE_GATE_REJECTED');
       return ok({});
     });
@@ -236,10 +458,8 @@ describe('the flow end to end (mocked API)', () => {
     );
 
     await user.type(screen.getByLabelText('Email'), 'seseorang@contoh.test');
-    await user.click(screen.getByRole('button', { name: 'Kirim Kode' }));
-    await screen.findByRole('heading', { name: 'Masukin kodenya' });
-    await user.type(screen.getByLabelText('Kode 6 digit'), '123456');
-    await user.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await user.type(screen.getByLabelText('Password'), 'rahasia-yang-panjang');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
     await screen.findByRole('heading', { name: 'Sebelum lanjut' });
 
     await user.click(screen.getByRole('button', { name: 'Umurku belum 18' }));
