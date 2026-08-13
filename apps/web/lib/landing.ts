@@ -15,6 +15,54 @@ import type { Intent, Mood } from './vocabulary';
  * would be a privacy incident regardless of how anonymous it looked.
  */
 
+/** Hero copy — Revisi 2, straight from the brand mock (docs/contoh web.png). */
+export const HERO = {
+  title: 'Ada tempat buat cerita.',
+  subtitle:
+    'Curhat dong, kapan pun kamu butuh didengar. Di sini, kamu nggak sendiri.',
+  primaryCta: 'Mulai Curhat',
+  secondaryCta: 'Pelajari Fitur',
+} as const;
+
+export interface NavLink {
+  label: string;
+  href: string;
+}
+
+/**
+ * Top navbar — Revisi 2.
+ *
+ * The mock lists Beranda · Fitur · Tentang · Blog. Blog is deliberately
+ * omitted: no blog exists, and a dead link on the one page strangers use to
+ * decide whether to trust the product is the opposite of what this page is
+ * for. Fitur and Tentang are same-page sections, which is all a one-page
+ * product needs.
+ */
+export const NAV_LINKS: readonly NavLink[] = [
+  { label: 'Beranda', href: '#beranda' },
+  { label: 'Fitur', href: '#fitur' },
+  { label: 'Tentang', href: '#tentang' },
+];
+
+export interface Feature {
+  /** Decorative — always paired with the visible title, never the only signal. */
+  glyph: string;
+  title: string;
+  body: string;
+}
+
+/**
+ * The four-feature row from the mock. Copy verbatim from the brand kit;
+ * "Komunitas" describes sharing and responding, which exists today — the
+ * dedicated Communities feature is Phase 2 and deliberately not promised here.
+ */
+export const FEATURES: readonly Feature[] = [
+  { glyph: '🔒', title: 'Privasi Aman', body: 'Cerita kamu dijaga kerahasiaannya.' },
+  { glyph: '💜', title: 'Didengar AI', body: 'AI siap mendengar dan memahami.' },
+  { glyph: '😊', title: 'Nyaman & Aman', body: 'Lingkungan positif tanpa penilaian.' },
+  { glyph: '👥', title: 'Komunitas', body: 'Kamu bisa berbagi dan terhubung.' },
+];
+
 export interface ValueProp {
   /** Decorative — always paired with the visible title, never the only signal. */
   glyph: string;

@@ -93,17 +93,17 @@ describe('indexing (PRD §13, CLAUDE.md non-negotiable #5)', () => {
 });
 
 describe('landing content (DESIGN-REF §2.1)', () => {
-  it('leads with the tagline', () => {
+  it('leads with the mock headline', () => {
     render(<LandingPage />);
 
     const heading = screen.getByRole('heading', { level: 1 });
-    expect(heading.textContent).toContain('Kita cuma butuh didengar');
+    expect(heading.textContent).toContain('Ada tempat buat cerita');
   });
 
   it('offers the signup CTA', () => {
     render(<LandingPage />);
 
-    expect(screen.getByRole('link', { name: 'Mulai Cerita' }).getAttribute('href')).toBe('/auth');
+    expect(screen.getByRole('link', { name: 'Mulai Curhat' }).getAttribute('href')).toBe('/auth');
   });
 
   it('links the APK when a build exists, and says so plainly when it does not', () => {

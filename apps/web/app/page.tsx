@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 
 import {
+  LandingFeatures,
   LandingFooter,
   LandingHero,
+  LandingNavbar,
   LandingPreviewFeed,
   LandingValueProps,
 } from '../components/landing';
@@ -36,8 +38,10 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <main>
+    <main className="px-[var(--spacing-gutter)] pt-6">
+      <LandingNavbar />
       <LandingHero />
+      <LandingFeatures />
       <LandingValueProps />
       <LandingPreviewFeed />
       <LandingFooter />
