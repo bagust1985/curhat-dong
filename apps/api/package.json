@@ -8,7 +8,9 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start:worker": "node dist/worker/worker.main.js",
+    "dev:worker": "tsx watch src/worker/worker.main.ts"
   },
   "dependencies": {
     "@curhat/ai": "workspace:*",
@@ -24,6 +26,7 @@
     "@nestjs/platform-socket.io": "catalog:",
     "@nestjs/websockets": "catalog:",
     "@socket.io/redis-adapter": "catalog:",
+    "bullmq": "6.1.0",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
     "google-auth-library": "11.0.1",

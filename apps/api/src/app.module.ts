@@ -23,6 +23,7 @@ import { ReactionsModule } from './modules/reactions/reactions.module.js';
 import { SafetyModule } from './modules/safety/safety.module.js';
 import { SearchModule } from './modules/search/search.module.js';
 import { UsersModule } from './modules/users/users.module.js';
+import { WorkerModule } from './worker/worker.module.js';
 
 /**
  * Modular monolith (TECH-SPEC §1.4). One deployable, domain-separated modules.
@@ -56,6 +57,7 @@ import { UsersModule } from './modules/users/users.module.js';
     AdminModule,
     AnalyticsModule,
     FeatureFlagsModule,
+    WorkerModule,
   ],
 })
 export class AppModule {}
