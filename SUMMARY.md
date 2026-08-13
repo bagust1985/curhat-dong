@@ -1,7 +1,8 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **13 Agustus 2026** — E16 selesai (13/13). E01–E16 selesai.
+> Terakhir: **13 Agustus 2026** — E17 berjalan (11/14 kode mendarat,
+> **0 terverifikasi di mesin sungguhan**). E01–E16 selesai.
 
 ## Status Keseluruhan
 
@@ -23,9 +24,12 @@
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
 | **E15** | Web UI | 17/17 | ✅ **Selesai** |
 | **E16** | Mobile (Android) | 13/13 | ✅ **Selesai** (kode; verifikasi perangkat tertunda) |
-| E17 | Compliance, Deploy & Observability | 0/14 | ⬜ Belum |
+| E17 | Compliance, Deploy & Observability | 0/14 | 🟡 **Berjalan** — 11 task kodenya mendarat, 3 butuh manusia |
 
-**Progres: 166 / 182 task (91,2%).**
+**Progres: 166 / 182 task selesai (91,2%).** Sebelas task E17 lagi berstatus
+`in_progress`: kodenya mendarat dan teruji, tapi **belum satu pun dijalankan di
+VPS, registry, atau domain sungguhan**. Tidak dihitung selesai karena memang
+belum.
 
 ---
 
@@ -2258,24 +2262,132 @@ test web        292              hijau
 
 ---
 
+## E17 — Compliance, Deploy & Observability 🟡 (11/14 mendarat, 0 selesai)
+
+| Task | Yang mendarat | Yang menahannya |
+|---|---|---|
+| T01 Caddy | 3 domain, HSTS+preload, CSP terpisah web/admin | Scan SSL Labs, cek header dari luar |
+| T02 Compose prod | 9 service, healthcheck, non-root, tag SHA | Belum dijalankan di VPS |
+| T03 Image GHCR | Multi-stage, standalone Next, cek secret di image | Build belum pernah jalan |
+| T04 Pipeline | Gate destruktif → migrate → health → rollback | Belum end-to-end |
+| T05 Sentry | Paket `@curhat/observability` + 15 test | Belum dipasang ke app mana pun |
+| T06 Uptime | 5 monitor terdokumentasi, alert Telegram | Belum dibuat di UI, alert belum pernah berbunyi |
+| T07 Backup | `backup.sh` + `restore.sh` | Restore sungguhan belum dilakukan |
+| T08 Retensi | Worker + 8 job + 11 test | Belum diuji atas data lama |
+| T09 SOP breach | `breach-scope.ts` + 9 test + SOP + template | PIC belum ada, table-top belum jalan |
+| T13 Load test | Skrip k6 peak-night + threshold | Belum ada VPS staging |
+| T14 Security review | Skrip: **10 lolos, 0 gagal** | 6 item sisa butuh mesin/manusia |
+| **T10 Legal** | — | Butuh penasihat hukum |
+| **T11 PSE** | — | Butuh badan hukum + verifikasi prosedur terkini |
+| **T12 Hotline** | — | Butuh verifikasi tiap kanal, satu per satu |
+
+### Keputusan yang menentukan bentuknya
+
+**Worker jadi entrypoint kedua `apps/api`, bukan `apps/worker`.** Terpisah
+prosesnya — container, perintah, restart policy sendiri — tapi tiap job
+memanggil service yang sudah dimiliki API. Paket terpisah harus mengimpor
+lintas app atau mengimplementasi ulang, dan implementasi kedua dari "kapan
+notifikasi boleh dikirim" persis cara quiet hours dihormati di satu jalur dan
+tidak di jalur lain.
+
+**Gate migration membaca SQL-nya, bukan mempercayai bahwa ada yang membaca.**
+Persetujuan ditulis di dalam file migration (`-- curhat:destructive-approved`)
+supaya muncul di diff, review, dan `git blame` — flag CI hilang begitu run-nya
+kedaluwarsa. Dibuktikan tiga kali: 7 migration repo ini lolos, `DROP COLUMN`
+buatan ditolak (exit 1), lalu lolos setelah diberi marker.
+
+**Postgres & Redis tanpa entri `ports:` sama sekali** — bukan bind loopback,
+memang tidak ada. Satu-satunya versi TECH-SPEC §7.1 yang tidak bisa dibatalkan
+satu edit firewall.
+
+**`deleted_count` nol berturut-turut = job retensi rusak, bukan aman.** Query
+yang diam-diam berhenti cocok terlihat persis seperti job yang tidak ada
+kerjaan. Run yang gagal sengaja tidak ikut dihitung — itu sudah alert sendiri.
+
+**"Siapa yang terdampak" dibuat sebagai kode.** UU PDP memberi 72 jam; di dalam
+jendela itu tidak ada yang akan menulis query ke skema yang baru dia lihat
+sambil menahan insidennya. `scopeFromAudit` mengembalikan **id dan kategori,
+bukan isinya** — respons insiden yang menumpahkan curhat terdampak ke file
+kerja sudah memperlebar kebocoran sambil mengukurnya.
+
+### Lubang yang ditemukan test/skrip sendiri
+
+1. **Pesan exception yang menginterpolasi isi curhat lolos dari semua aturan
+   scrubbing berbasis nama field** (`body gagal divalidasi: "..."`). Itu justru
+   jalur paling mungkin curhat sampai ke pihak ketiga. Ditambal aturan
+   quoted-run ≥24 karakter.
+2. **Tiga FAIL pertama security review ternyata positif palsu dari checker-nya
+   sendiri**: modul admin ikut ter-scan padahal E14-T04 memang mengizinkan lewat
+   case teraudit; `.env.example` dikira file kredensial; dan komentar yang
+   *melarang* secret di `NEXT_PUBLIC_*` terbaca sebagai pelanggaran aturan itu
+   sendiri. Checklist yang sering salah alarm akan berhenti dibaca — kegagalan
+   yang sama dengan monitor ber-retry satu.
+
+### Hasil verifikasi
+
+```
+pnpm lint       17/17 workspace  hijau
+pnpm typecheck  17/17 workspace  hijau
+security-review 10 lolos, 0 gagal
+test worker     20               hijau
+test scrubbing  15               hijau
+test guard      15               hijau
+```
+
+### Yang harus dikerjakan manusia
+
+**Infrastruktur & akun:** VPS Vultr 4vCPU/8GB + Docker + clone di
+`/srv/curhat-dong`; DNS empat host; GitHub Secrets (`DEPLOY_HOST`,
+`DEPLOY_USER`, `DEPLOY_SSH_KEY`) + Variables `NEXT_PUBLIC_*`;
+`.env.production` di VPS; akun EAS untuk APK.
+
+**Verifikasi yang cuma bisa di mesin sungguhan:** SSL Labs + header dari luar;
+port DB/Redis tertutup diuji dari luar VPS; matikan satu service → restart
+otomatis; deploy dengan migration sengaja gagal → berhenti, versi lama jalan;
+inspect isi image; Uptime Kuma + alert Telegram benar-benar berbunyi; restore
+penuh + catat durasinya (itu dasar RTO); load test di staging; scrubbing diuji
+di DSN produksi.
+
+**Tiga blocker rilis yang bukan pekerjaan kode:** hotline terverifikasi
+(T12) — layar krisis L3 kosong sampai ada, dan nomor karangan lebih berbahaya
+daripada kosong; pendaftaran PSE (T11); naskah legal + review hukum (T10),
+yang sampai sekarang bikin `/legal/*` tetap placeholder dan tetap `noindex`.
+
+**Plus:** PIC on-call breach (nama, bukan jabatan) + cadangannya, table-top
+exercise, rotasi moderator malam, dan keputusan nav mobile vs web.
+
+---
+
 ## Langkah Berikutnya
 
-**E16 — Mobile (Android)** (13 task), lalu **E17 — Compliance, Deploy &
-Observability** (14 task).
+**Sisa pekerjaan kode tinggal dua:** memasang hook `beforeSend` scrubbing ke
+api, worker, web, admin, dan mobile (E17-T05 — aturannya sudah ada dan teruji,
+tinggal dipasang), lalu menguji job retensi atas data lama buatan (E17-T08).
 
-Tiga hal dari web yang akan dipakai ulang di mobile: kosakata mood/intent/reaction
-di `@curhat/types`, aturan copy yang sudah jadi assertion (Supportive
-Intervention, rest state listener, notifikasi tanpa isi curhat), dan kontrak
-error `code` yang sama.
+**Selebihnya bukan pekerjaan kode.** Sebelas task E17 menunggu mesin sungguhan:
+VPS, DNS, registry, DSN Sentry, dan akun EAS. Daftar lengkap apa yang harus
+disiapkan dan apa yang harus diuji manual ada di bagian E17 di atas.
 
-Yang **tidak** boleh diulang di mobile: token di storage biasa (pakai
-SecureStore), dan preview feed dari data asli di layar publik mana pun.
+**Tiga blocker rilis, tidak berubah sejak awal:**
 
-**Blocker rilis tidak berubah:** hotline terverifikasi (E17-T12), pendaftaran
-PSE (E17-T11), rotasi moderator malam, dan naskah legal (E17-T10) yang sampai
-sekarang bikin `/legal/*` masih placeholder.
+1. **Hotline terverifikasi (E17-T12)** — layar krisis L3 kosong sampai ini ada.
+   Nomor yang salah lebih berbahaya daripada tidak menampilkan apa pun: orang
+   dalam krisis mencoba, gagal, lalu merasa lebih sendirian.
+2. **Pendaftaran PSE (E17-T11)** — prosedur dan nama lembaga pernah berubah;
+   wajib diverifikasi ke sumber resmi terkini.
+3. **Naskah legal + review hukum (E17-T10)** — sampai ada, `/legal/*` tetap
+   placeholder dan tetap `noindex`.
 
-**Utang teknis yang tercatat:** seluruh post yang dibuat sebelum E07 mendarat
-punya `needs_reanalysis = true` dan harus diantre ulang lewat `analyze-post`.
-Panel admin (`apps/admin`) masih scaffold — DESIGN-REF §3 menyebut 14 halaman
-dan itu belum masuk hitungan epic mana pun.
+Plus: PIC on-call breach (nama, bukan jabatan), rotasi moderator malam
+(PRD §15.3), dan **keputusan nav mobile vs web** — DESIGN-REF §1 dan brand mock
+saling bertentangan, dan salah satunya harus berubah.
+
+**Utang teknis yang tercatat:**
+
+- Seluruh post sebelum E07 mendarat punya `needs_reanalysis = true` dan harus
+  diantre ulang lewat `analyze-post`.
+- **Broadcast terjadwal belum punya dispatcher** (utang E14). Job cron-nya
+  sengaja tidak didaftarkan — entri yang menunjuk method tidak ada bikin
+  fiturnya terlihat jalan.
+- **Panel admin belum punya UI**; `apps/admin` masih scaffold, DESIGN-REF §3
+  menyebut 14 halaman, dan itu tidak masuk hitungan epic mana pun.
