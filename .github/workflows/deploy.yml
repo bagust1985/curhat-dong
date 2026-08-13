@@ -74,18 +74,23 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            cd /srv/curhat-dong
+            cd /home/selsipad/curhat-dong
+
+            # Compose membaca `.env` dari direktori file compose-nya, bukan dari
+            # root repo. Jadi state IMAGE_TAG tinggal di `infrastructure/.env`,
+            # satu file dengan POSTGRES_PASSWORD dan GITHUB_REPOSITORY — dan
+            # itulah kenapa file ini diedit, tidak pernah ditimpa.
+            ENV_FILE=infrastructure/.env
 
             # The SHA currently serving traffic, kept so a failed health gate
             # has something specific to go back to.
-            PREVIOUS=$(grep '^IMAGE_TAG=' .env || echo "IMAGE_TAG=")
+            PREVIOUS=$(grep '^IMAGE_TAG=' "$ENV_FILE" || echo "IMAGE_TAG=")
             PREVIOUS=${PREVIOUS#IMAGE_TAG=}
             echo "versi sekarang: ${PREVIOUS:-belum ada}"
 
             git fetch --quiet origin main
             git checkout --quiet "$IMAGE_TAG" -- infrastructure packages/database/prisma
 
-            echo "IMAGE_TAG=$IMAGE_TAG" > .env.deploy
             export IMAGE_TAG
 
             docker compose -f infrastructure/docker-compose.prod.yml pull
@@ -131,6 +136,11 @@ jobs:
 
             # Only written once the new version is actually serving, so the
             # rollback target is always a version that worked.
-            echo "IMAGE_TAG=$IMAGE_TAG" > .env
+            #
+            # `sed -i`, bukan `>`: file yang sama memegang POSTGRES_PASSWORD.
+            # Menimpanya akan membuat DATABASE_URL kehilangan password-nya, dan
+            # gejalanya baru muncul pada restart berikutnya — jauh dari deploy
+            # yang menyebabkannya.
+            sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" "$ENV_FILE"
             docker image prune -f --filter 'until=168h'
             echo "deploy selesai: $IMAGE_TAG"

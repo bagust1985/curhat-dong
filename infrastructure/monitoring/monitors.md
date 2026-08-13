@@ -9,9 +9,9 @@ not on the public internet on purpose).
 |---|---|---|---|---|
 | API ready | `https://api.curhatdong.com/v1/health/ready` | 60s | 2 | Checks Postgres **and** Redis. This is the one that matters. |
 | API live | `https://api.curhatdong.com/v1/health/live` | 60s | 3 | Separates "process died" from "dependency died" — different fixes at 3am. |
-| Web | `https://curhatdong.com/` | 120s | 3 | The landing page is static; if it fails, Caddy or the container is gone. |
+| Web | `https://curhatdong.com/` | 120s | 3 | The landing page is static; if it fails, nginx or the container is gone. |
 | Admin | `https://admin.curhatdong.com/` | 300s | 3 | Nobody is blocked at 3am by admin being down, so it alerts more slowly. |
-| Certificate expiry | all three hosts | daily | — | Caddy renews automatically; this catches the renewal that did not. |
+| Certificate expiry | one host, TLS expiry notice on | hourly | 3 | `certbot.timer` renews automatically; this catches the renewal that did not. |
 
 **`ready` is the alerting monitor, `live` is the diagnosing one.** A ready check
 that fails while live passes means the API is up and cannot reach its database —
@@ -38,14 +38,13 @@ Never a request body, never a path with an id in it (non-negotiable #3).
 
 ## Manual setup steps
 
-1. `ssh -L 3103:127.0.0.1:3103 user@vps`, open `http://127.0.0.1:3103`.
-2. Create the admin account (first visit only) and store the password in the
-   team password manager, not in this repo.
-3. Add the five monitors above.
-4. Notifications → Telegram → bot token + chat id → **Test** before saving.
-5. Kill the API container once and confirm the alert arrives within 5 minutes.
-   A monitoring setup that has never fired is a monitoring setup nobody has
-   tested.
+Step by step, including how to obtain the Telegram token and chat id:
+**`infrastructure/RUNBOOK.md` §1**.
+
+The last step is the one that closes the task: stop the API container once and
+confirm the alert actually arrives. A monitoring setup that has never fired is a
+monitoring setup nobody has tested — and it is worse than none, because it
+creates the belief that somebody would have been told.
 
 ## Logs
 
