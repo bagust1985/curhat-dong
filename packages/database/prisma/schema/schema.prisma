@@ -12,6 +12,19 @@ generator client {
   // Generated client kept out of src/ — it is build output, not source
   // (TECH-SPEC §1.6).
   output   = "../../generated/prisma"
+
+  // CommonJS, explicitly.
+  //
+  // Prisma 7's default output uses `import.meta.url` to resolve its own
+  // directory. That is ESM-only syntax: tsc passes it through unchanged when
+  // compiling to CJS, Node's CJS parser then fails, re-reads the file as ESM,
+  // and dies on `exports is not defined`. Nothing catches it in development —
+  // vitest and `nest start` transform the file — so it surfaces only the first
+  // time the built output runs under plain `node`, which is production.
+  //
+  // This package is CJS (no `type` field, `main: ./dist/src/index.js`) and
+  // NestJS is CJS, so `cjs` is what the rest of the stack already assumes.
+  moduleFormat = "cjs"
 }
 
 datasource db {
