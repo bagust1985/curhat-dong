@@ -144,8 +144,8 @@ export const RADII = {
   md: '0.75rem',
   /** Cards, sheets, modals — the 16px the design direction asks for. */
   lg: '1rem',
-  /** Primary buttons and the FAB. */
-  xl: '1.25rem',
+  /** Primary buttons and the FAB — full pills since Revisi 2 (brand mock). */
+  xl: '999px',
   full: '9999px',
 } as const;
 

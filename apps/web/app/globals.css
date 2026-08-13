@@ -30,7 +30,9 @@
 
   /* Generous radii — nothing sharp or clinical (DESIGN-REF §0). */
   --radius-curhat: 1rem; /* 16px — cards, sheets */
-  --radius-action: 1.25rem; /* 20px — primary buttons, FAB */
+  /* Full pill since Revisi 2 — the brand mock's buttons are pills, and one
+   * token here restyles every action button in the app at once. */
+  --radius-action: 999px;
   --radius-chip: 999px;
 
   --spacing-gutter: 1.25rem;

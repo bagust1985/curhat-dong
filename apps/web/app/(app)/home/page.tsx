@@ -7,7 +7,6 @@ import { NetworkError, api } from '../../../lib/api';
 import { feedGreeting } from '../../../lib/midnight';
 import { mergePages, toCardData, type FeedApiItem } from '../../../lib/feed';
 import { useSession } from '../../../lib/session';
-import { BottomNav } from '../../../components/bottom-nav';
 import { CurhatCard } from '../../../components/curhat-card';
 import { EmptyState } from '../../../components/conversation';
 import {
@@ -246,16 +245,6 @@ export default function HomePage() {
           ) : null}
         </section>
       </main>
-
-      <div className="sticky bottom-0">
-        <BottomNav
-          active="beranda"
-          onNavigate={(item) => {
-            if (item.href) router.push(item.href);
-          }}
-          onCreate={() => router.push('/curhat/baru')}
-        />
-      </div>
     </div>
   );
 }
