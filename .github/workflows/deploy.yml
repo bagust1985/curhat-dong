@@ -93,8 +93,17 @@ jobs:
             # Migrations run in a one-shot container on the new image, before
             # anything is restarted. `migrate deploy` applies what exists and
             # never generates or resets.
+            #
+            # Dijalankan dari `packages/database`, bukan dari root: Prisma 7
+            # mencari `prisma.config.ts` di cwd, dan di situlah datasource-nya
+            # didefinisikan. Dari root, config-nya tidak pernah dimuat dan CLI
+            # mengeluh `datasource.url` tidak ada.
+            #
+            # Binary lokal, bukan `npx prisma`: npx tidak menemukannya di PATH
+            # lalu mengunduh prisma dari internet setiap deploy — lambat, dan
+            # versinya bisa berbeda dari yang dipakai membangun client.
             if ! docker compose -f infrastructure/docker-compose.prod.yml run --rm \
-                 --entrypoint sh api -c 'cd /app && npx prisma migrate deploy --schema packages/database/prisma/schema'; then
+                 --entrypoint sh api -c 'cd /app/packages/database && ./node_modules/.bin/prisma migrate deploy'; then
               echo "::error::migration gagal — deployment dihentikan, versi lama tetap jalan"
               exit 1
             fi
