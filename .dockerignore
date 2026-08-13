@@ -1,0 +1,32 @@
+# Konteks build — E17-T03.
+#
+# Tanpa file ini, `docker build` mengirim seluruh direktori ke daemon: termasuk
+# node_modules (ribuan file, ratusan MB), .git, dan **.env**. Yang terakhir itu
+# alasan utamanya — apa pun yang masuk konteks bisa tidak sengaja ter-COPY ke
+# dalam layer, dan secret yang terpanggang di layer tetap ada di registry
+# selamanya walau layer di atasnya menghapusnya (TECH-SPEC §7.2).
+
+# Rahasia — tidak boleh ikut, titik.
+.env
+.env.*
+!.env.example
+*.pem
+id_rsa*
+
+# Berat dan selalu dibangun ulang di dalam image.
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.expo
+apps/mobile/android
+apps/mobile/ios
+
+# Tidak relevan untuk runtime.
+.git
+.github
+**/*.test.ts
+**/*.test.tsx
+**/coverage
+docs
+.agents

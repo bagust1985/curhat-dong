@@ -17,6 +17,7 @@ ARG APP
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/${APP}/package.json apps/${APP}/
 COPY packages/config/package.json packages/config/
+COPY packages/observability/package.json packages/observability/
 COPY packages/types/package.json packages/types/
 RUN pnpm install --frozen-lockfile --filter @curhat/${APP}...
 
@@ -32,6 +33,11 @@ ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
     NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
 RUN pnpm --filter @curhat/${APP}... build
+
+# `public/` opsional: apps/admin tidak punya satu pun aset statis, dan COPY
+# terhadap direktori yang tidak ada menggagalkan build. Dibuat kosong di sini
+# supaya stage runtime tidak perlu tahu app mana yang punya.
+RUN mkdir -p apps/${APP}/public
 
 FROM base AS runtime
 ARG APP
