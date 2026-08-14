@@ -3,8 +3,8 @@
 > Laporan berjalan. Diperbarui setiap epic selesai.
 > Terakhir: **14 Agustus 2026** — **E18: rebrand visual rose (web + mobile)**.
 > https://curhatdong.com tayang dengan identitas baru, API `ready: true`.
-> E01–E16 selesai; E17 berjalan; E18 web selesai & live, mobile selesai di kode
-> tapi **belum pernah jadi APK**.
+> E01–E16 selesai; E17 berjalan; E18 web selesai & live, dan **APK pertama
+> berhasil di-build di EAS** (build #7, 14 Agu ~19:30 UTC, commit `96f86f0`).
 >
 > ⚠️ **Aplikasinya bisa diakses publik sementara daftar hotline masih kosong.**
 > Layar krisis L3 menampilkan fallback jujur, bukan layar kosong — tapi E17-T12
@@ -48,7 +48,7 @@ memuat 8 tujuan, jadi tile "Fitur Utama" dan kartu DONG AI hilang di `lg`
 **Strip mood dihapus total** — tap mood membuka composer, dan composer sudah
 menanyakan mood. Pilihan yang sama ditanya dua kali, beda satu layar.
 
-### Mobile — selesai di kode, belum jadi APK
+### Mobile — selesai di kode, APK pertama sudah ter-build (lihat di atas)
 
 Palet, tiga tema, tint, radius, dan bahasa visual sudah sejajar dengan web.
 Dua perbaikan yang bukan soal gaya: `MoodChip` merender `mood.replace('_',' ')`
@@ -56,22 +56,25 @@ Dua perbaikan yang bukan soal gaya: `MoodChip` merender `mood.replace('_',' ')`
 **emoji tanpa teks sama sekali** — hal paling menentukan dari sebuah curhat
 hanya berupa ikon yang pembaca harus sudah tahu artinya.
 
-### ⚠️ Yang belum selesai dan wajib dibaca sesi berikutnya
+### ✅ APK pertama berhasil (build #7, 14 Agu 2026)
 
-**1. Ada commit yang belum di-push.** Branch `fix/babel-version-clash`
-(`cae5435`) belum di-merge ke `main`. Isinya perbaikan paling penting di ronde
-EAS — lihat di bawah. `main` terakhir: `ed0b483`.
+Build EAS `881fb157` **FINISHED** dari `main` `96f86f0` (durasi gradle ~23
+menit). APK: https://expo.dev/artifacts/eas/c8x0gckiawZK89zLuRZG2_WuFrshZmBMiFPoD8wNKis.apk
+(versi 0.1.0, versionCode 1, kedaluwarsa dari EAS ±28 Agu).
 
-**2. Build EAS gagal 5×, sekarang lolos lokal tapi belum dicoba lagi.**
-Proyek `@bagust1986/curhat-dong` sudah dibuat, keystore sudah ada. Perintah:
-```
-cd apps/mobile && pnpm exec eas build --platform android --profile preview --non-interactive --no-wait
-```
+Build #6 sebelumnya gagal **bukan karena bug baru**: dia diluncurkan dari
+checkout `ed0b483`, satu commit sebelum pin Babel v7 (`cae5435`) masuk `main`.
+Errornya (`Cannot find module '@babel/plugin-transform-react-jsx'` di
+`createReleaseUpdatesResources`) persis yang commit itu sembuhkan. Sebelum
+build #7 diluncurkan, resep verifikasi cold-cache di bawah dijalankan ulang di
+`main` dan hijau.
+
 Profil `preview` menunjuk ke **API produksi** — curhat dari APK itu masuk
 database asli.
 
-**3. Belum ada satu layar mobile pun yang pernah dilihat.** Tidak ada emulator
-di sesi ini. Verifikasi hanya lewat bundle, test, typecheck.
+**Yang masih terbuka:** belum ada satu layar mobile pun yang pernah dilihat —
+tidak ada emulator/perangkat di sesi ini. APK-nya ada, tinggal dipasang dan
+dilihat manusia.
 
 ### Lima kegagalan EAS — semuanya bentuknya sama
 
