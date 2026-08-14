@@ -114,7 +114,7 @@ export function BottomNav({
               <span aria-hidden="true" className="relative text-lg leading-none">
                 {item.glyph}
                 {badge > 0 ? (
-                  <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-[var(--color-accent-pink)] px-1 text-[10px] font-bold text-[var(--color-accent-fg)]">
+                  <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-[var(--color-brand)] px-1 text-[10px] font-bold text-[var(--color-accent-fg)]">
                     {badge > 9 ? '9+' : badge}
                   </span>
                 ) : null}

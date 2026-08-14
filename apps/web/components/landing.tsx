@@ -33,7 +33,7 @@ function Wordmark() {
   return (
     <span className="inline-flex items-baseline gap-1 text-xl font-extrabold lowercase">
       <span className="text-[var(--color-text)]">curhat</span>
-      <span className="rounded-[var(--radius-chip)] bg-[var(--color-accent-pink)] px-2 py-0.5 text-base text-[var(--color-accent-fg)]">
+      <span className="rounded-[var(--radius-chip)] bg-[var(--color-brand)] px-2 py-0.5 text-base text-[var(--color-accent-fg)]">
         dong
       </span>
     </span>

@@ -1,16 +1,21 @@
 @import 'tailwindcss';
 
 /*
- * CURHAT DONG design tokens — E15-T01. DESIGN-REF §0, PRD §23.1.
+ * CURHAT DONG design tokens — E15-T01, repainted pink in E18-T01.
+ * DESIGN-REF §0, PRD §23.1.
  *
  * Direction: calming, warm, private, safe. Explicitly NOT hospital, clinic,
  * dating app, crypto, or corporate. Dark mode is first-class because peak usage
  * is at night.
  *
- * Values come from the brand kit in docs/, tuned until they pass WCAG 2.1 AA.
- * Two brand pairings did not and are handled deliberately — see lib/tokens.ts
- * for the numbers. lib/contrast.test.ts fails the build if any of them drifts,
- * because warm-on-dark is easy to get wrong by eye.
+ * The palette is rose-forward, taken from the app icon in
+ * docs/curhatdong_logo_v2.png. The rule that makes it work: deep rose carries
+ * the actions, bright logo pink carries the identity. See lib/tokens.ts for the
+ * measured numbers and why the split is not optional.
+ *
+ * Values are those hues tuned until they pass WCAG 2.1 AA in all three themes.
+ * lib/contrast.test.ts fails the build if any of them drifts, because pink on a
+ * warm ground is very easy to get wrong by eye.
  *
  * This file and lib/tokens.ts must stay in step; the test asserts the values in
  * tokens.ts, so a change here without a change there is a silent divergence.
@@ -29,7 +34,7 @@
     sans-serif;
 
   /* Generous radii — nothing sharp or clinical (DESIGN-REF §0). */
-  --radius-curhat: 1rem; /* 16px — cards, sheets */
+  --radius-curhat: 1.25rem; /* 20px — cards, sheets. The top of §0's 16–20px. */
   /* Full pill since Revisi 2 — the brand mock's buttons are pills, and one
    * token here restyles every action button in the app at once. */
   --radius-action: 999px;
@@ -41,42 +46,50 @@
   --size-touch: 2.75rem; /* 44px */
 }
 
-/* --- Light --- */
+/* --- Light: "Pagi Merah Muda". A warm rose ground, not a sterile white. --- */
 :root {
-  --color-bg: #f7f5ff;
+  --color-bg: #fff5f8;
   --color-surface: #ffffff;
-  --color-surface-alt: #eae6ff;
-  --color-border: #d9d2f2;
-  --color-text: #1e1240;
-  --color-muted: #514873;
-  --color-primary: #5b3be0;
+  --color-surface-alt: #ffe6ee;
+  --color-border: #f4cfdd;
+  --color-text: #2b1233;
+  --color-muted: #6b4257;
+  --color-primary: #c2185b;
   --color-primary-fg: #ffffff;
-  --color-brand: #7c5cfc;
-  --color-accent-pink: #ff688a;
-  --color-accent-amber: #ffb84d;
-  --color-accent-fg: #1e1240;
-  --color-danger: #b3261e;
+  --color-brand: #fa4b7d;
+  --color-accent-lavender: #6d4ae0;
+  --color-accent-amber: #ffb020;
+  --color-accent-fg: #2b1233;
+  --color-tint-pink: #ffdce7;
+  --color-tint-lavender: #e9e1ff;
+  --color-tint-amber: #ffebcb;
+  --color-tint-rose: #ffd3e1;
+  --color-danger: #7e2f0c;
   --color-danger-fg: #ffffff;
-  --color-focus: #5b3be0;
+  --color-focus: #c2185b;
 }
 
-/* --- Dark: the primary design target, because people open this at night. --- */
+/* --- Dark: "Malam Plum", the primary design target — people open this at night. --- */
 [data-theme='dark'] {
-  --color-bg: #12101f;
-  --color-surface: #1b1830;
-  --color-surface-alt: #252140;
-  --color-border: #332d52;
-  --color-text: #edeafb;
-  --color-muted: #b5aed2;
-  --color-primary: #b9a6ff;
-  --color-primary-fg: #12101f;
-  --color-brand: #b9a6ff;
-  --color-accent-pink: #ff9fb4;
+  --color-bg: #1a1020;
+  --color-surface: #251729;
+  --color-surface-alt: #33203a;
+  --color-border: #4a2c46;
+  --color-text: #f7e9f0;
+  --color-muted: #c9a9bb;
+  --color-primary: #ff86bb;
+  --color-primary-fg: #1a1020;
+  --color-brand: #ff9fca;
+  --color-accent-lavender: #c4b0ff;
   --color-accent-amber: #ffc978;
-  --color-accent-fg: #12101f;
-  --color-danger: #ffb4ab;
-  --color-danger-fg: #12101f;
-  --color-focus: #b9a6ff;
+  --color-accent-fg: #1a1020;
+  --color-tint-pink: #3d2138;
+  --color-tint-lavender: #2f2650;
+  --color-tint-amber: #3d3020;
+  --color-tint-rose: #452133;
+  --color-danger: #ff9d80;
+  --color-danger-fg: #1a1020;
+  --color-focus: #ff86bb;
 }
 
 /*
@@ -87,40 +100,48 @@
  * tasteful and becomes unusable.
  */
 [data-theme='midnight'] {
-  --color-bg: #0a0814;
-  --color-surface: #12101f;
-  --color-surface-alt: #1b1830;
-  --color-border: #2a2545;
-  --color-text: #e4e0f5;
-  --color-muted: #9f98be;
-  --color-primary: #ae9bf5;
-  --color-primary-fg: #0a0814;
-  --color-brand: #ae9bf5;
-  --color-accent-pink: #f58fa6;
+  --color-bg: #120a16;
+  --color-surface: #1a1020;
+  --color-surface-alt: #251729;
+  --color-border: #3a2340;
+  --color-text: #efdde7;
+  --color-muted: #b898aa;
+  --color-primary: #f582b4;
+  --color-primary-fg: #120a16;
+  --color-brand: #f596c2;
+  --color-accent-lavender: #b7a2f5;
   --color-accent-amber: #f0bd72;
-  --color-accent-fg: #0a0814;
-  --color-danger: #f5aaa2;
-  --color-danger-fg: #0a0814;
-  --color-focus: #ae9bf5;
+  --color-accent-fg: #120a16;
+  --color-tint-pink: #301a2c;
+  --color-tint-lavender: #251d40;
+  --color-tint-amber: #302618;
+  --color-tint-rose: #361a28;
+  --color-danger: #f0977c;
+  --color-danger-fg: #120a16;
+  --color-focus: #f582b4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --color-bg: #12101f;
-    --color-surface: #1b1830;
-    --color-surface-alt: #252140;
-    --color-border: #332d52;
-    --color-text: #edeafb;
-    --color-muted: #b5aed2;
-    --color-primary: #b9a6ff;
-    --color-primary-fg: #12101f;
-    --color-brand: #b9a6ff;
-    --color-accent-pink: #ff9fb4;
+    --color-bg: #1a1020;
+    --color-surface: #251729;
+    --color-surface-alt: #33203a;
+    --color-border: #4a2c46;
+    --color-text: #f7e9f0;
+    --color-muted: #c9a9bb;
+    --color-primary: #ff86bb;
+    --color-primary-fg: #1a1020;
+    --color-brand: #ff9fca;
+    --color-accent-lavender: #c4b0ff;
     --color-accent-amber: #ffc978;
-    --color-accent-fg: #12101f;
-    --color-danger: #ffb4ab;
-    --color-danger-fg: #12101f;
-    --color-focus: #b9a6ff;
+    --color-accent-fg: #1a1020;
+    --color-tint-pink: #3d2138;
+    --color-tint-lavender: #2f2650;
+    --color-tint-amber: #3d3020;
+    --color-tint-rose: #452133;
+    --color-danger: #ff9d80;
+    --color-danger-fg: #1a1020;
+    --color-focus: #ff86bb;
   }
 }
 
@@ -134,12 +155,67 @@
   --color-primary: var(--color-primary);
   --color-primary-fg: var(--color-primary-fg);
   --color-brand: var(--color-brand);
-  --color-accent-pink: var(--color-accent-pink);
+  --color-accent-lavender: var(--color-accent-lavender);
   --color-accent-amber: var(--color-accent-amber);
   --color-accent-fg: var(--color-accent-fg);
+  --color-tint-pink: var(--color-tint-pink);
+  --color-tint-lavender: var(--color-tint-lavender);
+  --color-tint-amber: var(--color-tint-amber);
+  --color-tint-rose: var(--color-tint-rose);
   --color-danger: var(--color-danger);
   --color-danger-fg: var(--color-danger-fg);
   --color-focus: var(--color-focus);
+}
+
+/*
+ * Elevation and the ambient wash — E18-T01.
+ *
+ * The app had no shadows and no gradients at all, which is why every surface
+ * read as the same flat sheet. These are the two places that changes: a
+ * rose-tinted card lift, and one soft glow behind the top of a screen. Both are
+ * themed, because a shadow tuned for a white ground disappears on a plum one.
+ */
+:root {
+  --shadow-card:
+    0 1px 1px rgba(43, 18, 51, 0.04), 0 10px 26px -20px rgba(194, 24, 91, 0.55);
+  --shadow-nav: 0 -2px 30px -14px rgba(194, 24, 91, 0.5);
+  --wash-top: radial-gradient(
+    130% 55% at 50% 0%,
+    rgba(250, 75, 125, 0.22) 0%,
+    rgba(250, 75, 125, 0) 70%
+  );
+}
+
+[data-theme='dark'] {
+  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 26px -20px rgba(0, 0, 0, 0.9);
+  --shadow-nav: 0 -2px 30px -14px rgba(0, 0, 0, 0.85);
+  --wash-top: radial-gradient(
+    130% 55% at 50% 0%,
+    rgba(255, 134, 187, 0.16) 0%,
+    rgba(255, 134, 187, 0) 70%
+  );
+}
+
+[data-theme='midnight'] {
+  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.4), 0 10px 26px -20px rgba(0, 0, 0, 1);
+  --shadow-nav: 0 -2px 30px -14px rgba(0, 0, 0, 0.95);
+  --wash-top: radial-gradient(
+    130% 55% at 50% 0%,
+    rgba(245, 130, 180, 0.1) 0%,
+    rgba(245, 130, 180, 0) 70%
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 26px -20px rgba(0, 0, 0, 0.9);
+    --shadow-nav: 0 -2px 30px -14px rgba(0, 0, 0, 0.85);
+    --wash-top: radial-gradient(
+      130% 55% at 50% 0%,
+      rgba(255, 134, 187, 0.16) 0%,
+      rgba(255, 134, 187, 0) 70%
+    );
+  }
 }
 
 body {
@@ -147,6 +223,19 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Headings get the display voice — E18-T01.
+ *
+ * No second font family: Nunito at 900 with tight tracking is the display role,
+ * which keeps the request count at zero and still puts real distance between a
+ * greeting and body copy.
+ */
+h1,
+h2 {
+  letter-spacing: -0.022em;
+  text-wrap: balance;
 }
 
 /* PRD §23.1: focus must always be visible for keyboard users. */

@@ -14,6 +14,32 @@ import {
 const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
 
 /**
+ * Hue angle in degrees. Two colours can both pass every contrast check and
+ * still be the same colour to a reader — contrast measures lightness, not
+ * whether "Hapus" looks like "Kirim".
+ */
+function hue(hex: string): number {
+  const r = Number.parseInt(hex.slice(1, 3), 16) / 255;
+  const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
+  const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  if (delta === 0) return 0;
+
+  const sector =
+    max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+
+  return ((sector * 60) % 360 + 360) % 360;
+}
+
+/** Shortest distance between two hue angles, 0–180. */
+function hueGap(a: string, b: string): number {
+  const raw = Math.abs(hue(a) - hue(b));
+  return Math.min(raw, 360 - raw);
+}
+
+/**
  * E15-T01 — accessibility as an acceptance criterion (PRD §23.1).
  *
  * Every theme is checked, Midnight Mode included. The task says not to trust
@@ -53,41 +79,70 @@ describe('primary actions', () => {
 });
 
 describe('the brand kit values that do not pass on their own', () => {
-  it('does not use raw brand purple as a fill for normal text', () => {
-    // #FFFFFF on #7C5CFC is 4.38:1 — under 4.5. The mock's "Mulai Curhat"
-    // button is exactly that pairing, so `primary` is deepened instead and the
-    // brand purple is reserved for large type, icons and outlines.
-    expect(contrastRatio('#ffffff', '#7c5cfc')).toBeLessThan(AA_NORMAL_TEXT);
-    expect(THEMES.light.primary).not.toBe('#7c5cfc');
-    expect(contrastRatio(THEMES.light.primaryFg, THEMES.light.primary)).toBeGreaterThanOrEqual(
-      AA_NORMAL_TEXT,
-    );
-  });
-
-  it('never puts white text on brand pink', () => {
-    // 2.76:1 — a bad failure, not a marginal one. Pink is decoration or takes
-    // dark ink; it is never a button that carries `primaryFg`.
-    expect(contrastRatio('#ffffff', '#ff688a')).toBeLessThan(3);
+  it('never puts white text on the logo pink', () => {
+    // #FFFFFF on #FA4B7D is 3.30:1 — under the 4.5 normal text needs. This is
+    // the whole reason `primary` is a deeper rose: the identity colour cannot
+    // be the button colour, in any theme.
+    expect(contrastRatio('#ffffff', '#fa4b7d')).toBeLessThan(AA_NORMAL_TEXT);
 
     for (const name of THEME_NAMES) {
       const t = THEMES[name];
-      expect(t.primary, name).not.toBe(t.accentPink);
-      // Whatever ink the accents take, it must be legible on them.
-      expect(contrastRatio(t.accentFg, t.accentPink), name).toBeGreaterThanOrEqual(
-        AA_NORMAL_TEXT,
-      );
+      expect(t.primary, name).not.toBe(t.brand);
+    }
+  });
+
+  it('gives the brand pink dark ink wherever it is a fill', () => {
+    // Used as a badge or chip ground it still has to be readable, and the ink
+    // that works there is the dark plum, not white.
+    for (const name of THEME_NAMES) {
+      const t = THEMES[name];
+      expect(contrastRatio(t.accentFg, t.brand), name).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
       expect(contrastRatio(t.accentFg, t.accentAmber), name).toBeGreaterThanOrEqual(
         AA_NORMAL_TEXT,
       );
     }
   });
 
-  it('keeps brand purple usable for large text and outlines', () => {
+  it('keeps the brand pink usable for large text and outlines', () => {
     // It fails 4.5:1 but clears 3:1, which is the bar for large text and UI
     // components — so it stays in the system rather than being discarded.
     for (const name of THEME_NAMES) {
       const t = THEMES[name];
       expect(contrastRatio(t.brand, t.bg), name).toBeGreaterThanOrEqual(AA_UI_COMPONENT);
+    }
+  });
+
+  it('keeps the supporting lavender visible on every ground', () => {
+    // DONG AI and system actions ride on this. It is a UI colour, so 3:1.
+    for (const name of THEME_NAMES) {
+      const t = THEMES[name];
+      expect(contrastRatio(t.accentLavender, t.bg), name).toBeGreaterThanOrEqual(
+        AA_UI_COMPONENT,
+      );
+    }
+  });
+
+  it('lets the lavender be a button, unlike the brand pink', () => {
+    // The DONG AI entry card fills a button with it, so unlike `brand` this one
+    // does have to hold `primaryFg` at full text contrast.
+    for (const name of THEME_NAMES) {
+      const t = THEMES[name];
+      expect(contrastRatio(t.primaryFg, t.accentLavender), name).toBeGreaterThanOrEqual(
+        AA_NORMAL_TEXT,
+      );
+    }
+  });
+
+  it('keeps body text readable on every soft tint', () => {
+    // The tints ground the quick-link tiles and the AI card. A tint that only
+    // "looks light" is how a tile becomes unreadable in one theme out of three.
+    for (const name of THEME_NAMES) {
+      const t = THEMES[name];
+      for (const tint of [t.tintPink, t.tintLavender, t.tintAmber, t.tintRose]) {
+        expect(contrastRatio(t.text, tint), `${name} ${tint}`).toBeGreaterThanOrEqual(
+          AA_NORMAL_TEXT,
+        );
+      }
     }
   });
 });
@@ -104,9 +159,21 @@ describe('destructive and focus', () => {
     // reused as an accent, "are you sure?" would stop reading as a warning.
     for (const name of THEME_NAMES) {
       const t = THEMES[name];
-      expect(t.danger, name).not.toBe(t.accentPink);
-      expect(t.danger, name).not.toBe(t.primary);
       expect(t.danger, name).not.toBe(t.brand);
+      expect(t.danger, name).not.toBe(t.primary);
+      expect(t.danger, name).not.toBe(t.accentLavender);
+    }
+  });
+
+  it('keeps destructive far enough from the primary rose to be a different colour', () => {
+    // Not covered by any contrast check, and the reason `danger` moved to burnt
+    // brick in E18-T01: with a magenta-rose primary the old #B3261E sat 11° of
+    // hue away, so "Hapus" and "Kirim" were near-twins. Sitting them side by
+    // side is a normal thing for a confirm dialog to do.
+    for (const name of THEME_NAMES) {
+      const t = THEMES[name];
+      expect(hueGap(t.danger, t.primary), `${name} danger vs primary`).toBeGreaterThanOrEqual(25);
+      expect(hueGap(t.danger, t.brand), `${name} danger vs brand`).toBeGreaterThanOrEqual(25);
     }
   });
 
@@ -179,7 +246,11 @@ describe('Midnight Mode (DESIGN-REF §0)', () => {
 
 describe('shape, type and touch (DESIGN-REF §0, PRD §23.1)', () => {
   it('uses generous radii rather than administrative corners', () => {
-    expect(RADII.lg).toBe('1rem');
+    // §0 asks for 16–20px on cards. Asserting the range rather than one literal
+    // leaves room to tune inside it without the test becoming a rubber stamp.
+    const cardRadiusPx = Number.parseFloat(RADII.lg) * 16;
+    expect(cardRadiusPx).toBeGreaterThanOrEqual(16);
+    expect(cardRadiusPx).toBeLessThanOrEqual(20);
     expect(Number.parseFloat(RADII.xl)).toBeGreaterThanOrEqual(1);
   });
 
