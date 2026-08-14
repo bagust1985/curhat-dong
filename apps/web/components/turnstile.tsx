@@ -50,6 +50,14 @@ function loadScript(): Promise<void> {
   });
 }
 
+/** Maps this product's three themes onto the widget's two, plus 'auto'. */
+function themeFor(dataTheme: string | undefined): 'auto' | 'light' | 'dark' {
+  if (dataTheme === 'light') return 'light';
+  if (dataTheme === 'dark' || dataTheme === 'midnight') return 'dark';
+  // No explicit choice stored yet — the OS preference is the best signal.
+  return 'auto';
+}
+
 export interface TurnstileProps {
   onToken: (token: string) => void;
   onError?: () => void;
@@ -73,6 +81,11 @@ export function Turnstile({ onToken, onError }: TurnstileProps) {
           callback: onToken,
           'error-callback': onError,
           'expired-callback': onError,
+          // Turnstile's 'auto' follows prefers-color-scheme, which is right
+          // only while the user has made no explicit choice. Once `data-theme`
+          // is stamped (light, dark or midnight) that attribute is the truth,
+          // and auto would hand somebody a white widget on a plum ground.
+          theme: themeFor(document.documentElement.dataset.theme),
         });
       })
       .catch(() => onError?.());

@@ -20,6 +20,31 @@ import type {
  * grep is a restyle that misses some.
  */
 
+/**
+ * The wordmark, rebuilt in HTML rather than shipped as an image: crisp at any
+ * size and theme-aware — "curhat" in ink, "dong" on the brand's pink pill.
+ *
+ * Dark ink on that pink, never white: white on `--color-brand` is 3.30:1 and
+ * lib/contrast.test.ts fails the build over it.
+ *
+ * Lives here rather than in landing.tsx because the auth screens need it too,
+ * and a brand mark with two definitions has two futures.
+ */
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <span
+      className={['inline-flex items-baseline gap-1 text-xl font-black lowercase', className]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <span className="text-[var(--color-text)]">curhat</span>
+      <span className="rounded-[var(--radius-chip)] bg-[var(--color-brand)] px-2 py-0.5 text-base text-[var(--color-accent-fg)]">
+        dong
+      </span>
+    </span>
+  );
+}
+
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
 const BUTTON_BASE =

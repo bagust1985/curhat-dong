@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { RESEND_COOLDOWN_SECONDS } from '../lib/auth-copy';
+import { Input } from './ui';
 
 /**
  * Auth screens — E15-T06. DESIGN-REF §2.2.
@@ -60,7 +61,7 @@ export function PasswordLoginStep({
 
   return (
     <section aria-labelledby="auth-login-heading">
-      <h1 id="auth-login-heading" className="text-2xl font-bold text-[var(--color-text)]">
+      <h1 id="auth-login-heading" className="text-[26px] font-black text-[var(--color-text)]">
         Masuk
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
@@ -77,7 +78,7 @@ export function PasswordLoginStep({
         <label htmlFor="auth-login-email" className="block text-sm font-semibold text-[var(--color-text)]">
           Email
         </label>
-        <input
+        <Input
           id="auth-login-email"
           type="email"
           name="email"
@@ -86,7 +87,7 @@ export function PasswordLoginStep({
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           aria-describedby="auth-login-reassurance"
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-2"
         />
         <p id="auth-login-reassurance" className="mt-2 text-sm text-[var(--color-muted)]">
           {REASSURANCE}
@@ -98,7 +99,7 @@ export function PasswordLoginStep({
         >
           Password
         </label>
-        <input
+        <Input
           id="auth-login-password"
           type="password"
           name="password"
@@ -106,7 +107,7 @@ export function PasswordLoginStep({
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-2"
         />
 
         <FieldError message={error} />
@@ -115,7 +116,7 @@ export function PasswordLoginStep({
         <button
           type="submit"
           disabled={pending}
-          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
         >
           {pending ? 'Lagi masuk…' : 'Masuk'}
         </button>
@@ -176,7 +177,7 @@ export function PasswordCreateStep({
     <section aria-labelledby="auth-create-password-heading">
       <h1
         id="auth-create-password-heading"
-        className="text-2xl font-bold text-[var(--color-text)]"
+        className="text-[26px] font-black text-[var(--color-text)]"
       >
         Bikin password dulu ya
       </h1>
@@ -198,7 +199,7 @@ export function PasswordCreateStep({
           Password baru
         </label>
         <div className="relative mt-2">
-          <input
+          <Input
             id="auth-new-password"
             type={visible ? 'text' : 'password'}
             name="new-password"
@@ -208,7 +209,7 @@ export function PasswordCreateStep({
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             aria-describedby="auth-new-password-hint"
-            className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 pr-24 text-[var(--color-text)]"
+            className="pr-28"
           />
           <button
             type="button"
@@ -228,7 +229,7 @@ export function PasswordCreateStep({
         <button
           type="submit"
           disabled={pending || tooShort}
-          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
         >
           {pending ? 'Lagi disimpan…' : 'Simpan Password'}
         </button>
@@ -261,7 +262,7 @@ export function EmailStep({ onSubmit, pending, error, challenge, google }: Email
 
   return (
     <section aria-labelledby="auth-email-heading">
-      <h1 id="auth-email-heading" className="text-2xl font-bold text-[var(--color-text)]">
+      <h1 id="auth-email-heading" className="text-[26px] font-black text-[var(--color-text)]">
         Masuk atau bikin akun
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
@@ -278,7 +279,7 @@ export function EmailStep({ onSubmit, pending, error, challenge, google }: Email
         <label htmlFor="auth-email" className="block text-sm font-semibold text-[var(--color-text)]">
           Email
         </label>
-        <input
+        <Input
           id="auth-email"
           type="email"
           name="email"
@@ -287,7 +288,7 @@ export function EmailStep({ onSubmit, pending, error, challenge, google }: Email
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           aria-describedby="auth-email-reassurance"
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-2"
         />
         <p id="auth-email-reassurance" className="mt-2 text-sm text-[var(--color-muted)]">
           {REASSURANCE}
@@ -299,7 +300,7 @@ export function EmailStep({ onSubmit, pending, error, challenge, google }: Email
         <button
           type="submit"
           disabled={pending}
-          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
         >
           {pending ? 'Lagi dikirim…' : 'Kirim Kode'}
         </button>
@@ -348,7 +349,7 @@ export function OtpStep({
 
   return (
     <section aria-labelledby="auth-otp-heading">
-      <h1 id="auth-otp-heading" className="text-2xl font-bold text-[var(--color-text)]">
+      <h1 id="auth-otp-heading" className="text-[26px] font-black text-[var(--color-text)]">
         Masukin kodenya
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">
@@ -370,7 +371,7 @@ export function OtpStep({
          * paste, to autofill, and to a screen reader that announces six
          * unlabelled inputs; `one-time-code` lets the OS offer the code.
          */}
-        <input
+        <Input
           id="auth-otp"
           name="code"
           inputMode="numeric"
@@ -380,7 +381,7 @@ export function OtpStep({
           required
           value={code}
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-center text-xl tracking-[0.4em] text-[var(--color-text)]"
+          className="mt-2 text-center text-xl font-bold tracking-[0.4em]"
         />
 
         <FieldError message={error} />
@@ -388,7 +389,7 @@ export function OtpStep({
         <button
           type="submit"
           disabled={pending}
-          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
         >
           {pending ? 'Lagi dicek…' : 'Lanjut'}
         </button>
@@ -431,7 +432,7 @@ export function AgeGate({ onConfirm, onReject, pending, error }: AgeGateProps) {
 
   return (
     <section aria-labelledby="auth-age-heading">
-      <h1 id="auth-age-heading" className="text-2xl font-bold text-[var(--color-text)]">
+      <h1 id="auth-age-heading" className="text-[26px] font-black text-[var(--color-text)]">
         Sebelum lanjut
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
@@ -440,12 +441,23 @@ export function AgeGate({ onConfirm, onReject, pending, error }: AgeGateProps) {
         bisa mendampingi anak di bawah umur dengan layak.
       </p>
 
-      <label className="mt-6 flex min-h-[var(--size-touch)] items-start gap-3 text-sm text-[var(--color-text)]">
+      {/*
+        The whole row is the target, not a 20px box beside some text. This is
+        the single checkbox standing between somebody and the product, and a
+        mis-tap here reads as the app refusing them.
+      */}
+      <label
+        className={`mt-6 flex min-h-[var(--size-touch)] cursor-pointer items-start gap-3 rounded-[var(--radius-curhat)] border p-4 text-sm text-[var(--color-text)] ${
+          checked
+            ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)] font-semibold'
+            : 'border-[var(--color-border)] bg-[var(--color-surface)]'
+        }`}
+      >
         <input
           type="checkbox"
           checked={checked}
           onChange={(event) => setChecked(event.target.checked)}
-          className="mt-1 size-5"
+          className="mt-0.5 size-5 accent-[var(--color-primary)]"
         />
         <span>Iya, umurku 18 tahun ke atas.</span>
       </label>
@@ -456,7 +468,7 @@ export function AgeGate({ onConfirm, onReject, pending, error }: AgeGateProps) {
         type="button"
         onClick={confirm}
         disabled={!checked || pending}
-        className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+        className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
       >
         Lanjut
       </button>
@@ -483,7 +495,7 @@ export function AgeGate({ onConfirm, onReject, pending, error }: AgeGateProps) {
 export function AgeBlocked({ onHome }: { onHome: () => void }) {
   return (
     <section aria-labelledby="auth-blocked-heading">
-      <h1 id="auth-blocked-heading" className="text-2xl font-bold text-[var(--color-text)]">
+      <h1 id="auth-blocked-heading" className="text-[26px] font-black text-[var(--color-text)]">
         Makasih udah jujur 🤍
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--color-text)]">

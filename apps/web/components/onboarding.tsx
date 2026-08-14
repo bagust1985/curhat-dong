@@ -12,6 +12,7 @@ import {
   type ConsentType,
   type ReasonOption,
 } from '../lib/onboarding';
+import { Input } from './ui';
 
 /**
  * Onboarding steps — E15-T07. DESIGN-REF §2.3, PRD §5, §25.3.
@@ -62,11 +63,14 @@ export function StepShell({
           ))}
         </div>
 
-        <p className="mt-3 text-sm text-[var(--color-muted)]">
+        <p className="mt-3 text-sm text-[var(--color-muted)] tabular-nums">
           Langkah {step + 1} dari {total}
         </p>
 
-        <h1 id="onboarding-heading" className="mt-2 text-2xl font-bold text-[var(--color-text)]">
+        <h1
+          id="onboarding-heading"
+          className="mt-2 text-[26px] leading-tight font-black text-balance text-[var(--color-text)]"
+        >
           {title}
         </h1>
       </header>
@@ -119,7 +123,7 @@ export function ReasonStep({
           onClick={() => onChange(option.value)}
           className={`min-h-[var(--size-touch)] rounded-[var(--radius-curhat)] border px-4 text-left font-semibold ${
             value === option.value
-              ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] text-[var(--color-text)]'
+              ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)] font-bold text-[var(--color-text)]'
               : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
           }`}
         >
@@ -165,7 +169,7 @@ export function TopicsStep({
             onClick={() => onToggle(topic.slug)}
             className={`min-h-[var(--size-touch)] rounded-[var(--radius-chip)] border px-4 text-sm font-semibold ${
               active
-                ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] text-[var(--color-text)]'
+                ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)] font-bold text-[var(--color-text)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
             }`}
           >
@@ -211,13 +215,13 @@ export function AliasStep({
       >
         Nama samaran
       </label>
-      <input
+      <Input
         id="onboarding-alias"
         value={alias}
         onChange={(event) => onAlias(event.target.value)}
         aria-describedby="onboarding-alias-status"
         maxLength={24}
-        className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+        className="mt-2"
       />
       <p
         id="onboarding-alias-status"
@@ -254,7 +258,7 @@ export function AliasStep({
             onClick={() => onAvatar(preset.id)}
             className={`size-[var(--size-touch)] rounded-full border text-xl ${
               avatar === preset.id
-                ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)]'
+                ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)]'
             }`}
           >
@@ -278,7 +282,7 @@ export function ConsentStep({
       {CONSENT_ITEMS.map((item) => (
         <div
           key={item.type}
-          className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+          className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]"
         >
           <label className="flex items-start gap-3">
             <input
@@ -346,7 +350,7 @@ export function SafetyRulesStep({
         {SAFETY_RULES.map((rule) => (
           <li
             key={rule}
-            className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm leading-relaxed text-[var(--color-text)]"
+            className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 text-sm leading-relaxed text-[var(--color-text)] shadow-[var(--shadow-card)]"
           >
             {rule}
           </li>

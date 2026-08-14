@@ -1,5 +1,5 @@
 import { CurhatCard } from './curhat-card';
-import { Button } from './ui';
+import { Button, Wordmark } from './ui';
 import {
   FEATURES,
   HERO,
@@ -25,20 +25,6 @@ import {
  * automatically (E15-T01 + `ThemeScript`) instead of needing a variant of its
  * own.
  */
-
-/** The wordmark, rebuilt in HTML: crisp at any size and theme-aware —
- * "curhat" in ink, "dong" on the brand's pink pill (dark ink on pink; white
- * on pink fails AA and is a tested rule). */
-function Wordmark() {
-  return (
-    <span className="inline-flex items-baseline gap-1 text-xl font-extrabold lowercase">
-      <span className="text-[var(--color-text)]">curhat</span>
-      <span className="rounded-[var(--radius-chip)] bg-[var(--color-brand)] px-2 py-0.5 text-base text-[var(--color-accent-fg)]">
-        dong
-      </span>
-    </span>
-  );
-}
 
 export function LandingNavbar() {
   const apkUrl = androidApkUrl();
