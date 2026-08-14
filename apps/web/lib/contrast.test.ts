@@ -133,6 +133,17 @@ describe('the brand kit values that do not pass on their own', () => {
     }
   });
 
+  it('lets the rose ink sit on the pink tint, for the active nav row', () => {
+    // E18-T04: the active row is a soft tint carrying `primary` ink, so the
+    // solid rose stays the composer button's alone. That pairing is the whole
+    // signal, so it has to clear normal-text contrast — light is the tight one
+    // at 4.65:1, which is exactly why this is asserted rather than eyeballed.
+    for (const name of THEME_NAMES) {
+      const t = THEMES[name];
+      expect(contrastRatio(t.primary, t.tintPink), name).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    }
+  });
+
   it('keeps body text readable on every soft tint', () => {
     // The tints ground the quick-link tiles and the AI card. A tint that only
     // "looks light" is how a tile becomes unreadable in one theme out of three.
