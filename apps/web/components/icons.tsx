@@ -37,6 +37,28 @@ function frame(children: React.ReactNode, className?: string) {
   );
 }
 
+/**
+ * The brand mark, reduced to one stroke.
+ *
+ * The full mark is a glossy rose app icon; in a rail of eight monochrome icons
+ * it was the only saturated thing in the column and shouted over all of them.
+ * This keeps the two things the mark actually means — a speech bubble and a
+ * heart — and drops the face, the sparkles and the gloss, none of which survive
+ * being drawn in a single line at 36px anyway.
+ *
+ * The heart is what separates it from `ChatIcon` further down the same rail:
+ * that one is an empty bubble, this one is carrying something.
+ */
+export function MarkIcon({ className }: IconProps) {
+  return frame(
+    <>
+      <path d="M5.5 4h13A2.5 2.5 0 0 1 21 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17A2.5 2.5 0 0 1 3 14.5v-8A2.5 2.5 0 0 1 5.5 4z" />
+      <path d="M12 13.6s-3.2-2-3.2-4.3A1.8 1.8 0 0 1 12 8.2a1.8 1.8 0 0 1 3.2 1.1c0 2.3-3.2 4.3-3.2 4.3z" />
+    </>,
+    className,
+  );
+}
+
 export function HomeIcon({ className }: IconProps) {
   return frame(
     <>

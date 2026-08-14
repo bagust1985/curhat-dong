@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { BottomNav, type NavKey } from './bottom-nav';
+import { MarkIcon } from './icons';
 import { Wordmark } from './ui';
 import { useSession } from '../lib/session';
 
@@ -89,21 +90,23 @@ export function AppChrome({ children }: { children: ReactNode }) {
         win over any responsive override.
       */}
       <div className="nav-fade order-2 sticky bottom-0 lg:order-1 lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:pt-8">
-        {/* The mark, desktop only: on a phone the rail has no room for it and
-            the page headings carry the product's name instead. */}
+        {/*
+          The mark, desktop only: on a phone the rail has no room for it and
+          the page headings carry the product's name instead.
+
+          Drawn rather than served as the app icon, and one ink rather than
+          two: this sits directly above eight monochrome icons, and the glossy
+          rose PNG was the only saturated thing in the column. The full-colour
+          mark still opens the landing page and the sign-up screens, where
+          being loud is the job.
+        */}
         <a
           href="/home"
           aria-label="Beranda CURHAT DONG"
-          className="mb-6 hidden items-center gap-2.5 px-5 lg:flex"
+          className="mb-6 hidden items-center gap-2.5 px-5 text-[var(--color-text)] lg:flex"
         >
-          <img
-            src="/brand/logo-96.png"
-            alt=""
-            width={96}
-            height={96}
-            className="size-9 rounded-[10px]"
-          />
-          <Wordmark />
+          <MarkIcon className="size-8" />
+          <Wordmark tone="mono" />
         </a>
 
         {nav}

@@ -22,15 +22,28 @@ import type {
 
 /**
  * The wordmark, rebuilt in HTML rather than shipped as an image: crisp at any
- * size and theme-aware — "curhat" in ink, "dong" on the brand's pink pill.
+ * size and theme-aware.
  *
- * Dark ink on that pink, never white: white on `--color-brand` is 3.30:1 and
- * lib/contrast.test.ts fails the build over it.
+ * Two tones, for two jobs — E18-T03:
  *
- * Lives here rather than in landing.tsx because the auth screens need it too,
- * and a brand mark with two definitions has two futures.
+ *  - `brand` puts "dong" on the pink pill. This is the mark as a first
+ *    impression: the landing page and the sign-up screens, where being loud is
+ *    the point. Dark ink on that pink, never white — white on `--color-brand`
+ *    is 3.30:1 and lib/contrast.test.ts fails the build over it;
+ *  - `mono` is one ink, no pill. Inside the product it sits at the head of a
+ *    rail of monochrome icons, and a pink pill there was the only saturated
+ *    thing in the column, shouting over the navigation it belongs to.
+ *
+ * One definition either way. A brand mark with two implementations has two
+ * futures.
  */
-export function Wordmark({ className }: { className?: string }) {
+export function Wordmark({
+  tone = 'brand',
+  className,
+}: {
+  tone?: 'brand' | 'mono';
+  className?: string;
+}) {
   return (
     <span
       className={['inline-flex items-baseline gap-1 text-xl font-black lowercase', className]
@@ -38,9 +51,15 @@ export function Wordmark({ className }: { className?: string }) {
         .join(' ')}
     >
       <span className="text-[var(--color-text)]">curhat</span>
-      <span className="rounded-[var(--radius-chip)] bg-[var(--color-brand)] px-2 py-0.5 text-base text-[var(--color-accent-fg)]">
-        dong
-      </span>
+      {tone === 'brand' ? (
+        <span className="rounded-[var(--radius-chip)] bg-[var(--color-brand)] px-2 py-0.5 text-base text-[var(--color-accent-fg)]">
+          dong
+        </span>
+      ) : (
+        // Still set apart from "curhat", by weight rather than by a fill — the
+        // two words should not read as one long word.
+        <span className="text-base font-semibold text-[var(--color-muted)]">dong</span>
+      )}
     </span>
   );
 }
