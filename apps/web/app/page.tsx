@@ -33,6 +33,16 @@ export const metadata: Metadata = {
     siteName: 'CURHAT DONG',
     title: 'CURHAT DONG — tempat cerita yang mau dengerin',
     description: 'Kadang kita nggak butuh solusi. Kita cuma butuh didengar.',
+    // Without this a shared link renders as a blank card, which for a product
+    // people pass to a friend having a bad night is the wrong first impression.
+    images: [
+      {
+        url: '/brand/og.png',
+        width: 1200,
+        height: 630,
+        alt: 'CURHAT DONG',
+      },
+    ],
   },
 };
 
