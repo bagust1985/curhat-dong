@@ -14,10 +14,22 @@
 - **Micro-interaction hangat**: reaction = kata empati (bukan like), animasi lembut, bukan gamified.
 - **Midnight Mode**: malam hari (mis. 21.00–04.00) → aksen warna lebih gelap/tenang + copy home berubah: "Belum tidur? Kalau ada yang mau diceritain, gue di sini."
 
-### Design Tokens (usulan)
-- Warna: base dark navy/charcoal, aksen warm (amber/soft peach) untuk empati, hindari merah agresif kecuali destructive.
-- Radius besar (16–20px), spacing lega, tipografi ramah (rounded sans).
+### Design Tokens — **LOCKED v1.2 (14 Aug 2026, E18-T01)**
+> Usulan awal di v1.1 adalah *base dark navy/charcoal + aksen amber/soft peach*. Itu tidak pernah diimplementasikan: build pertama jalan dengan palet ungu-lavender, dan sejak logo v2 (`docs/curhatdong_logo_v2.png`) arahnya dikunci ke **rose/pink**. Bagian ini sekarang mendeskripsikan yang benar-benar berjalan, bukan usulan.
+>
+> Source of truth: `apps/web/app/globals.css` + `apps/web/lib/tokens.ts`. Keduanya wajib sinkron — `apps/web/lib/contrast.test.ts` menggagalkan build kalau ada yang melenceng.
+
+**Aturan warna yang tidak bisa dinegosiasi:**
+1. **Rose dalam memikul aksi, pink terang memikul identitas.** `primary` `#C2185B` (teks putih 5.87:1) untuk tombol/tab aktif/FAB. `brand` `#FA4B7D` (pink logo) untuk heading besar, ikon, outline, badge — putih di atasnya cuma 3.30:1, jadi **pink terang tidak pernah membawa teks putih**; sebagai isian ia memakai tinta gelap `#2B1233` (5.15:1).
+2. **`danger` = bata bakar `#7E2F0C`, bukan merah.** Merah lama `#B3261E` cuma berjarak 11° hue dari rose — tombol hapus jadi kembaran tombol utama. Jarak minimum 25° dikunci di test.
+3. **Lavender turun jadi warna pendukung** (`accent-lavender` `#6D4AE0`): DONG AI dan aksi sistem. Ini satu-satunya aksen yang boleh jadi isian tombol selain `primary`.
+4. Tiga tema wajib, bukan dua: light "Pagi Merah Muda", dark "Malam Plum", midnight.
+
+- Radius besar (16–20px; kartu dikunci di **20px**), spacing lega, tipografi ramah (rounded sans **Nunito**, weight 900 sebagai suara display).
+- Elevasi: bayangan ber-tint rose untuk kartu + satu ambient wash di puncak Beranda. Ini satu-satunya dekorasi; sisanya tetap tenang.
 - Ikon mood & reaction = set custom konsisten (11 mood + 6 reaction + 4 intent).
+
+**Catatan risiko (sengaja dicatat, bukan diabaikan):** §0 melarang kesan *dating app*, dan pink-ungu adalah palet rumahnya. Yang menahan: pink dipakai pada tindakan *bercerita* (composer, kartu curhat, felt-heard) — bukan pada hati, match, atau profil; ground-nya blush pucat, bukan pink jenuh; dan tidak ada swipe/match/rating di mana pun.
 
 ### 0.1 Aksesibilitas (PRD §23.1) — acceptance criteria, bukan polish
 - **Kontras WCAG 2.1 AA**: 4.5:1 teks normal, 3:1 teks besar & elemen UI — wajib lolos di dark, light, **dan** Midnight Mode. Aksen warm di atas base gelap adalah kombinasi yang gampang gagal; cek angkanya, jangan andalkan mata.
