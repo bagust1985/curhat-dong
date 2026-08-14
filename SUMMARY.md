@@ -2354,7 +2354,7 @@ test web        292              hijau
 | T03 Image | **3 image ter-build & jalan** (lokal, bukan GHCR) | Repo belum punya remote → CI belum ada |
 | T04 Pipeline | Gate destruktif teruji; migrate deploy **sudah jalan sungguhan** | Pipeline end-to-end belum (butuh CI) |
 | T05 Sentry | Paket `@curhat/observability` + 19 test, **terpasang di 5 entrypoint** | Error sungguhan ke DSN produksi |
-| T06 Uptime | 5 monitor terdokumentasi, alert Telegram | Belum dibuat di UI, alert belum pernah berbunyi |
+| **T06 Uptime** ✅ | 5 monitor jalan, Telegram terpasang, **alarm sudah dibuktikan berbunyi** (14 Agu 05:47 — deteksi 60 detik) | — |
 | T07 Backup | `backup.sh` + `restore.sh` | Restore sungguhan belum dilakukan |
 | **T08 Retensi** ✅ | Worker + 8 job + **24 test, diuji atas data sungguhan** | — |
 | T09 SOP breach | `breach-scope.ts` + 9 test + SOP + template | PIC belum ada, table-top belum jalan |

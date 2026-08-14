@@ -156,6 +156,23 @@ angka itu yang menentukan ekspektasi respons malam hari.
 > Lakukan di jam sepi. Selama `api` mati, aplikasinya beneran mati untuk semua
 > orang — dan sejak deploy pertama, "semua orang" bukan lagi cuma kita.
 
+#### Hasil uji 14 Agustus 2026, 05:47 WIB
+
+| Waktu | Kejadian |
+|---|---|
+| 05:47:27 | cek pertama gagal → `API ready` PENDING |
+| 05:48:27 | retry habis → DOWN → **alert Telegram masuk** |
+| 05:49:28 | UP → pesan recovery masuk |
+
+**Waktu menyadari: 60 detik** dari kegagalan pertama sampai alert sampai di
+grup. Itu angka yang dipakai memperkirakan RTO, bukan tebakan.
+
+`API live` **tidak** ikut mengirim alert: retries-nya 3, jadi ia masih PENDING
+ketika API hidup lagi. Itu bukan monitor yang kelewat, itu monitor yang menahan
+diri — outage satu menit menghasilkan satu notifikasi, bukan empat. Kalau suatu
+saat ada yang menurunkan retries "biar lebih cepat tahu", angka di tabel ini
+yang jadi pembanding.
+
 ---
 
 ## 2. Drill restore — E17-T07
@@ -356,8 +373,10 @@ seiring data, jadi angka dari database kecil akan menyesatkan setahun lagi.
 | _(belum pernah)_ | | | | |
 
 **RTO = durasi restore + waktu menyadari + waktu mengambil keputusan.** Yang
-diukur drill cuma suku pertama. Dua sisanya ditentukan langkah 1.6 (seberapa
-cepat alarm berbunyi) dan oleh siapa yang berwenang memutuskan restore.
+diukur drill cuma suku pertama. Suku kedua sudah terukur: **60 detik**
+(uji 14 Agu 2026, §1.6). Suku ketiga masih kosong — dia bukan angka teknis,
+melainkan siapa yang berwenang memutuskan restore dan seberapa cepat orang itu
+bisa dihubungi. Itu bagian dari PIC on-call yang belum ditunjuk.
 
 ---
 
