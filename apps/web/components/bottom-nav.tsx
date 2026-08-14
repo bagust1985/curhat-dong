@@ -181,11 +181,18 @@ export function BottomNav({
               // tree there rather than merely out of sight.
               className={`${item.onPhone ? 'flex' : 'hidden lg:flex'} min-h-[var(--size-touch)] flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-chip)] px-1 py-1 text-[11px] lg:w-full lg:flex-none lg:flex-row lg:justify-start lg:gap-3 lg:px-5 lg:py-3 lg:text-[15px] ${
                 isActive
-                  ? // A filled pill plus the weight change. `aria-current` is
-                    // what actually announces it, so this is never the only
-                    // signal — but on a floating bar a top rule has no edge to
-                    // sit against, so the fill replaces it.
-                    'bg-[var(--color-primary)] font-bold text-[var(--color-primary-fg)]'
+                  ? // A soft pink pill with rose ink — E18-T04. It used to be
+                    // the solid primary, which made the active row and the
+                    // "+ Curhat" button two equally loud pink blocks in the
+                    // same column: one is a state, the other is an action, and
+                    // they should not wear the same fill. The saturated rose
+                    // now belongs to the button alone.
+                    //
+                    // The pill itself is only ~1.2:1 against its ground, on
+                    // purpose. What carries the state is the ink and the
+                    // weight — plus `aria-current`, which is what actually
+                    // announces it — so this is never colour alone.
+                    'bg-[var(--color-tint-pink)] font-bold text-[var(--color-primary)]'
                   : 'text-[var(--color-muted)]'
               } disabled:opacity-45`}
             >
