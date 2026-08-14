@@ -84,7 +84,20 @@ const config: ExpoConfig = {
 
   extra: {
     router: {},
-    eas: { projectId: process.env['EAS_PROJECT_ID'] ?? '' },
+    /*
+     * The EAS project, `@bagust1986/curhat-dong` — E18-T08.
+     *
+     * Written here rather than left to an env var. `eas init` normally injects
+     * this itself, but it cannot write to a dynamic config, and the previous
+     * fallback of `''` meant every EAS command failed with "project not
+     * configured" on any machine that had not exported the variable — which
+     * was every machine, since it appears in no `.env.example`.
+     *
+     * Not a secret: the project id ships inside every build and is readable by
+     * anyone who unzips the APK. The env override stays for forks and for CI
+     * building against a different project.
+     */
+    eas: { projectId: process.env['EAS_PROJECT_ID'] ?? '5a1f2b2c-98fb-4039-a5c3-05f3174afc87' },
   },
 
   experiments: {
