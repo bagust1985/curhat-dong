@@ -1,15 +1,145 @@
 # CURHAT DONG — Ringkasan Pengerjaan
 
 > Laporan berjalan. Diperbarui setiap epic selesai.
-> Terakhir: **13 Agustus 2026 (malam)** — **Revisi 1–3 pasca-deploy**.
-> https://curhatdong.com tayang, API `ready: true`, worker jalan, migrasi + seed
-> masuk. E01–E16 selesai; E17 berjalan.
+> Terakhir: **14 Agustus 2026** — **E18: rebrand visual rose (web + mobile)**.
+> https://curhatdong.com tayang dengan identitas baru, API `ready: true`.
+> E01–E16 selesai; E17 berjalan; E18 web selesai & live, mobile selesai di kode
+> tapi **belum pernah jadi APK**.
 >
-> ⚠️ **Aplikasinya sekarang bisa diakses publik sementara daftar hotline masih
-> kosong.** Layar krisis L3 menampilkan fallback jujur ("kami belum punya daftar
-> yang sudah dipastikan benar"), bukan layar kosong — tapi ini tetap alasan
-> kenapa E17-T12 disebut blocker rilis, dan sekarang risikonya nyata, bukan
-> teoretis.
+> ⚠️ **Aplikasinya bisa diakses publik sementara daftar hotline masih kosong.**
+> Layar krisis L3 menampilkan fallback jujur, bukan layar kosong — tapi E17-T12
+> tetap blocker rilis, dan risikonya nyata.
+
+## E18 — Rebrand visual rose (14 Agu 2026)
+
+Permintaan product owner: *"nuansa pink, ramah, biar user betah di dashboard;
+web dulu, baru mobile."* 28 commit, semua di `main`.
+
+### Yang sudah tayang di produksi (web)
+
+Palet lavender → **rose**, diverifikasi langsung dari CSS yang disajikan
+`curhatdong.com`: token baru hadir, nol token lama tersisa, tiga tema
+(light/dark/midnight) lengkap.
+
+Aturan yang jadi fondasi seluruh sistem — **rose dalam mikul aksi, pink terang
+mikul identitas**. Bukan selera: putih di atas pink logo `#FA4B7D` cuma 3.30:1,
+jadi `brand` tidak akan pernah bisa jadi isian tombol. `primary` `#C2185B`
+(5.87:1) yang mikul aksi. `danger` digeser ke bata bakar `#7E2F0C` karena merah
+lama cuma berjarak 11° hue dari rose — tombol hapus jadi kembaran tombol utama.
+Jarak minimum 25° dikunci di test.
+
+**Lavender = DONG AI di mana pun** — tile Beranda, layar AI, balon chat, ikon
+fitur di landing. Dan pembalikannya yang disengaja: satu-satunya hal di layar
+AI yang menuju **manusia** (bridge card, panel jatah habis) tetap rose. Di room
+listener, balon lawan bicara **tidak boleh** lavender — itu satu-satunya
+kebohongan visual yang sistem ini tidak boleh lakukan, dikunci `tone` prop +
+test.
+
+Layar yang dipoles: Beranda, detail curhat, DONG AI, landing, auth, onboarding,
+settings, profil, listener, room, explore, search, notifikasi. Plus favicon,
+ikon PWA, manifest, OG image dari `docs/curhatdong_logo_v2.png`.
+
+**Desktop dapat rail kiri** (DESIGN-REF §1 sudah menyebutnya sejak awal, tidak
+pernah dibangun). Satu elemen nav yang di-restyle, bukan dua komponen — dua nav
+berarti dua landmark dan dua urutan tab untuk lima tujuan yang sama. Rail
+memuat 8 tujuan, jadi tile "Fitur Utama" dan kartu DONG AI hilang di `lg`
+(mereka hanya ada karena bar HP cuma muat 5 slot).
+
+**Strip mood dihapus total** — tap mood membuka composer, dan composer sudah
+menanyakan mood. Pilihan yang sama ditanya dua kali, beda satu layar.
+
+### Mobile — selesai di kode, belum jadi APK
+
+Palet, tiga tema, tint, radius, dan bahasa visual sudah sejajar dengan web.
+Dua perbaikan yang bukan soal gaya: `MoodChip` merender `mood.replace('_',' ')`
+(kunci enum di layar, padahal `MOOD_LABELS` ada), dan `IntentBadge` merender
+**emoji tanpa teks sama sekali** — hal paling menentukan dari sebuah curhat
+hanya berupa ikon yang pembaca harus sudah tahu artinya.
+
+### ⚠️ Yang belum selesai dan wajib dibaca sesi berikutnya
+
+**1. Ada commit yang belum di-push.** Branch `fix/babel-version-clash`
+(`cae5435`) belum di-merge ke `main`. Isinya perbaikan paling penting di ronde
+EAS — lihat di bawah. `main` terakhir: `ed0b483`.
+
+**2. Build EAS gagal 5×, sekarang lolos lokal tapi belum dicoba lagi.**
+Proyek `@bagust1986/curhat-dong` sudah dibuat, keystore sudah ada. Perintah:
+```
+cd apps/mobile && pnpm exec eas build --platform android --profile preview --non-interactive --no-wait
+```
+Profil `preview` menunjuk ke **API produksi** — curhat dari APK itu masuk
+database asli.
+
+**3. Belum ada satu layar mobile pun yang pernah dilihat.** Tidak ada emulator
+di sesi ini. Verifikasi hanya lewat bundle, test, typecheck.
+
+### Lima kegagalan EAS — semuanya bentuknya sama
+
+| # | fase | sebab |
+|---|---|---|
+| 1 | JS bundle | `dist/` paket workspace di-gitignore, tidak ada di checkout bersih |
+| 2 | Post-install hook | hook membangun `@curhat/database` yang butuh `prisma generate` |
+| 3 | Run gradlew | `react-native-worklets` 0.8.3 vs Reanimated 4.5.1 |
+| 4 | Gradle bundle | `babel-preset-expo` dipakai tanpa dideklarasikan (phantom dep) |
+| 5 | createReleaseUpdatesResources | `@babel/generator@8` dipakai dengan `@babel/core@7` |
+
+Semuanya: **sesuatu yang jalan hanya karena ada kondisi tak terlihat yang
+kebetulan sudah benar di mesin ini.** Sisa build, client Prisma, peer numpang
+transitif, phantom dependency, dan — yang paling telak — **cache Metro**.
+
+**`expo export` tidak pernah berhasil dari cache dingin.** Dijalankan dengan
+`--clear` ia gagal dengan error yang sama. Setiap "expo export lolos" di sesi
+ini, termasuk yang dipakai memverifikasi restyle mobile, adalah Metro memutar
+ulang cache. Jangan percaya `expo export` tanpa `--clear`.
+
+### Cara memverifikasi mobile dengan benar
+
+Task Gradle yang gagal itu skrip node biasa dan bisa dijalankan lokal dalam
+hitungan menit — jangan pakai antrean EAS untuk menguji tebakan:
+
+```bash
+cd apps/mobile
+rm -rf ../../packages/*/dist ../../node_modules/.cache/turbo ../../.turbo
+pnpm run eas-build-post-install
+pnpm exec expo export --platform android --clear          # harus exit 0
+node node_modules/expo-updates/utils/build/createUpdatesResources.js \
+  android "$PWD" /tmp/updres all                          # harus exit 0
+npx expo-doctor
+```
+
+### Keputusan yang masih menunggu product owner
+
+1. **Navigasi HP vs web hanya punya dua label yang sama.** Mobile: Home ·
+   Explore · Listen · Profil. Web: Beranda · DONG AI · Komunitas · Notifikasi ·
+   Akun. `lib/navigation.ts` sudah menandai ini sebagai keputusan produk yang
+   belum pernah diambil; E18 justru melebarkan jaraknya.
+2. **`appVersionSource: "local"` → `"remote"`.** Play menolak upload yang
+   `versionCode`-nya tidak naik, dan sekarang manual (EAS tidak bisa menulis ke
+   `app.config.ts` yang dinamis).
+3. **`expo export --clear` masuk CI.** Tidak ada job yang membangun mobile dari
+   checkout bersih; satu-satunya yang pernah melakukannya adalah server EAS.
+4. **Ikon tab mobile masih emoji** — monokrom butuh `react-native-svg`
+   (dependency native, belum terpasang).
+5. **Landing page masih logo warna penuh + pill pink** — sengaja, karena di
+   sana "teriak" itu tugasnya. Rail produk sudah monokrom.
+6. **expo-doctor: `react` ganda** (19.2.3 vs 19.2.8 dari react-dom). Tidak
+   memblokir build; sengaja tidak dipaksa.
+7. **Flaky test** `feed.test.tsx` — "does not load the same page twice". Ada
+   chip task-nya; muncul ~3× dari belasan run.
+
+### Penjaga yang ditambahkan (dan dibuktikan dengan cara merusaknya)
+
+- `apps/mobile/lib/tokens.test.ts` — **diklaim ada sejak E16-T01, tidak pernah
+  ditulis.** Ketiadaannya adalah alasan web bisa pindah ke rose lewat 12 commit
+  sementara HP tetap lavender dengan suite hijau.
+- `apps/web/lib/css-tokens.test.ts` — `globals.css` vs `tokens.ts`, yang tidak
+  pernah dibandingkan siapa pun. Termasuk blok fallback `prefers-color-scheme`
+  yang disalin tangan.
+- `turbo.json` `globalDependencies` — tanpa ini penjaga mobile **diputar ulang
+  dari cache**, bukan dijalankan, persis di kasus ia ditulis untuk itu.
+
+Ketiganya diverifikasi dengan sengaja menggeser satu digit hex dan memastikan
+build merah.
 
 ## Revisi pasca-deploy (13 Agu 2026, malam)
 
