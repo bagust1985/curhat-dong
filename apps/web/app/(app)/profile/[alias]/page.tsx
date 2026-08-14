@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../../../lib/api';
 import { relativeTime } from '../../../../lib/relative-time';
+import { Badge } from '../../../../components/ui';
 import { useSession } from '../../../../lib/session';
 import { BlockDialog, ReportSheet } from '../../../../components/safety';
 
@@ -57,7 +58,7 @@ export default function ProfilePage() {
   if (missing) {
     return (
       <main className="mx-auto max-w-2xl px-[var(--spacing-gutter)] py-10">
-        <h1 className="text-xl font-bold text-[var(--color-text)]">Profilnya nggak ketemu</h1>
+        <h1 className="text-2xl font-black text-[var(--color-text)]">Profilnya nggak ketemu</h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">
           Mungkin aliasnya berubah, atau akunnya udah nggak ada.
         </p>
@@ -77,32 +78,49 @@ export default function ProfilePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-[var(--spacing-gutter)] py-8">
-      <header className="flex items-center gap-4">
-        <span aria-hidden="true" className="text-4xl">
-          {profile.avatar ? '🙂' : '🌙'}
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">{profile.alias}</h1>
-          <p className="text-sm text-[var(--color-muted)]">
-            Gabung {relativeTime(profile.joinedAt)}
-          </p>
-          {profile.isListener ? (
-            <p className="mt-1 inline-flex rounded-[var(--radius-chip)] border border-[var(--color-brand)] px-3 py-0.5 text-sm text-[var(--color-text)]">
-              Listener
+      {/*
+       * One card holds the whole identity: avatar, alias, join date, listener
+       * badge, bio and the helpful count. It used to be six loose lines on the
+       * page ground, which read as a debug dump rather than a person.
+       */}
+      <section className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]">
+        <header className="flex items-center gap-4">
+          <span
+            aria-hidden="true"
+            className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[var(--color-tint-pink)] text-3xl"
+          >
+            {profile.avatar ? '🙂' : '🌙'}
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black text-[var(--color-text)]">{profile.alias}</h1>
+            <p className="mt-0.5 text-sm text-[var(--color-muted)]">
+              Gabung {relativeTime(profile.joinedAt)}
             </p>
-          ) : null}
-        </div>
-      </header>
+            {profile.isListener ? (
+              <Badge tone="brand" className="mt-2">
+                Listener
+              </Badge>
+            ) : null}
+          </div>
+        </header>
 
-      {profile.bio ? (
-        <p className="mt-4 leading-relaxed text-[var(--color-text)]">{profile.bio}</p>
-      ) : null}
+        {profile.bio ? (
+          <p className="mt-5 max-w-[60ch] leading-relaxed text-[var(--color-text)]">
+            {profile.bio}
+          </p>
+        ) : null}
 
-      <p className="mt-4 text-sm text-[var(--color-muted)]">
-        {profile.helpfulCount === 0
-          ? 'Belum ada balasan yang ditandai membantu.'
-          : `${profile.helpfulCount} balasan ditandai membantu sama yang cerita.`}
-      </p>
+        {/*
+         * The only number on this page, and it counts what other people said
+         * was useful — not followers, views or a rank (PRD §11). Phrased as a
+         * sentence so it cannot be read as a score.
+         */}
+        <p className="mt-5 border-t border-[var(--color-border)] pt-4 text-sm text-[var(--color-muted)]">
+          {profile.helpfulCount === 0
+            ? 'Belum ada balasan yang ditandai membantu.'
+            : `${profile.helpfulCount} balasan ditandai membantu sama yang cerita.`}
+        </p>
+      </section>
 
       <p role="status" aria-live="polite" className="mt-4 min-h-5 text-sm text-[var(--color-muted)]">
         {notice}
@@ -114,7 +132,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => router.push('/settings')}
-              className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+              className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)]"
             >
               Atur profil & akun
             </button>
@@ -132,7 +150,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => router.push('/listener/request')}
-                className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+                className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)]"
               >
                 Cari sebagai listener
               </button>

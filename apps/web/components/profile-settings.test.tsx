@@ -134,6 +134,33 @@ describe('settings', () => {
     // Six categories; only the four optional ones get push + in-app toggles.
     expect(screen.getAllByRole('checkbox')).toHaveLength(8);
   });
+
+  it('previews the themes it is actually offering (E18-T01)', async () => {
+    base((url) =>
+      url.includes('/notification-settings')
+        ? ok({ perTypeToggles: {}, quietHoursEnabled: false })
+        : undefined,
+    );
+    const { THEMES } = await import('../lib/tokens');
+    await renderPage('../app/(app)/settings/page');
+
+    const options = await screen.findAllByRole('radio');
+    expect(options).toHaveLength(3);
+
+    // The DOM normalises an inline hex to rgb(), so compare in that form.
+    const rgb = (hex: string) =>
+      `rgb(${[1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+
+    // The swatches are painted from lib/tokens.ts, so a preview can never show
+    // a palette the app does not have. Asserting the real values is what keeps
+    // that true if somebody hard-codes a "close enough" colour later.
+    const system = options[0]!;
+    expect(system.innerHTML).toContain(rgb(THEMES.light.bg));
+    // "Ikut sistem" is the only option that changes on its own, and the copy
+    // promises Midnight Mode — so the preview has to show it.
+    expect(system.innerHTML).toContain(rgb(THEMES.midnight.bg));
+    expect(options[2]!.innerHTML).toContain(rgb(THEMES.dark.primary));
+  });
 });
 
 describe('data and privacy', () => {
