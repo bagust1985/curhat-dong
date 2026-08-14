@@ -53,7 +53,7 @@ export function GuidelinesGate({
 
   return (
     <section aria-labelledby="guidelines-heading">
-      <h1 id="guidelines-heading" className="text-2xl font-bold text-[var(--color-text)]">
+      <h1 id="guidelines-heading" className="text-[26px] font-black text-[var(--color-text)]">
         Sebelum jadi listener
       </h1>
       <p className="mt-2 text-sm text-[var(--color-muted)]">
@@ -66,7 +66,7 @@ export function GuidelinesGate({
         tabIndex={0}
         role="region"
         aria-label="Panduan listener"
-        className="mt-4 max-h-96 overflow-y-auto rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+        className="mt-4 max-h-96 overflow-y-auto rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]"
       >
         <ul className="flex flex-col gap-4">
           {sections.map((section) => (
@@ -88,7 +88,7 @@ export function GuidelinesGate({
         type="button"
         disabled={!readToEnd || pending}
         onClick={() => onAccept(version)}
-        className="mt-3 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+        className="mt-3 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
       >
         Aku ngerti dan siap dengerin
       </button>
@@ -127,9 +127,9 @@ export function RestStateBanner({ state }: { state: BurnoutState }) {
   return (
     <section
       aria-labelledby="rest-heading"
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4"
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-tint-amber)] p-5"
     >
-      <h2 id="rest-heading" className="text-base font-semibold text-[var(--color-text)]">
+      <h2 id="rest-heading" className="text-base font-black text-[var(--color-text)]">
         {heading}
       </h2>
       <p className="mt-1 text-sm text-[var(--color-text)]">
@@ -190,9 +190,9 @@ export function MatchOfferModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="offer-heading"
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-tint-pink)] p-5"
     >
-      <h2 id="offer-heading" className="text-base font-semibold text-[var(--color-text)]">
+      <h2 id="offer-heading" className="text-lg font-black text-[var(--color-text)]">
         Ada yang butuh didengar
       </h2>
 
@@ -213,15 +213,16 @@ export function MatchOfferModal({
         ) : null}
       </dl>
 
-      <p role="timer" aria-live="off" className="mt-3 text-sm text-[var(--color-muted)]">
-        Tawaran ini berlaku {secondsLeft} detik lagi.
+      <p role="timer" aria-live="off" className="mt-4 text-sm text-[var(--color-text)] opacity-75">
+        Tawaran ini berlaku <span className="font-bold tabular-nums">{secondsLeft}</span> detik
+        lagi.
       </p>
 
       <div className="mt-4 flex flex-col gap-2">
         <button
           type="button"
           onClick={() => onAccept(offer.matchId)}
-          className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+          className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)]"
         >
           Aku siap dengerin
         </button>
@@ -258,13 +259,15 @@ export function ListenerStatsPanel({ stats }: { stats: ListenerStats }) {
         Catatan kamu
       </h2>
       <dl className="mt-3 grid grid-cols-2 gap-3">
-        <div className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+        <div className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
           <dt className="text-sm text-[var(--color-muted)]">Sesi yang kamu temani</dt>
-          <dd className="text-xl font-bold text-[var(--color-text)]">{stats.sessionCount}</dd>
+          <dd className="mt-1 text-2xl font-black tabular-nums text-[var(--color-text)]">
+            {stats.sessionCount}
+          </dd>
         </div>
-        <div className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+        <div className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
           <dt className="text-sm text-[var(--color-muted)]">Bilang merasa didengar</dt>
-          <dd className="text-xl font-bold text-[var(--color-text)]">
+          <dd className="mt-1 text-2xl font-black tabular-nums text-[var(--color-text)]">
             {stats.sessionCount === 0 ? '—' : `${Math.round(stats.feltHeardScore * 100)}%`}
           </dd>
         </div>

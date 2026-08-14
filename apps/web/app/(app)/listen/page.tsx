@@ -230,7 +230,7 @@ export default function ListenPage() {
             checked={profile.isAvailable}
             disabled={stats?.burnout.dailyCapReached === true}
             onChange={(event) => void setAvailability(event.target.checked)}
-            className="size-5"
+            className="size-5 accent-[var(--color-primary)]"
           />
           <span>
             Aku lagi siap dengerin
