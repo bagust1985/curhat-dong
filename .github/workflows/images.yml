@@ -44,6 +44,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # NEXT_PUBLIC_* is inlined into the browser bundle at build time, so an
+      # unset repository variable is not a missing convenience — it is a web
+      # image whose every API call resolves against the web host and 404s.
+      # Worse, it fails *quietly*: the deploy health gate only asks the API,
+      # which is fine, so the gate goes green and nothing rolls back. Refusing
+      # here means the image is never published and Deploy (which requires
+      # this workflow to succeed) never fires.
+      - name: Refuse to build a browser bundle with no public URLs
+        if: matrix.app != 'api'
+        env:
+          APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in APP_URL API_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::repository variable NEXT_PUBLIC_${name} belum diisi — lihat Settings → Secrets and variables → Actions → Variables"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3

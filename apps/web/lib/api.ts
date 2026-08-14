@@ -60,7 +60,16 @@ export function getAccessToken(): string | null {
 }
 
 function baseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3101';
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  // `??` alone is not enough. An unset GitHub Actions variable reaches the
+  // build as an *empty string*, which sails straight past a nullish check and
+  // bakes an empty origin into the browser bundle — every request then
+  // resolves against the web host and 404s, while the deploy health gate
+  // (which only asks the API) still goes green. Empty is missing.
+  //
+  // The real guard is at build time in .github/workflows/images.yml; this is
+  // the second lock on the same door.
+  return configured && configured.length > 0 ? configured : 'http://localhost:3101';
 }
 
 export interface ApiRequest {
