@@ -181,7 +181,7 @@ export function MoodStrip({ onPick }: { onPick: (mood: Mood) => void }) {
 
       {/* -mx/px pair so the rail bleeds to the screen edge while its first and
           last chips still clear the gutter. */}
-      <ul className="-mx-[var(--spacing-gutter)] flex gap-2 overflow-x-auto px-[var(--spacing-gutter)] pb-1">
+      <ul className="rail -mx-[var(--spacing-gutter)] flex gap-2 overflow-x-auto px-[var(--spacing-gutter)] pb-2">
         {MOODS.map((mood) => {
           const entry = MOOD_VOCABULARY[mood];
 

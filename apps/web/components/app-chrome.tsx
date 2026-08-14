@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { BottomNav, type NavKey } from './bottom-nav';
+import { Wordmark } from './ui';
 import { useSession } from '../lib/session';
 
 /**
@@ -48,31 +49,59 @@ export function AppChrome({ children }: { children: ReactNode }) {
 
   if (hidden) return <>{children}</>;
 
+  const nav = (
+    <BottomNav
+      active={activeKeyFor(pathname) ?? 'beranda'}
+      onNavigate={(item) => {
+        if (item.href) router.push(item.href);
+      }}
+      onCreate={() => router.push('/curhat/baru')}
+    />
+  );
+
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* pb keeps the last line of content above the bar. */}
-      <div className="flex-1 pb-24">{children}</div>
+    /*
+     * Two layouts, one tree — E18-T02.
+     *
+     * Phone: content, then the nav pill sticky at the bottom. Desktop: a left
+     * rail beside the content, the way a social product is read on a wide
+     * screen (DESIGN-REF §1). The bottom bar stretched across a 1900px window
+     * was the single worst thing on the desktop site.
+     *
+     * `order` rather than two renders of the nav: one element, one landmark,
+     * one tab order.
+     */
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col lg:flex-row lg:items-start lg:gap-8 lg:px-6">
       {/*
-        The bar floats now (E18-T01), so the strip it sits in is transparent —
-        and content scrolling through that gap looked like a rendering bug. The
-        ground fades in underneath instead: the pill still reads as lifted, and
-        nothing slides out from behind it.
+        `nav-fade` (globals.css) paints the ground in under the floating pill so
+        content does not appear to scroll through the gap — and switches itself
+        off at `lg`, where the rail already sits on the page ground. It is a
+        class rather than an inline style because an inline background would
+        win over any responsive override.
       */}
-      <div
-        className="sticky bottom-0"
-        style={{
-          background:
-            'linear-gradient(to top, var(--color-bg) 55%, color-mix(in srgb, var(--color-bg) 70%, transparent) 80%, transparent 100%)',
-        }}
-      >
-        <BottomNav
-          active={activeKeyFor(pathname) ?? 'beranda'}
-          onNavigate={(item) => {
-            if (item.href) router.push(item.href);
-          }}
-          onCreate={() => router.push('/curhat/baru')}
-        />
+      <div className="nav-fade order-2 sticky bottom-0 lg:order-1 lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:pt-8">
+        {/* The mark, desktop only: on a phone the rail has no room for it and
+            the page headings carry the product's name instead. */}
+        <a
+          href="/home"
+          aria-label="Beranda CURHAT DONG"
+          className="mb-6 hidden items-center gap-2.5 px-5 lg:flex"
+        >
+          <img
+            src="/brand/logo-96.png"
+            alt=""
+            width={96}
+            height={96}
+            className="size-9 rounded-[10px]"
+          />
+          <Wordmark />
+        </a>
+
+        {nav}
       </div>
+
+      {/* pb keeps the last line of content above the bar on a phone. */}
+      <div className="order-1 min-w-0 flex-1 pb-24 lg:order-2 lg:pb-12">{children}</div>
     </div>
   );
 }

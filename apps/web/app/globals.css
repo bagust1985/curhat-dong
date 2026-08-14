@@ -247,6 +247,56 @@ body {
 }
 
 /*
+ * The strip behind the floating bottom bar — E18-T01, made responsive in
+ * E18-T02.
+ *
+ * On a phone the bar floats above the content, so the ground has to fade in
+ * underneath or the feed appears to scroll through the gap. From `lg` the nav
+ * is a left rail sitting on the page ground already, and the fade would paint
+ * a stripe down the side of the screen for no reason.
+ */
+.nav-fade {
+  background: linear-gradient(
+    to top,
+    var(--color-bg) 55%,
+    color-mix(in srgb, var(--color-bg) 70%, transparent) 80%,
+    transparent 100%
+  );
+}
+
+@media (min-width: 64rem) {
+  .nav-fade {
+    background: none;
+  }
+}
+
+/*
+ * Horizontal rails — the mood strip and the feed tabs.
+ *
+ * On a phone the scrollbar is an overlay and costs nothing. On desktop the
+ * platform draws a full-width chunky bar under the chips, which is the first
+ * thing the eye lands on. Thin and themed rather than hidden: a rail with no
+ * scrollbar at all is a rail nobody knows they can scroll.
+ */
+.rail {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+.rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rail::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 999px;
+}
+
+/*
  * Headings get the display voice — E18-T01.
  *
  * No second font family: Nunito at 900 with tight tracking is the display role,

@@ -69,6 +69,32 @@ describe('where the bar shows', () => {
   });
 });
 
+describe('one nav, two layouts (E18-T02)', () => {
+  it('renders a single navigation landmark, not one per breakpoint', () => {
+    // The desktop rail and the phone pill are the same element restyled. Two
+    // navs would mean two landmarks and two tab orders through the same five
+    // destinations — worst of all for the reader who most needs one answer to
+    // "where am I".
+    renderAt('/home');
+    expect(screen.getAllByRole('navigation', { name: 'Navigasi utama' })).toHaveLength(1);
+  });
+
+  it('keeps one accessible name on the composer CTA across both shapes', () => {
+    // It renders "+" on a phone and "+ Curhat" on desktop, but only one of the
+    // two spans is ever visible and both are aria-hidden — the button's name
+    // comes from aria-label and must not change with the viewport.
+    renderAt('/home');
+    expect(screen.getAllByRole('button', { name: 'Tulis curhat baru' })).toHaveLength(1);
+  });
+
+  it('offers exactly one control per destination', () => {
+    renderAt('/home');
+    for (const label of ['Beranda', 'Chat', 'Notifikasi', 'Akun']) {
+      expect(screen.getAllByRole('button', { name: label })).toHaveLength(1);
+    }
+  });
+});
+
 describe('what the bar does', () => {
   it('navigates on tab press and opens the composer from the FAB', async () => {
     const { default: userEvent } = await import('@testing-library/user-event');

@@ -36,7 +36,7 @@ export function FeedTabs({
   onSelect: (key: FeedTabKey) => void;
 }) {
   return (
-    <div role="tablist" aria-label="Pilih feed" className="flex gap-2 overflow-x-auto pb-1">
+    <div role="tablist" aria-label="Pilih feed" className="rail flex gap-2 overflow-x-auto pb-2">
       {FEED_TABS.map((tab) => (
         <button
           key={tab.key}
