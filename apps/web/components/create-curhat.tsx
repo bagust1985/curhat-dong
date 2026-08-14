@@ -44,19 +44,12 @@ interface CreateResponse {
 
 export function CreateCurhat({
   categories,
-  initialMood = null,
   onClose,
   onPublished,
   onOpenAi,
   onFindListener,
 }: {
   categories: CategoryOption[];
-  /**
-   * Pre-selected mood, from the mood strip on `/home` (E18-T01). A saved draft
-   * always wins over it — somebody returning to a half-written curhat must not
-   * have it replaced because they tapped a mood on the way in.
-   */
-  initialMood?: Mood | null;
   onClose: () => void;
   onPublished: (postId: string) => void;
   onOpenAi: () => void;
@@ -76,14 +69,8 @@ export function CreateCurhat({
     if (stored) {
       setDraft(stored);
       setRestored(true);
-    } else if (initialMood) {
-      setDraft({ ...EMPTY_DRAFT, mood: initialMood });
     }
     firstLoad.current = false;
-    // Mount only. `initialMood` is read here on purpose and left out of the
-    // deps: re-running this on a prop change would overwrite whatever the
-    // person has since chosen, which is the opposite of seeding a draft.
-
   }, []);
 
   useEffect(() => {

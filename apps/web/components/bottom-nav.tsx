@@ -19,29 +19,52 @@
  *    a different decision from changing a navigation bar.
  */
 
-export type NavKey = 'beranda' | 'chat' | 'komunitas' | 'notifikasi' | 'akun';
+export type NavKey =
+  | 'beranda'
+  | 'ai'
+  | 'komunitas'
+  | 'notifikasi'
+  | 'listener'
+  | 'explore'
+  | 'cari'
+  | 'akun';
 
 export interface NavItem {
   key: NavKey;
   href: string;
   label: string;
   glyph: string;
+  /**
+   * Whether this destination appears in the phone bar — E18-T02.
+   *
+   * Five is what fits across a phone, so three destinations live only in the
+   * desktop rail. On a phone those three are reached from the Beranda tiles,
+   * which is exactly why those tiles exist and why they disappear at `lg`.
+   */
+  onPhone: boolean;
   /** Unread or waiting count. Absent means no badge. */
   badge?: number;
 }
 
 /**
- * The five slots.
+ * Every destination, in rail order.
  *
  * `komunitas` carries no href: it is not a destination yet, and giving it one
  * would make a dead link that looks alive.
+ *
+ * One list rather than a phone list and a desktop list. The bar and the rail
+ * are the same navigation seen through different windows, and two lists would
+ * drift the first time somebody added a screen to only one of them.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { key: 'beranda', href: '/home', label: 'Beranda', glyph: '🏠' },
-  { key: 'chat', href: '/ai', label: 'Chat', glyph: '💬' },
-  { key: 'komunitas', href: '', label: 'Komunitas', glyph: '👥' },
-  { key: 'notifikasi', href: '/notifications', label: 'Notifikasi', glyph: '🔔' },
-  { key: 'akun', href: '/profile', label: 'Akun', glyph: '👤' },
+  { key: 'beranda', href: '/home', label: 'Beranda', glyph: '🏠', onPhone: true },
+  { key: 'ai', href: '/ai', label: 'DONG AI', glyph: '💬', onPhone: true },
+  { key: 'komunitas', href: '', label: 'Komunitas', glyph: '👥', onPhone: true },
+  { key: 'notifikasi', href: '/notifications', label: 'Notifikasi', glyph: '🔔', onPhone: true },
+  { key: 'listener', href: '/listener/request', label: 'Cari Listener', glyph: '🤍', onPhone: false },
+  { key: 'explore', href: '/explore', label: 'Jelajah', glyph: '🧭', onPhone: false },
+  { key: 'cari', href: '/search', label: 'Cari', glyph: '🔍', onPhone: false },
+  { key: 'akun', href: '/profile', label: 'Akun', glyph: '👤', onPhone: true },
 ];
 
 /** Phase 2 (PRD §16), behind `communities.enabled`. */
@@ -128,7 +151,11 @@ export function BottomNav({
               // Phone: glyph stacked over a tiny label, five across.
               // Desktop: a full-width row, glyph beside a readable label —
               // the shape a left rail is read in.
-              className={`flex min-h-[var(--size-touch)] flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-chip)] px-1 py-1 text-[11px] lg:w-full lg:flex-none lg:flex-row lg:justify-start lg:gap-3 lg:px-5 lg:py-3 lg:text-[15px] ${
+              //
+              // The three rail-only destinations are display:none on a phone,
+              // which keeps them out of the tab order and the accessibility
+              // tree there rather than merely out of sight.
+              className={`${item.onPhone ? 'flex' : 'hidden lg:flex'} min-h-[var(--size-touch)] flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-chip)] px-1 py-1 text-[11px] lg:w-full lg:flex-none lg:flex-row lg:justify-start lg:gap-3 lg:px-5 lg:py-3 lg:text-[15px] ${
                 isActive
                   ? // A filled pill plus the weight change. `aria-current` is
                     // what actually announces it, so this is never the only

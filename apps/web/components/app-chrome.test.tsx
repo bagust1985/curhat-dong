@@ -40,11 +40,16 @@ function renderAt(path: string, status = 'authenticated') {
 describe('where the bar shows', () => {
   it.each([
     ['/home', 'Beranda'],
-    ['/ai', 'Chat'],
+    ['/ai', 'DONG AI'],
     ['/notifications', 'Notifikasi'],
     ['/profile/senja.tenang', 'Akun'],
-    ['/explore', 'Beranda'], // no owning tab — beranda stays the anchor
-    ['/settings', 'Beranda'],
+    // Explore, search and listener own rail entries since E18-T02. On a phone
+    // they are not in the bar and fall through to Beranda, which is where they
+    // are reached from — honest either way.
+    ['/explore', 'Jelajah'],
+    ['/search', 'Cari'],
+    ['/listener/request', 'Cari Listener'],
+    ['/settings', 'Beranda'], // no owning destination — beranda stays the anchor
   ])('shows the nav on %s with %s active', (path, activeLabel) => {
     renderAt(path);
 
@@ -89,7 +94,7 @@ describe('one nav, two layouts (E18-T02)', () => {
 
   it('offers exactly one control per destination', () => {
     renderAt('/home');
-    for (const label of ['Beranda', 'Chat', 'Notifikasi', 'Akun']) {
+    for (const label of ['Beranda', 'DONG AI', 'Notifikasi', 'Akun', 'Jelajah', 'Cari']) {
       expect(screen.getAllByRole('button', { name: label })).toHaveLength(1);
     }
   });

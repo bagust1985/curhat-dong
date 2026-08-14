@@ -10,7 +10,6 @@ import { AgeGate, EmailStep, OtpStep } from './auth';
 import { ConsentStep, SafetyRulesStep } from './onboarding';
 import { CurhatCard } from './curhat-card';
 import { FeedTabs, ListenerNudgeBanner, PrivateAiEntryCard, StartCurhatCard } from './feed';
-import { MoodStrip } from './chips';
 import { GuidelinesGate, MatchOfferModal, RestStateBanner } from './listener';
 import { RoomHeader, SessionFeedback } from './room';
 import { SupportiveIntervention } from './supportive-intervention';
@@ -155,10 +154,6 @@ const SCREENS: Array<{ name: string; render: () => void }> = [
   {
     name: 'feed — pintu DONG AI',
     render: () => inPage(<PrivateAiEntryCard onOpen={() => {}} />),
-  },
-  {
-    name: 'beranda — strip mood',
-    render: () => inPage(<MoodStrip onPick={() => {}} />),
   },
   {
     name: 'beranda — kotak mulai curhat',

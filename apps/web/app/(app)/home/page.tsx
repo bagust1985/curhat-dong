@@ -8,7 +8,6 @@ import { feedGreeting } from '../../../lib/midnight';
 import { mergePages, toCardData, type FeedApiItem } from '../../../lib/feed';
 import { useSession } from '../../../lib/session';
 import { CurhatCard } from '../../../components/curhat-card';
-import { MoodStrip } from '../../../components/chips';
 import { EmptyState } from '../../../components/conversation';
 import {
   FEED_TABS,
@@ -192,14 +191,21 @@ export default function HomePage() {
 
       <main className="flex-1 px-[var(--spacing-gutter)] pt-8 pb-28">
         {/*
-         * The order is the argument: greet, ask how they are, then offer the
-         * one action this screen exists for. Features come after that, and the
-         * feed after them — it stays on this screen because it *is* the product
-         * (E05, PRD §6) and the North Star depends on people answering each
-         * other; a home screen that only launches features would quietly
+         * The order is the argument: greet, then the one action this screen
+         * exists for, then the feed — which stays here because it *is* the
+         * product (E05, PRD §6) and the North Star depends on people answering
+         * each other; a home screen that only launched features would quietly
          * demote it.
+         *
+         * The mood strip that used to sit between greeting and composer is
+         * gone (E18-T02): tapping a mood opened the composer, and the composer
+         * already carries a mood picker — the same choice offered twice, one
+         * screen apart.
+         *
+         * The greeting is a card of its own now, opening the column the way the
+         * composer and the feed continue it rather than floating loose above.
          */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]">
           <img
             src="/brand/mascot.png"
             alt=""
@@ -216,16 +222,18 @@ export default function HomePage() {
         </div>
 
         <div className="mt-6 flex flex-col gap-6">
-          {/*
-           * Asking before offering. This is the difference between a screen
-           * that hands things out and one somebody wants to sit in — and the
-           * mood carries through to the composer rather than being decorative.
-           */}
-          <MoodStrip onPick={(mood) => router.push(`/curhat/baru?mood=${mood}`)} />
-
           <StartCurhatCard onStart={() => router.push('/curhat/baru')} />
 
-          <QuickLinksGrid onOpen={(link) => router.push(link.href)} />
+          {/*
+           * Phone only — E18-T02. These four tiles and the DONG AI card exist
+           * because the phone bar has five slots and cannot hold Jelajah, Cari
+           * Listener, Cari or DONG AI. The desktop rail holds all of them, so
+           * showing the tiles there would be the same destination offered
+           * twice on one screen.
+           */}
+          <div className="lg:hidden">
+            <QuickLinksGrid onOpen={(link) => router.push(link.href)} />
+          </div>
 
           {user?.isListener && !nudgeDismissed ? (
             <ListenerNudgeBanner
@@ -235,7 +243,9 @@ export default function HomePage() {
             />
           ) : null}
 
-          <PrivateAiEntryCard onOpen={() => router.push('/ai')} />
+          <div className="lg:hidden">
+            <PrivateAiEntryCard onOpen={() => router.push('/ai')} />
+          </div>
         </div>
 
         <h2 className="mt-9 text-xl font-black text-[var(--color-text)]">Cerita Terbaru</h2>

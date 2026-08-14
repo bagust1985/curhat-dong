@@ -27,12 +27,21 @@ import { useSession } from '../lib/session';
 
 const HIDDEN_PREFIXES = ['/auth', '/onboarding', '/room/', '/moderation/'] as const;
 
-/** Longest-prefix mapping from pathname to the tab that should light up. */
+/**
+ * Longest-prefix mapping from pathname to the tab that should light up.
+ *
+ * Explore, search and listener resolve to their own rail entries now (E18-T02).
+ * On a phone those three are not in the bar, so they fall through to Beranda —
+ * which is where they are reached from, so the anchor is honest either way.
+ */
 function activeKeyFor(pathname: string): NavKey | null {
   if (pathname.startsWith('/home')) return 'beranda';
-  if (pathname.startsWith('/ai')) return 'chat';
+  if (pathname.startsWith('/ai')) return 'ai';
   if (pathname.startsWith('/notifications')) return 'notifikasi';
   if (pathname.startsWith('/profile')) return 'akun';
+  if (pathname.startsWith('/listener')) return 'listener';
+  if (pathname.startsWith('/explore')) return 'explore';
+  if (pathname.startsWith('/search')) return 'cari';
   return null;
 }
 

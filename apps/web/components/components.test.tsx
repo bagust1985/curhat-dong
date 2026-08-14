@@ -4,7 +4,7 @@ import { REACTIONS, REACTION_LABELS, REPORT_CATEGORIES } from '@curhat/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BottomNav, NAV_ITEMS } from './bottom-nav';
-import { IntentBadge, IntentSelector, MoodChip, MoodPicker, MoodStrip } from './chips';
+import { IntentBadge, IntentSelector, MoodChip, MoodPicker } from './chips';
 import { ChatBubble, CommentItem, EmptyState, ListenerCard } from './conversation';
 import { CurhatCard } from './curhat-card';
 import { ReactionBar, ReactionPicker } from './reaction-bar';
@@ -265,30 +265,6 @@ describe('conversation pieces (E15-T03)', () => {
   });
 });
 
-describe('mood strip on beranda (E18-T01)', () => {
-  it('says where each chip goes, not just what it is', () => {
-    // "Sedih" announced bare sounds like a statement about the reader rather
-    // than a control that opens the composer.
-    render(<MoodStrip onPick={() => {}} />);
-    expect(screen.getByRole('button', { name: 'Mulai curhat dengan mood Capek' })).toBeTruthy();
-  });
-
-  it('hands back the mood it was tapped with', async () => {
-    const user = userEvent.setup();
-    const onPick = vi.fn();
-    render(<MoodStrip onPick={onPick} />);
-
-    await user.click(screen.getByRole('button', { name: 'Mulai curhat dengan mood Sedih' }));
-    expect(onPick).toHaveBeenCalledWith('sedih');
-  });
-
-  it('offers buttons rather than radios, because tapping navigates away', () => {
-    // A radio group that leaves the page on the first arrow key is a trap.
-    render(<MoodStrip onPick={() => {}} />);
-    expect(screen.queryAllByRole('radio')).toHaveLength(0);
-  });
-});
-
 describe('bottom nav and FAB (E15-T03)', () => {
   const props = {
     active: 'beranda' as const,
@@ -296,18 +272,43 @@ describe('bottom nav and FAB (E15-T03)', () => {
     onCreate: () => {},
   };
 
-  it('renders the five slots the mock specifies', () => {
-    render(<BottomNav {...props} />);
-
-    const nav = screen.getByRole('navigation', { name: 'Navigasi utama' });
-    expect(within(nav).getAllByRole('button')).toHaveLength(5);
-    expect(NAV_ITEMS.map((item) => item.label)).toEqual([
+  it('keeps the phone bar at the five slots that fit (E18-T02)', () => {
+    // The rail shows every destination; the bar shows the five a phone can
+    // hold. The other three are display:none there, so they stay out of the
+    // tab order rather than merely out of sight.
+    expect(NAV_ITEMS.filter((item) => item.onPhone).map((item) => item.label)).toEqual([
       'Beranda',
-      'Chat',
+      'DONG AI',
       'Komunitas',
       'Notifikasi',
       'Akun',
     ]);
+  });
+
+  it('gives the desktop rail every destination the product has', () => {
+    render(<BottomNav {...props} />);
+
+    const nav = screen.getByRole('navigation', { name: 'Navigasi utama' });
+    expect(within(nav).getAllByRole('button')).toHaveLength(NAV_ITEMS.length);
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual([
+      'Beranda',
+      'DONG AI',
+      'Komunitas',
+      'Notifikasi',
+      'Cari Listener',
+      'Jelajah',
+      'Cari',
+      'Akun',
+    ]);
+  });
+
+  it('points every enabled destination at a real route', () => {
+    // Komunitas is the one deliberate blank (Phase 2, PRD §16). Any other empty
+    // href would be a rail entry that looks alive and goes nowhere.
+    for (const item of NAV_ITEMS) {
+      if (item.key === 'komunitas') continue;
+      expect(item.href, item.label).not.toBe('');
+    }
   });
 
   it('keeps "+ Curhat" reachable as a FAB despite having no nav slot', () => {
