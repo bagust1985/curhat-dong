@@ -18,7 +18,20 @@ import {
 } from '../lib/auth-copy';
 
 const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+const replace = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, replace }) }));
+
+/** A fully set-up account: the shape `GET /me` returns once onboarding is done. */
+const ONBOARDED = {
+  alias: 'senja.tenang',
+  avatar: null,
+  bio: null,
+  isListener: false,
+  joinedAt: '2026-01-01T00:00:00Z',
+  helpfulCount: 0,
+  hasCompletedOnboarding: true,
+  topics: [],
+};
 
 import { bodyOf, err, ok, requestsOf, stubFetch } from '../test/fetch-stub';
 
@@ -319,6 +332,75 @@ describe('under-18 screen', () => {
 describe('the flow end to end (mocked API)', () => {
   beforeEach(() => {
     vi.resetModules();
+  });
+
+  it('never re-asks the age gate of somebody who already has a profile', async () => {
+    // The age gate gates *onboarding*, not signing in. Asking a returning user
+    // to tick "I am 18+" on every single login misrepresents what the question
+    // is for — and became a daily tax the moment password login made logging
+    // in routine. The API has always sent `hasProfile`; this reads it.
+    const user = userEvent.setup();
+    const fetchSpy = stubFetch((url) => {
+      if (url.includes('/auth/refresh')) return err(401, 'AUTH_TOKEN_INVALID');
+      if (url.includes('/auth/password/login'))
+        return ok({
+          accessToken: 'token-123',
+          isNewUser: false,
+          hasPassword: true,
+          hasProfile: true,
+        });
+      if (url.endsWith('/v1/me')) return ok(ONBOARDED);
+      return ok({});
+    });
+
+    const { default: AuthPage } = await import('../app/(app)/auth/page');
+    const { SessionProvider } = await import('../lib/session');
+
+    render(
+      <SessionProvider>
+        <AuthPage />
+      </SessionProvider>,
+    );
+
+    await user.type(screen.getByLabelText('Email'), 'lama@contoh.test');
+    await user.type(screen.getByLabelText('Password'), 'rahasia-yang-panjang');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/home'));
+    expect(screen.queryByRole('heading', { name: 'Sebelum lanjut' })).toBeNull();
+    expect(requestsOf(fetchSpy)).toContain('POST /v1/auth/password/login');
+  });
+
+  it('still asks a brand-new account, and lands it on onboarding', async () => {
+    const user = userEvent.setup();
+    stubFetch((url) => {
+      if (url.includes('/auth/refresh')) return err(401, 'AUTH_TOKEN_INVALID');
+      if (url.includes('/auth/password/login'))
+        return ok({
+          accessToken: 'token-123',
+          isNewUser: false,
+          hasPassword: true,
+          hasProfile: false,
+        });
+      if (url.endsWith('/v1/me')) return err(404, 'NOT_FOUND', 'belum onboarding');
+      return ok({});
+    });
+
+    const { default: AuthPage } = await import('../app/(app)/auth/page');
+    const { SessionProvider } = await import('../lib/session');
+
+    render(
+      <SessionProvider>
+        <AuthPage />
+      </SessionProvider>,
+    );
+
+    await user.type(screen.getByLabelText('Email'), 'baru@contoh.test');
+    await user.type(screen.getByLabelText('Password'), 'rahasia-yang-panjang');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    await screen.findByRole('heading', { name: 'Sebelum lanjut' });
+    expect(replace).not.toHaveBeenCalledWith('/home');
   });
 
   it('logs straight in with a password and sends no email', async () => {

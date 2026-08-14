@@ -46,6 +46,8 @@ interface AuthTokens {
   accessToken: string;
   isNewUser: boolean;
   hasPassword: boolean;
+  /** False until onboarding completes (E04) — the whole reason to show the age gate. */
+  hasProfile: boolean;
 }
 
 export default function AuthPage() {
@@ -63,6 +65,8 @@ export default function AuthPage() {
   const [resetIntent, setResetIntent] = useState(false);
   /** True when the account existed before this login — those may defer the create step. */
   const [mayDeferPassword, setMayDeferPassword] = useState(false);
+  /** Carried across the password step so the age gate can still be skipped after it. */
+  const [profileComplete, setProfileComplete] = useState(false);
 
   const fail = useCallback((cause: unknown) => {
     if (cause instanceof NetworkError) {
@@ -101,9 +105,31 @@ export default function AuthPage() {
     [fail, turnstileToken],
   );
 
+  /**
+   * Where a finished login lands.
+   *
+   * The age gate is a gate on *onboarding*, not on signing in: it decides
+   * whether an account may be set up at all (DESIGN-REF §2.2c). Someone who
+   * already has a profile answered it once, and asking again every login is
+   * both a lie about what the question is for and a tax on the person the
+   * product exists for. `hasProfile` is what the API has always sent to say so.
+   */
+  const finishLogin = useCallback(
+    (hasProfile: boolean) => {
+      if (hasProfile) {
+        // replace, not push: /auth must not sit in the back stack behind /home.
+        router.replace('/home');
+        return;
+      }
+      setStep('age');
+    },
+    [router],
+  );
+
   const afterTokens = useCallback(
     async (tokens: AuthTokens) => {
       await signedIn(tokens.accessToken);
+      setProfileComplete(tokens.hasProfile);
 
       // Password before age gate: it must happen while still inside /auth,
       // and the session is seconds old — which is what the change-password
@@ -115,9 +141,9 @@ export default function AuthPage() {
         return;
       }
 
-      setStep('age');
+      finishLogin(tokens.hasProfile);
     },
-    [signedIn, resetIntent],
+    [signedIn, resetIntent, finishLogin],
   );
 
   const loginWithPassword = useCallback(
@@ -192,14 +218,14 @@ export default function AuthPage() {
         // needed — this same call is both first-time set and forgot-reset.
         await api('/auth/password', { method: 'POST', body: { password } });
         setResetIntent(false);
-        setStep('age');
+        finishLogin(profileComplete);
       } catch (cause) {
         fail(cause);
       } finally {
         setPending(false);
       }
     },
-    [fail],
+    [fail, finishLogin, profileComplete],
   );
 
   const confirmAdult = useCallback(() => {
@@ -299,7 +325,7 @@ export default function AuthPage() {
           allowSkip={mayDeferPassword}
           onSkip={() => {
             setError(null);
-            setStep('age');
+            finishLogin(profileComplete);
           }}
           pending={pending}
           error={error}

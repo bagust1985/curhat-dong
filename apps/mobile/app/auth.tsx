@@ -28,6 +28,8 @@ interface AuthTokens {
   refreshToken?: string;
   isNewUser: boolean;
   hasPassword: boolean;
+  /** False until onboarding completes (E04) — the whole reason to show the age gate. */
+  hasProfile: boolean;
 }
 
 export default function AuthScreen() {
@@ -46,6 +48,8 @@ export default function AuthScreen() {
   const [resetIntent, setResetIntent] = useState(false);
   /** Accounts that existed before this login may defer the create step. */
   const [mayDefer, setMayDefer] = useState(false);
+  /** Carried across the password step so the age gate can still be skipped after it. */
+  const [profileComplete, setProfileComplete] = useState(false);
 
   const fail = useCallback((cause: unknown) => {
     if (cause instanceof NetworkError) {
@@ -56,9 +60,29 @@ export default function AuthScreen() {
     setError((code && ERROR_COPY[code]) || AUTH_FALLBACK);
   }, []);
 
+  /**
+   * Where a finished login lands.
+   *
+   * The age gate gates *onboarding*, not signing in: it decides whether an
+   * account may be set up at all. Someone who already has a profile answered
+   * it once, and asking again on every login misrepresents what the question
+   * is for. `hasProfile` is what the API has always sent to say so.
+   */
+  const finishLogin = useCallback(
+    (hasProfile: boolean) => {
+      if (hasProfile) {
+        router.replace('/');
+        return;
+      }
+      setStep('age');
+    },
+    [router],
+  );
+
   const afterTokens = useCallback(
     async (tokens: AuthTokens) => {
       await signedIn(tokens);
+      setProfileComplete(tokens.hasProfile);
       // Password before age gate — the session is seconds old, which is what
       // the set-password endpoint accepts as re-auth (forgot-password path).
       if (!tokens.hasPassword || resetIntent) {
@@ -67,9 +91,9 @@ export default function AuthScreen() {
         setStep('password-create');
         return;
       }
-      setStep('age');
+      finishLogin(tokens.hasProfile);
     },
-    [signedIn, resetIntent],
+    [signedIn, resetIntent, finishLogin],
   );
 
   const loginWithPassword = useCallback(async () => {
@@ -127,13 +151,13 @@ export default function AuthScreen() {
       // first-time set and the forgot-password reset.
       await api('/auth/password', { method: 'POST', body: { password: newPassword } });
       setResetIntent(false);
-      setStep('age');
+      finishLogin(profileComplete);
     } catch (cause) {
       fail(cause);
     } finally {
       setPending(false);
     }
-  }, [fail, newPassword]);
+  }, [fail, finishLogin, newPassword, profileComplete]);
 
   const rejectAge = useCallback(async () => {
     try {
@@ -317,7 +341,7 @@ export default function AuthScreen() {
               label="Nanti aja"
               onPress={() => {
                 setError(null);
-                setStep('age');
+                finishLogin(profileComplete);
               }}
             />
           ) : null}
