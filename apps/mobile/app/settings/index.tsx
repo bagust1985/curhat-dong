@@ -74,9 +74,9 @@ export default function SettingsScreen() {
         const value = toggles[type] ?? { push: true, inApp: true };
 
         return (
-          <View key={type} className="rounded-curhat border border-border bg-surface p-4">
+          <View key={type} className="rounded-curhat bg-surface p-4">
             <View className="flex-row items-center justify-between gap-3">
-              <Text className="flex-1 font-semibold text-text">{TYPE_LABELS[type]}</Text>
+              <Text className="flex-1 font-bold text-text">{TYPE_LABELS[type]}</Text>
               {locked ? null : (
                 <Switch
                   accessibilityLabel={TYPE_LABELS[type]}

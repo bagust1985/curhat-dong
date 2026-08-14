@@ -60,12 +60,12 @@ export default function ExploreScreen() {
             accessibilityLabel={`${topic.name}, ${topic.activePosts} cerita aktif`}
             onPress={() => router.push('/')}
             style={{ minHeight: TOUCH_TARGET, width: '47%' }}
-            className="rounded-curhat border border-border bg-surface p-4"
+            className="rounded-curhat bg-surface p-4"
           >
             <Text accessibilityElementsHidden className="text-lg">
               {topic.icon ?? '💬'}
             </Text>
-            <Text accessibilityElementsHidden className="mt-1 font-semibold text-text">
+            <Text accessibilityElementsHidden className="mt-1 font-bold text-text">
               {topic.name}
             </Text>
             <Text accessibilityElementsHidden className="text-sm text-muted">

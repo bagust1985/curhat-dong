@@ -103,24 +103,24 @@ export default function ListenerRequestScreen() {
       <Heading>Cari orang yang mau dengerin</Heading>
       <Body muted>Dua pertanyaan aja, biar kami tahu siapa yang cocok nemenin kamu.</Body>
 
-      <Text className="text-sm font-semibold text-text">Ini soal apa?</Text>
+      <Text className="text-sm font-bold text-text">Ini soal apa?</Text>
       <TextInput
         accessibilityLabel="Ini soal apa"
         value={topic}
         onChangeText={setTopic}
         maxLength={40}
         style={{ minHeight: TOUCH_TARGET }}
-        className="rounded-curhat border border-border bg-surface px-4 text-text"
+        className="rounded-curhat bg-surface px-4 text-text"
       />
 
-      <Text className="text-sm font-semibold text-text">Sekarang rasanya gimana?</Text>
+      <Text className="text-sm font-bold text-text">Sekarang rasanya gimana?</Text>
       <TextInput
         accessibilityLabel="Sekarang rasanya gimana"
         value={emotion}
         onChangeText={setEmotion}
         maxLength={40}
         style={{ minHeight: TOUCH_TARGET }}
-        className="rounded-curhat border border-border bg-surface px-4 text-text"
+        className="rounded-curhat bg-surface px-4 text-text"
       />
 
       <ErrorText message={error} />

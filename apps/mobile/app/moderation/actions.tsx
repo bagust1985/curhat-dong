@@ -99,8 +99,8 @@ export default function ModerationActionsScreen() {
       {loaded && actions.length === 0 ? <Body>Nggak ada apa-apa di sini. Bagus.</Body> : null}
 
       {actions.map((action) => (
-        <View key={action.actionId} className="rounded-curhat border border-border bg-surface p-4">
-          <Text accessibilityRole="header" className="font-semibold text-text">
+        <View key={action.actionId} className="rounded-curhat bg-surface p-4">
+          <Text accessibilityRole="header" className="font-bold text-text">
             {ACTION_LABELS[action.action] ?? action.action}
           </Text>
           <Text className="mt-1 text-sm text-muted">{relativeTime(action.createdAt)}</Text>
@@ -111,7 +111,7 @@ export default function ModerationActionsScreen() {
           ) : action.appealable ? (
             openFor === action.actionId ? (
               <View className="mt-3 gap-2">
-                <Text className="text-sm font-semibold text-text">Ceritain dari sisi kamu</Text>
+                <Text className="text-sm font-bold text-text">Ceritain dari sisi kamu</Text>
                 <TextInput
                   accessibilityLabel="Ceritain dari sisi kamu"
                   value={reason}
@@ -119,7 +119,7 @@ export default function ModerationActionsScreen() {
                   multiline
                   numberOfLines={4}
                   maxLength={2000}
-                  className="min-h-24 rounded-curhat border border-border bg-surface p-3 text-text"
+                  className="min-h-24 rounded-curhat bg-surface p-3 text-text"
                 />
                 <Text className="text-sm text-muted">
                   Yang meninjau bandingmu bukan orang yang ngambil keputusan ini.

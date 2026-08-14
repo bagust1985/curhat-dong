@@ -15,9 +15,9 @@ export function OfflineBanner({ onRetry }: { onRetry: () => void }) {
   return (
     <View
       accessibilityLiveRegion="polite"
-      className="rounded-curhat border border-border bg-surface p-4"
+      className="rounded-curhat bg-surface p-4"
     >
-      <Text className="text-sm font-semibold text-text">Koneksinya lagi putus-putus.</Text>
+      <Text className="text-sm font-bold text-text">Koneksinya lagi putus-putus.</Text>
       <Text className="mt-1 text-sm text-muted">
         Yang udah kebuka tetap bisa dibaca. Sisanya nunggu sinyal balik.
       </Text>
@@ -84,7 +84,7 @@ export function Toast({ message, onDismiss }: { message: string | null; onDismis
   return (
     <View
       accessibilityLiveRegion="polite"
-      className="absolute bottom-24 left-gutter right-gutter rounded-curhat border border-border bg-surface p-4"
+      className="absolute bottom-24 left-gutter right-gutter rounded-curhat bg-surface p-4"
     >
       <Text className="text-sm text-text">{message}</Text>
       <View className="mt-2 self-end">

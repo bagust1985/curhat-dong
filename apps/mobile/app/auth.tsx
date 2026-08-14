@@ -177,7 +177,7 @@ export default function AuthScreen() {
   return (
     <ScreenScroll>
       {endedMessage ? (
-        <View className="rounded-curhat border border-border bg-surface p-4">
+        <View className="rounded-curhat bg-surface p-4">
           <Text accessibilityLiveRegion="polite" className="text-sm text-text">
             {endedMessage}
           </Text>
@@ -191,7 +191,7 @@ export default function AuthScreen() {
             Belum punya akun? Pilih “Masuk pakai kode email” di bawah — akunmu dibuat dari sana.
           </Body>
 
-          <Text className="text-sm font-semibold text-text">Email</Text>
+          <Text className="text-sm font-bold text-text">Email</Text>
           <TextInput
             accessibilityLabel="Email"
             value={email}
@@ -200,11 +200,11 @@ export default function AuthScreen() {
             keyboardType="email-address"
             textContentType="emailAddress"
             style={{ minHeight: TOUCH_TARGET }}
-            className="rounded-curhat border border-border bg-surface px-4 text-text"
+            className="rounded-curhat bg-surface px-4 text-text"
           />
           <Text className="text-sm text-muted">{REASSURANCE}</Text>
 
-          <Text className="text-sm font-semibold text-text">Password</Text>
+          <Text className="text-sm font-bold text-text">Password</Text>
           <TextInput
             accessibilityLabel="Password"
             value={password}
@@ -214,7 +214,7 @@ export default function AuthScreen() {
             textContentType="password"
             autoComplete="current-password"
             style={{ minHeight: TOUCH_TARGET }}
-            className="rounded-curhat border border-border bg-surface px-4 text-text"
+            className="rounded-curhat bg-surface px-4 text-text"
           />
 
           <ErrorText message={error} />
@@ -249,7 +249,7 @@ export default function AuthScreen() {
           <Heading>Masuk pakai kode email</Heading>
           <Body muted>Kami kirim kode 6 digit ke emailmu.</Body>
 
-          <Text className="text-sm font-semibold text-text">Email</Text>
+          <Text className="text-sm font-bold text-text">Email</Text>
           <TextInput
             accessibilityLabel="Email"
             value={email}
@@ -258,7 +258,7 @@ export default function AuthScreen() {
             keyboardType="email-address"
             textContentType="emailAddress"
             style={{ minHeight: TOUCH_TARGET }}
-            className="rounded-curhat border border-border bg-surface px-4 text-text"
+            className="rounded-curhat bg-surface px-4 text-text"
           />
           <Text className="text-sm text-muted">{REASSURANCE}</Text>
 
@@ -283,7 +283,7 @@ export default function AuthScreen() {
           <Heading>Masukin kodenya</Heading>
           <Body muted>Kode 6 digit sudah kami kirim ke {email}. Cek folder spam juga ya.</Body>
 
-          <Text className="text-sm font-semibold text-text">Kode 6 digit</Text>
+          <Text className="text-sm font-bold text-text">Kode 6 digit</Text>
           <TextInput
             accessibilityLabel="Kode 6 digit"
             value={code}
@@ -293,7 +293,7 @@ export default function AuthScreen() {
             textContentType="oneTimeCode"
             autoComplete="one-time-code"
             style={{ minHeight: TOUCH_TARGET }}
-            className="rounded-curhat border border-border bg-surface px-4 text-center text-xl tracking-[8px] text-text"
+            className="rounded-curhat bg-surface px-4 text-center text-xl tracking-[8px] text-text"
           />
 
           <ErrorText message={error} />
@@ -311,7 +311,7 @@ export default function AuthScreen() {
           <Heading>Bikin password dulu ya</Heading>
           <Body muted>Biar masuk berikutnya nggak perlu nunggu kode email.</Body>
 
-          <Text className="text-sm font-semibold text-text">Password baru</Text>
+          <Text className="text-sm font-bold text-text">Password baru</Text>
           <TextInput
             accessibilityLabel="Password baru"
             value={newPassword}
@@ -321,7 +321,7 @@ export default function AuthScreen() {
             textContentType="newPassword"
             autoComplete="new-password"
             style={{ minHeight: TOUCH_TARGET }}
-            className="rounded-curhat border border-border bg-surface px-4 text-text"
+            className="rounded-curhat bg-surface px-4 text-text"
           />
           <Text className="text-sm text-muted">Minimal {PASSWORD_MIN_LENGTH} karakter.</Text>
 

@@ -60,9 +60,9 @@ export default function DataSettingsScreen() {
       <Heading>Data & privasi</Heading>
       {notice ? <Body muted>{notice}</Body> : null}
 
-      <View className="rounded-curhat border border-border bg-surface p-4">
+      <View className="rounded-curhat bg-surface p-4">
         <View className="flex-row items-center justify-between gap-3">
-          <Text className="flex-1 font-semibold text-text">Analitik & pengembangan produk</Text>
+          <Text className="flex-1 font-bold text-text">Analitik & pengembangan produk</Text>
           <Switch
             accessibilityLabel="Analitik dan pengembangan produk"
             value={analytics}
@@ -113,14 +113,14 @@ export default function DataSettingsScreen() {
       />
 
       {mode === 'anonymize' ? (
-        <Text className="text-sm font-semibold text-text">
+        <Text className="text-sm font-bold text-text">
           Ini nggak bisa dibatalin — tulisannya nggak bisa dibalikin ke kamu lagi.
         </Text>
       ) : null}
 
       {consequences.length > 0 ? (
-        <View className="rounded-curhat border border-border bg-surface p-4">
-          <Text className="text-sm font-semibold text-text">Yang bakal terjadi</Text>
+        <View className="rounded-curhat bg-surface p-4">
+          <Text className="text-sm font-bold text-text">Yang bakal terjadi</Text>
           {consequences.map((line) => (
             <Text key={line} className="mt-1 text-sm text-text">
               {line}
@@ -135,7 +135,7 @@ export default function DataSettingsScreen() {
         value={confirmation}
         onChangeText={setConfirmation}
         autoCapitalize="characters"
-        className="min-h-11 rounded-curhat border border-border bg-surface px-4 text-text"
+        className="min-h-11 rounded-curhat bg-surface px-4 text-text"
       />
 
       <ErrorText message={error} />

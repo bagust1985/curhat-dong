@@ -113,7 +113,7 @@ export default function PostDetailScreen() {
     <ScreenScroll>
       {post.status === 'held' ? (
         <View className="rounded-curhat border border-dashed border-muted p-4">
-          <Text className="text-sm font-semibold text-text">
+          <Text className="text-sm font-bold text-text">
             Curhatmu kami tinjau dulu sebentar ya
           </Text>
           <Text className="mt-1 text-sm text-muted">
@@ -157,7 +157,7 @@ export default function PostDetailScreen() {
         <Body muted>Belum ada yang balas. Kadang butuh waktu.</Body>
       ) : (
         comments.map((comment) => (
-          <View key={comment.id} className="rounded-curhat border border-border bg-surface p-3">
+          <View key={comment.id} className="rounded-curhat bg-surface p-3">
             <Text className="text-sm text-muted">
               {comment.authorAlias} · {relativeTime(comment.createdAt)}
             </Text>
@@ -171,7 +171,7 @@ export default function PostDetailScreen() {
 
       {post.allowComments ? (
         <>
-          <Text className="text-sm font-semibold text-text">Tulis balasan</Text>
+          <Text className="text-sm font-bold text-text">Tulis balasan</Text>
           <TextInput
             accessibilityLabel="Tulis balasan"
             value={composer}
@@ -179,10 +179,10 @@ export default function PostDetailScreen() {
             multiline
             numberOfLines={3}
             maxLength={2000}
-            className="min-h-20 rounded-curhat border border-border bg-surface p-3 text-text"
+            className="min-h-20 rounded-curhat bg-surface p-3 text-text"
           />
           {hints.length > 0 ? (
-            <Text className="text-sm font-semibold text-text">{PERSONAL_DATA_WARNING}</Text>
+            <Text className="text-sm font-bold text-text">{PERSONAL_DATA_WARNING}</Text>
           ) : null}
           <ErrorText message={error} />
           <PrimaryButton label="Kirim balasan" onPress={() => void send()} />

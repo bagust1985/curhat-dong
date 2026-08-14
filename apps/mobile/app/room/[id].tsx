@@ -222,7 +222,7 @@ export default function RoomScreen() {
   return (
     <ScreenScroll>
       <View className="flex-row flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-        <Text className="font-semibold text-text">{room?.counterpartAlias ?? 'Seseorang'}</Text>
+        <Text className="font-bold text-text">{room?.counterpartAlias ?? 'Seseorang'}</Text>
         <View className="flex-row flex-wrap gap-3">
           {room?.role === 'listener' && room.sessionId ? (
             // Always visible, never in a menu.
@@ -234,7 +234,7 @@ export default function RoomScreen() {
                   .then(() => setError('Udah kami teruskan ke tim moderasi. Tetap temani dia ya.'))
                   .catch(() => setError('Escalate-nya belum kekirim. Coba sekali lagi ya.'));
               }}
-              className="rounded-action border border-danger px-4 py-2 text-sm font-semibold text-text"
+              className="rounded-action border border-danger px-4 py-2 text-sm font-bold text-text"
             >
               Escalate
             </Text>
@@ -256,7 +256,7 @@ export default function RoomScreen() {
       </View>
 
       {room?.showSafetyNotice ? (
-        <View className="rounded-curhat border border-border bg-surface-alt p-4">
+        <View className="rounded-curhat bg-tint-amber p-5">
           <Text className="text-sm leading-5 text-text">{room.safetyNotice}</Text>
         </View>
       ) : null}
@@ -265,7 +265,11 @@ export default function RoomScreen() {
         <View
           key={message.id}
           className={`max-w-[85%] rounded-curhat px-3 py-2 ${
-            message.fromMe ? 'self-end bg-primary' : 'self-start border border-border bg-surface'
+            message.fromMe
+              ? 'self-end rounded-br-md bg-primary'
+              : // A listener is a person. Never the AI's lavender — that is the
+                // one visual lie this system must not tell.
+                'self-start rounded-bl-md border border-border bg-surface'
           }`}
         >
           <Text className={message.fromMe ? 'text-primary-fg' : 'text-text'}>{message.body}</Text>
@@ -285,7 +289,7 @@ export default function RoomScreen() {
         }}
         multiline
         maxLength={4000}
-        className="min-h-16 rounded-curhat border border-border bg-surface p-3 text-text"
+        className="min-h-16 rounded-curhat bg-surface p-3 text-text"
       />
       <PrimaryButton label="Kirim" disabled={draft.trim().length === 0} onPress={() => void send()} />
     </ScreenScroll>

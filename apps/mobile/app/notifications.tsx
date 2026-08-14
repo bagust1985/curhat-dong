@@ -84,10 +84,10 @@ export default function NotificationsScreen() {
           onPress={() => void open(row)}
           style={{ minHeight: TOUCH_TARGET }}
           className={`rounded-curhat border p-4 ${
-            row.readAt === null ? 'border-primary bg-surface-alt' : 'border-border bg-surface'
+            row.readAt === null ? 'border-primary bg-tint-pink' : 'border-border bg-surface'
           }`}
         >
-          <Text accessibilityElementsHidden className="font-semibold text-text">
+          <Text accessibilityElementsHidden className="font-bold text-text">
             {row.title}
           </Text>
           <Text accessibilityElementsHidden className="mt-1 text-sm text-muted">

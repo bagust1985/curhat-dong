@@ -132,17 +132,17 @@ export default function OnboardingScreen() {
               onPress={() => setReason(option.value)}
               style={{ minHeight: TOUCH_TARGET }}
               className={`justify-center rounded-curhat border px-4 ${
-                reason === option.value ? 'border-primary bg-surface-alt' : 'border-border bg-surface'
+                reason === option.value ? 'border-primary bg-tint-pink' : 'border-border bg-surface'
               }`}
             >
-              <Text className="font-semibold text-text">{option.label}</Text>
+              <Text className="font-bold text-text">{option.label}</Text>
             </Pressable>
           ))
         : null}
 
       {step === 2 ? (
         <>
-          <Text className="text-sm font-semibold text-text">Nama samaran</Text>
+          <Text className="text-sm font-bold text-text">Nama samaran</Text>
           <TextInput
             accessibilityLabel="Nama samaran"
             value={alias}
@@ -150,7 +150,7 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             maxLength={24}
             style={{ minHeight: TOUCH_TARGET }}
-            className="rounded-curhat border border-border bg-surface px-4 text-text"
+            className="rounded-curhat bg-surface px-4 text-text"
           />
           <Body muted>Kosongin aja kalau mau kami yang buatin.</Body>
         </>
@@ -158,9 +158,9 @@ export default function OnboardingScreen() {
 
       {step === 3
         ? CONSENTS.map((item) => (
-            <View key={item.type} className="rounded-curhat border border-border bg-surface p-4">
+            <View key={item.type} className="rounded-curhat bg-surface p-4">
               <View className="flex-row items-center justify-between gap-3">
-                <Text className="flex-1 font-semibold text-text">
+                <Text className="flex-1 font-bold text-text">
                   {item.title}{' '}
                   <Text className="text-xs font-normal text-muted">
                     {item.required ? 'Wajib' : 'Opsional'}
@@ -187,7 +187,7 @@ export default function OnboardingScreen() {
             data di langkah sebelumnya.
           </Body>
           {SAFETY_RULES.map((rule) => (
-            <View key={rule} className="rounded-curhat border border-border bg-surface p-4">
+            <View key={rule} className="rounded-curhat bg-surface p-4">
               <Text className="text-sm leading-5 text-text">{rule}</Text>
             </View>
           ))}

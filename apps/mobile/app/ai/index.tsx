@@ -163,7 +163,7 @@ export default function DongAiScreen() {
       {/* Outside the thread and never dismissable: readable at message forty. */}
       <Text
         accessibilityRole="text"
-        className="rounded-chip border border-border bg-surface-alt px-3 py-2 text-center text-xs text-text"
+        className="rounded-chip bg-tint-lavender px-4 py-2 text-center text-xs font-bold text-text"
       >
         {disclaimer}
       </Text>
@@ -172,7 +172,11 @@ export default function DongAiScreen() {
         <View
           key={message.id}
           className={`max-w-[85%] rounded-curhat px-3 py-2 ${
-            message.role === 'user' ? 'self-end bg-primary' : 'self-start border border-border bg-surface'
+            message.role === 'user'
+              ? 'self-end rounded-br-md bg-primary'
+              : // Lavender is DONG AI's colour throughout the product. No reply
+                // on this screen should ever be mistakable for a person's.
+                'self-start rounded-bl-md bg-tint-lavender'
           }`}
         >
           <Text className={message.role === 'user' ? 'text-primary-fg' : 'text-text'}>
@@ -182,7 +186,7 @@ export default function DongAiScreen() {
       ))}
 
       {streaming !== null ? (
-        <View className="max-w-[85%] self-start rounded-curhat border border-border bg-surface px-3 py-2">
+        <View className="max-w-[85%] self-start rounded-curhat rounded-bl-md bg-tint-lavender px-4 py-2.5">
           <Text accessibilityLiveRegion="polite" className="text-text">
             {streaming.length === 0 ? 'DONG lagi ngetik…' : streaming}
           </Text>
@@ -201,7 +205,7 @@ export default function DongAiScreen() {
             value={draft}
             onChangeText={setDraft}
             multiline
-            className="min-h-16 rounded-curhat border border-border bg-surface p-3 text-text"
+            className="min-h-16 rounded-curhat bg-surface p-3 text-text"
           />
           <PrimaryButton
             label="Kirim"
@@ -210,8 +214,8 @@ export default function DongAiScreen() {
           />
         </>
       ) : (
-        <View className="rounded-curhat border border-border bg-surface p-4">
-          <Text accessibilityRole="header" className="text-base font-semibold text-text">
+        <View className="rounded-curhat bg-surface p-4">
+          <Text accessibilityRole="header" className="text-base font-bold text-text">
             Jatah ngobrol sama DONG hari ini udah habis
           </Text>
           <Body muted>

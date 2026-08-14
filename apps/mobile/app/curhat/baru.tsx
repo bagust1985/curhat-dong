@@ -142,17 +142,17 @@ export default function CreateCurhatScreen() {
       <Heading>Hari ini kamu mau cerita apa?</Heading>
       {restored ? <Body muted>Tulisanmu yang belum kekirim kami simpan.</Body> : null}
 
-      <Text className="text-sm font-semibold text-text">Judul (opsional)</Text>
+      <Text className="text-sm font-bold text-text">Judul (opsional)</Text>
       <TextInput
         accessibilityLabel="Judul"
         value={draft.title}
         onChangeText={(title) => setDraft((current) => ({ ...current, title }))}
         maxLength={160}
         style={{ minHeight: TOUCH_TARGET }}
-        className="rounded-curhat border border-border bg-surface px-4 text-text"
+        className="rounded-curhat bg-surface px-4 text-text"
       />
 
-      <Text className="text-sm font-semibold text-text">Ceritamu</Text>
+      <Text className="text-sm font-bold text-text">Ceritamu</Text>
       <TextInput
         accessibilityLabel="Ceritamu"
         value={draft.body}
@@ -160,13 +160,13 @@ export default function CreateCurhatScreen() {
         multiline
         numberOfLines={8}
         maxLength={5000}
-        className="min-h-40 rounded-curhat border border-border bg-surface p-4 leading-6 text-text"
+        className="min-h-40 rounded-curhat bg-surface p-4 leading-6 text-text"
       />
       <Text className="text-sm text-muted">Minimal 20 huruf biar ada yang bisa dibales.</Text>
 
       {hints.length > 0 ? (
         <View className="rounded-curhat border border-l-4 border-border border-l-accent-amber bg-surface p-4">
-          <Text className="text-sm font-semibold text-text">{PERSONAL_DATA_WARNING}</Text>
+          <Text className="text-sm font-bold text-text">{PERSONAL_DATA_WARNING}</Text>
           <Text className="mt-1 text-sm text-muted">
             Kami nemu: {hints.map((hint) => hint.label).join(', ')}. Kamu tetap boleh lanjut.
           </Text>
@@ -181,7 +181,7 @@ export default function CreateCurhatScreen() {
         </View>
       ) : null}
 
-      <Text className="text-sm font-semibold text-text">Topik</Text>
+      <Text className="text-sm font-bold text-text">Topik</Text>
       <View className="flex-row flex-wrap gap-2">
         {categories.map((category) => (
           <Text
@@ -191,7 +191,7 @@ export default function CreateCurhatScreen() {
             onPress={() => setDraft((current) => ({ ...current, categorySlug: category.slug }))}
             className={`rounded-chip border px-4 py-2 text-sm ${
               draft.categorySlug === category.slug
-                ? 'border-primary bg-surface-alt font-semibold text-text'
+                ? 'border-primary bg-tint-pink font-bold text-text'
                 : 'border-border bg-surface text-text'
             }`}
           >
@@ -200,7 +200,7 @@ export default function CreateCurhatScreen() {
         ))}
       </View>
 
-      <Text className="text-sm font-semibold text-text">Sekarang rasanya gimana?</Text>
+      <Text className="text-sm font-bold text-text">Sekarang rasanya gimana?</Text>
       <View className="flex-row flex-wrap gap-2">
         {MOODS.map((mood) => (
           <Text
@@ -210,7 +210,7 @@ export default function CreateCurhatScreen() {
             accessibilityLabel={MOOD_VOCABULARY[mood].a11yLabel}
             onPress={() => setDraft((current) => ({ ...current, mood }))}
             className={`rounded-chip border px-3 py-2 text-sm ${
-              draft.mood === mood ? 'border-primary bg-surface-alt text-text' : 'border-border bg-surface text-text'
+              draft.mood === mood ? 'border-primary bg-tint-pink font-bold text-text' : 'border-border bg-surface text-text'
             }`}
           >
             {MOOD_VOCABULARY[mood].glyph}
@@ -218,7 +218,7 @@ export default function CreateCurhatScreen() {
         ))}
       </View>
 
-      <Text className="text-sm font-semibold text-text">Kamu sedang cari apa?</Text>
+      <Text className="text-sm font-bold text-text">Kamu sedang cari apa?</Text>
       <View className="gap-2">
         {INTENTS.map((intent) => (
           <Text
@@ -228,7 +228,7 @@ export default function CreateCurhatScreen() {
             accessibilityLabel={INTENT_VOCABULARY[intent].a11yLabel}
             onPress={() => setDraft((current) => ({ ...current, intent }))}
             className={`rounded-curhat border px-4 py-3 text-sm ${
-              draft.intent === intent ? 'border-primary bg-surface-alt text-text' : 'border-border bg-surface text-text'
+              draft.intent === intent ? 'border-primary bg-tint-pink font-bold text-text' : 'border-border bg-surface text-text'
             }`}
           >
             {INTENT_VOCABULARY[intent].glyph} {INTENT_VOCABULARY[intent].a11yLabel}
