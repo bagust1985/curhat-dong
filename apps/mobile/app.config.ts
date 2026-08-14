@@ -28,6 +28,20 @@ const config: ExpoConfig = {
 
   android: {
     package: 'com.curhatdong.app',
+    /*
+     * Bumped by hand, on purpose — E18-T08.
+     *
+     * eas.json used to carry `autoIncrement: "versionCode"` on the production
+     * profile, which eas-cli 21 rejects outright: at profile level the field is
+     * a boolean, and `eas init` refused to run at all until it was removed.
+     *
+     * It is not simply corrected because it could not have worked here either
+     * way. With `appVersionSource: "local"` EAS increments the number by
+     * writing it back into the app config, and this config is a `.ts` file it
+     * cannot write to. Play refuses an upload that does not raise this number,
+     * so raise it here before each release — or move `appVersionSource` to
+     * "remote" in eas.json and let EAS own it instead.
+     */
     versionCode: 1,
     adaptiveIcon: { backgroundColor: '#1a1020' },
     // Only what the product actually uses. Every extra permission is a reason
@@ -70,7 +84,20 @@ const config: ExpoConfig = {
 
   extra: {
     router: {},
-    eas: { projectId: process.env['EAS_PROJECT_ID'] ?? '' },
+    /*
+     * The EAS project, `@bagust1986/curhat-dong` — E18-T08.
+     *
+     * Written here rather than left to an env var. `eas init` normally injects
+     * this itself, but it cannot write to a dynamic config, and the previous
+     * fallback of `''` meant every EAS command failed with "project not
+     * configured" on any machine that had not exported the variable — which
+     * was every machine, since it appears in no `.env.example`.
+     *
+     * Not a secret: the project id ships inside every build and is readable by
+     * anyone who unzips the APK. The env override stays for forks and for CI
+     * building against a different project.
+     */
+    eas: { projectId: process.env['EAS_PROJECT_ID'] ?? '5a1f2b2c-98fb-4039-a5c3-05f3174afc87' },
   },
 
   experiments: {
