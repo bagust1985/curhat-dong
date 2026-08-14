@@ -18,8 +18,10 @@ export function AiDisclaimer({ text }: { text?: string }) {
   return (
     <p
       // `role="note"` and always rendered — never inside a dismissable banner.
+      // Lavender, like everything else DONG AI touches: the sentence that says
+      // "this is not a person" sits in the colour that means "not a person".
       role="note"
-      className="rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-center text-xs text-[var(--color-text)]"
+      className="rounded-[var(--radius-chip)] bg-[var(--color-tint-lavender)] px-4 py-2 text-center text-xs font-semibold text-[var(--color-text)]"
     >
       {text && text.length > 0 ? text : AI_DISCLAIMER_FALLBACK}
     </p>
@@ -57,9 +59,11 @@ export function PersonalityPicker({
               : `${option.label} — belum tersedia`
           }
           onClick={() => onChange(option.mode)}
+          // Selected takes lavender, not the rose primary: this is a setting on
+          // the AI, and rose is reserved for actions among people.
           className={`min-h-[var(--size-touch)] rounded-[var(--radius-chip)] border px-4 text-sm ${
             value === option.mode
-              ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] font-semibold text-[var(--color-text)]'
+              ? 'border-[var(--color-accent-lavender)] bg-[var(--color-tint-lavender)] font-bold text-[var(--color-text)]'
               : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
           } disabled:opacity-45`}
         >
@@ -76,9 +80,9 @@ export function TypingIndicator() {
     <p role="status" className="text-sm text-[var(--color-muted)]">
       <span className="sr-only">DONG lagi ngetik…</span>
       <span aria-hidden="true" className="inline-flex gap-1">
-        <span className="size-2 animate-bounce rounded-full bg-[var(--color-muted)]" />
-        <span className="size-2 animate-bounce rounded-full bg-[var(--color-muted)] [animation-delay:120ms]" />
-        <span className="size-2 animate-bounce rounded-full bg-[var(--color-muted)] [animation-delay:240ms]" />
+        <span className="size-2 animate-bounce rounded-full bg-[var(--color-accent-lavender)]" />
+        <span className="size-2 animate-bounce rounded-full bg-[var(--color-accent-lavender)] [animation-delay:120ms]" />
+        <span className="size-2 animate-bounce rounded-full bg-[var(--color-accent-lavender)] [animation-delay:240ms]" />
       </span>
     </p>
   );
@@ -100,17 +104,20 @@ export interface BridgeCardData {
  */
 export function BridgeCard({ card, onAccept }: { card: BridgeCardData; onAccept: () => void }) {
   return (
+    // Rose, on a screen that is otherwise lavender throughout. This is the one
+    // thing here that leads to a person, and after a long stretch of talking to
+    // something that is not one, the change of colour is the offer.
     <section
       aria-labelledby="bridge-heading"
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4"
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-tint-pink)] p-5"
     >
-      <h2 id="bridge-heading" className="text-sm font-semibold text-[var(--color-text)]">
+      <h2 id="bridge-heading" className="text-sm font-bold text-[var(--color-text)]">
         {card.message}
       </h2>
       <button
         type="button"
         onClick={onAccept}
-        className="mt-3 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 text-sm font-semibold text-[var(--color-primary-fg)]"
+        className="mt-4 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 text-sm font-bold text-[var(--color-primary-fg)]"
       >
         {card.ctaLabel}
       </button>
@@ -142,21 +149,24 @@ export function QuotaNotice({
   }
 
   return (
+    // Rose for the same reason as the bridge card: the AI has run out, and
+    // what is left to offer is a person. A grey "quota exhausted" panel at 2am
+    // is the moment somebody closes the app for good.
     <section
       aria-labelledby="quota-heading"
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-tint-pink)] p-5"
     >
-      <h2 id="quota-heading" className="text-base font-semibold text-[var(--color-text)]">
+      <h2 id="quota-heading" className="text-base font-bold text-[var(--color-text)]">
         Jatah ngobrol sama DONG hari ini udah habis
       </h2>
-      <p className="mt-1 text-sm text-[var(--color-muted)]">
+      <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text)] opacity-80">
         Bukan karena kamu kebanyakan cerita. Besok jatahnya balik lagi — dan kalau malam ini masih
         berat, ada orang yang bisa dengerin.
       </p>
       <button
         type="button"
         onClick={onFindListener}
-        className="mt-3 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 text-sm font-semibold text-[var(--color-primary-fg)]"
+        className="mt-4 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 text-sm font-bold text-[var(--color-primary-fg)]"
       >
         Cari Listener
       </button>
@@ -186,6 +196,9 @@ export function MessageList({
           messageId={message.id}
           body={message.body}
           from={message.role === 'user' ? 'self' : 'other'}
+          // Every reply on this screen is the AI, so it is tinted lavender —
+          // no reply here should ever be mistakable for a person's.
+          tone="ai"
           senderLabel={message.role === 'user' ? 'Kamu' : 'DONG'}
           timeLabel={message.createdAtLabel}
         />
@@ -196,6 +209,7 @@ export function MessageList({
           messageId="streaming"
           body={streaming}
           from="other"
+          tone="ai"
           senderLabel="DONG"
           streaming
         />

@@ -89,6 +89,13 @@ export interface ChatBubbleProps {
   body: string;
   /** `self` is the viewer; `other` is the listener or DONG AI. */
   from: 'self' | 'other';
+  /**
+   * Who the other side is. Lavender is DONG AI's colour throughout the product
+   * (E18-T01), so an AI reply is tinted and a human's is not — you can tell at
+   * a glance whether the thing answering you is a person, without reading a
+   * label. Human is the default: a person must never be painted as the AI.
+   */
+  tone?: 'human' | 'ai';
   timeLabel?: string;
   senderLabel?: string;
   /** True while tokens are still arriving (E09-T03). */
@@ -108,6 +115,7 @@ export function ChatBubble({
   messageId,
   body,
   from,
+  tone = 'human',
   timeLabel,
   senderLabel,
   streaming = false,
@@ -120,10 +128,14 @@ export function ChatBubble({
       data-message-id={messageId}
     >
       <div
-        className={`max-w-[80%] rounded-[var(--radius-curhat)] px-3 py-2 ${
+        className={`max-w-[80%] rounded-[var(--radius-curhat)] px-4 py-2.5 ${
           mine
-            ? 'bg-[var(--color-primary)] text-[var(--color-primary-fg)]'
-            : 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+            ? // The tail corner is squared off on the sender's side, so the two
+              // sides differ in shape and not only in colour.
+              'rounded-br-md bg-[var(--color-primary)] text-[var(--color-primary-fg)]'
+            : tone === 'ai'
+              ? 'rounded-bl-md bg-[var(--color-tint-lavender)] text-[var(--color-text)]'
+              : 'rounded-bl-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
         }`}
       >
         {senderLabel ? (
@@ -153,7 +165,11 @@ export function ChatBubble({
         </p>
 
         {timeLabel ? (
-          <time className={`mt-1 block text-xs ${mine ? 'opacity-80' : 'text-[var(--color-muted)]'}`}>
+          <time
+            className={`mt-1 block text-xs ${
+              mine || tone === 'ai' ? 'opacity-70' : 'text-[var(--color-muted)]'
+            }`}
+          >
             {timeLabel}
           </time>
         ) : null}

@@ -223,6 +223,22 @@ describe('conversation pieces (E15-T03)', () => {
     expect(paragraph.textContent?.startsWith('Aku dengerin')).toBe(true);
   });
 
+  it('never paints a human reply in the AI colour (E18-T01)', () => {
+    // Lavender means "this is not a person" everywhere in the product. A
+    // listener's message rendered in it would be the one visual lie this
+    // design system must not tell, so `human` is the default and has to stay
+    // the default.
+    render(<ChatBubble messageId="m1" body="Aku dengerin" from="other" />);
+    const bubble = screen.getByText('Aku dengerin').parentElement;
+    expect(bubble?.className).not.toContain('tint-lavender');
+  });
+
+  it('paints a DONG AI reply in the AI colour', () => {
+    render(<ChatBubble messageId="m1" body="Aku di sini" from="other" tone="ai" />);
+    const bubble = screen.getByText('Aku di sini').parentElement;
+    expect(bubble?.className).toContain('tint-lavender');
+  });
+
   it('states listener availability in words, not just a dot', () => {
     render(<ListenerCard alias="BayuRanum" topics={['Kerjaan']} isAvailable={false} />);
     expect(screen.getByText('Sedang nggak available')).toBeTruthy();
