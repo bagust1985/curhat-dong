@@ -1,17 +1,23 @@
 /**
  * Tabs and deep links — E16-T02, E16-T09. DESIGN-REF §1, PRD §23.
  *
- * ## The five slots differ from the web, deliberately and visibly
+ * ## The slots differ from the web, and the gap widened in E18-T02
  *
  * Mobile follows DESIGN-REF §1 exactly: HOME · EXPLORE · [+ CURHAT] · LISTEN ·
  * PROFILE, with the create action as a floating button in the middle.
  *
- * The **web** bottom bar follows the brand mock instead (Beranda · Chat ·
- * Komunitas · Notifikasi · Akun, decided 12 Aug 2026, see
- * `apps/web/components/bottom-nav.tsx`). That means the two platforms currently
- * navigate differently, which is a product decision nobody has actually made —
- * it fell out of two documents disagreeing. Recorded here rather than silently
- * picked, because whichever way it resolves, one of the two has to change.
+ * The **web** follows the brand mock instead. Its phone bar is Beranda ·
+ * DONG AI · Komunitas · Notifikasi · Akun, and since E18-T02 its desktop rail
+ * carries all eight destinations (see `apps/web/components/bottom-nav.tsx`).
+ * So the two platforms now share exactly two labels, and a person moving from
+ * the phone app to the browser finds a different set of tabs in a different
+ * order.
+ *
+ * This is still a product decision nobody has actually made — it fell out of
+ * two documents disagreeing, and E18-T02 made the gap wider without closing
+ * it. Recorded here rather than silently picked: whichever way it resolves,
+ * one of the two has to change, and that is a call about the product rather
+ * than about a navigation bar.
  */
 
 export type TabKey = 'home' | 'explore' | 'listen' | 'profile';
