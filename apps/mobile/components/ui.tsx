@@ -1,5 +1,7 @@
 import {
+  INTENT_LABELS,
   INTENT_VOCABULARY,
+  MOOD_LABELS,
   MOOD_VOCABULARY,
   REACTIONS,
   REACTION_VOCABULARY,
@@ -10,6 +12,24 @@ import {
 import { Pressable, ScrollView, Text, View, type ViewProps } from 'react-native';
 
 import { TOUCH_TARGET } from '../lib/tokens';
+
+/**
+ * Card elevation — E18-T06.
+ *
+ * The web lifts cards on a rose-tinted shadow. React Native cannot tint an
+ * Android shadow below API 28, and on the plum ground a coloured shadow is
+ * almost invisible anyway, so the depth here comes from the surface sitting on
+ * the ground plus a shallow neutral lift. Cards lose their hairline for the
+ * same reason they did on the web: a column of identically outlined boxes read
+ * as one list rather than as separate stories.
+ */
+const LIFT = {
+  elevation: 2,
+  shadowColor: '#000000',
+  shadowOpacity: 0.22,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+} as const;
 
 /**
  * Core mobile components — E16-T04. DESIGN-REF §5, PRD §23.1.
@@ -36,7 +56,7 @@ export function Screen({ children, ...props }: ViewProps) {
 
 export function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <Text accessibilityRole="header" className="text-2xl font-bold text-text">
+    <Text accessibilityRole="header" className="text-[26px] font-black text-text">
       {children}
     </Text>
   );
@@ -69,7 +89,7 @@ export function PrimaryButton({
         disabled ? 'opacity-60' : ''
       }`}
     >
-      <Text className="text-base font-semibold text-primary-fg">{label}</Text>
+      <Text className="text-base font-bold text-primary-fg">{label}</Text>
     </Pressable>
   );
 }
@@ -89,7 +109,7 @@ export function SecondaryButton({
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
       style={{ minHeight: TOUCH_TARGET }}
-      className="items-center justify-center rounded-action border border-brand px-6"
+      className="items-center justify-center rounded-action border-2 border-brand px-6"
     >
       <Text className="text-base font-semibold text-text">{label}</Text>
     </Pressable>
@@ -102,11 +122,17 @@ export function MoodChip({ mood }: { mood: Mood }) {
     <View
       accessibilityRole="image"
       accessibilityLabel={entry.a11yLabel}
-      className="flex-row items-center gap-1 rounded-chip border border-border bg-surface px-3 py-1"
+      className="flex-row items-center gap-1.5 rounded-chip bg-tint-pink px-3 py-1"
     >
       <Text accessibilityElementsHidden>{entry.glyph}</Text>
-      <Text accessibilityElementsHidden className="text-sm text-text">
-        {mood.replace('_', ' ')}
+      {/*
+        MOOD_LABELS, not the enum key. This used to render
+        `mood.replace('_', ' ')`, which put an identifier on screen — the
+        shared label table exists so the phone and the browser call a mood the
+        same thing, and deriving copy from a key quietly opts out of it.
+      */}
+      <Text accessibilityElementsHidden className="text-sm font-semibold text-text">
+        {MOOD_LABELS[mood]}
       </Text>
     </View>
   );
@@ -118,9 +144,18 @@ export function IntentBadge({ intent }: { intent: Intent }) {
     <View
       accessibilityRole="image"
       accessibilityLabel={entry.a11yLabel}
-      className="flex-row items-center gap-1 rounded-chip border border-border bg-surface px-3 py-1"
+      className="flex-row items-center gap-1.5 rounded-chip border border-border px-3 py-1"
     >
       <Text accessibilityElementsHidden>{entry.glyph}</Text>
+      {/*
+        The label, which was missing entirely — this badge rendered a bare
+        glyph. What the author is asking for is the thing a reader decides on,
+        and leaving it as an emoji meant a sighted reader had to already know
+        that an ear means "cuma mau didengar".
+      */}
+      <Text accessibilityElementsHidden className="text-sm text-text">
+        {INTENT_LABELS[intent]}
+      </Text>
     </View>
   );
 }
@@ -163,7 +198,7 @@ export function ReactionBar({
             onPress={() => onToggle(reaction)}
             style={{ minHeight: TOUCH_TARGET, minWidth: TOUCH_TARGET }}
             className={`items-center justify-center rounded-chip border px-3 ${
-              given ? 'border-primary bg-surface-alt' : 'border-border bg-surface'
+              given ? 'border-primary bg-tint-pink' : 'border-border bg-surface'
             }`}
           >
             <Text accessibilityElementsHidden>{entry.glyph}</Text>
@@ -218,34 +253,50 @@ export function CurhatCard({
   return (
     <View
       accessible={false}
-      className={`rounded-curhat border bg-surface p-4 ${
+      style={variant === 'held' ? undefined : LIFT}
+      className={`rounded-curhat bg-surface p-[18px] ${
         variant === 'butuh-didengar'
-          ? 'border-l-4 border-border border-l-accent-amber'
+          ? // The amber edge plus the notice below it — the accent is never the
+            // only thing that marks this variant.
+            'border-l-4 border-l-accent-amber'
           : variant === 'held'
-            ? 'border-dashed border-muted'
-            : 'border-border'
+            ? 'border border-dashed border-muted'
+            : ''
       }`}
     >
-      <Text className="text-sm text-muted">
-        {isAnonymous ? `Ditulis anonim, kode ${authorLabel}` : authorLabel} · {categoryName} ·{' '}
-        {createdAtLabel}
-      </Text>
-
-      <Text accessibilityRole="header" className="mt-2 text-base font-semibold text-text">
-        {title ?? excerpt.slice(0, 60)}
-      </Text>
-
-      <Text className="mt-1 text-sm leading-5 text-text">{excerpt}</Text>
-
-      <View className="mt-3 flex-row flex-wrap gap-2">
+      {/*
+        Mood and intent lead; the byline follows. What a reader decides on is
+        how this person feels and what they are asking for — the alias and the
+        timestamp are the footnote, and they used to be the first thing said.
+      */}
+      <View className="flex-row flex-wrap gap-2">
         <MoodChip mood={mood} />
         <IntentBadge intent={intent} />
       </View>
 
-      {notice ? <Text className="mt-3 text-sm text-text">{notice}</Text> : null}
+      <Text className="mt-3 text-xs text-muted">
+        {isAnonymous ? `Ditulis anonim, kode ${authorLabel}` : authorLabel} · {categoryName} ·{' '}
+        {createdAtLabel}
+      </Text>
 
-      <View className="mt-3 flex-row items-center justify-between">
-        <Text className="text-sm text-muted">
+      <Text accessibilityRole="header" className="mt-2 text-[17px] font-bold text-text">
+        {title ?? excerpt.slice(0, 60)}
+      </Text>
+
+      <Text className="mt-1.5 text-sm leading-6 text-text">{excerpt}</Text>
+
+      {notice ? (
+        <Text
+          className={`mt-3 rounded-xl px-3 py-2 text-sm ${
+            variant === 'held' ? 'bg-surface-alt text-muted' : 'bg-tint-amber text-text'
+          }`}
+        >
+          {notice}
+        </Text>
+      ) : null}
+
+      <View className="mt-4 flex-row items-center justify-between border-t border-border pt-3">
+        <Text className="text-xs text-muted">
           {replyCount === 0 ? 'Belum ada balasan' : `${replyCount} balasan`}
         </Text>
 
@@ -255,9 +306,9 @@ export function CurhatCard({
             accessibilityLabel={`Baca curhat: ${title ?? excerpt.slice(0, 40)}`}
             onPress={() => onOpen(postId)}
             style={{ minHeight: TOUCH_TARGET }}
-            className="items-center justify-center rounded-action border border-brand px-4"
+            className="items-center justify-center rounded-action border-2 border-brand px-5"
           >
-            <Text accessibilityElementsHidden className="text-sm font-semibold text-text">
+            <Text accessibilityElementsHidden className="text-sm font-bold text-text">
               Baca
             </Text>
           </Pressable>
@@ -279,9 +330,9 @@ export function EmptyState({
   onAction?: () => void;
 }) {
   return (
-    <View className="items-center rounded-curhat border border-dashed border-border bg-surface p-6">
-      <Text className="text-center text-base font-semibold text-text">{title}</Text>
-      <Text className="mt-1.5 text-center text-sm text-muted">{body}</Text>
+    <View className="items-center rounded-curhat border border-dashed border-border bg-surface-alt p-7">
+      <Text className="text-center text-base font-bold text-text">{title}</Text>
+      <Text className="mt-2 text-center text-sm leading-6 text-muted">{body}</Text>
       {actionLabel && onAction ? (
         <View className="mt-4">
           <PrimaryButton label={actionLabel} onPress={onAction} />
