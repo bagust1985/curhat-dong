@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { Button, Card, buttonClasses } from './ui';
+import { Badge, Button, Card, Input, Textarea, buttonClasses } from './ui';
 
 afterEach(() => {
   document.body.innerHTML = '';
@@ -36,18 +36,54 @@ describe('Button', () => {
     }
   });
 
-  it('puts white text only on primary — never on brand or pink', () => {
+  it('puts white text only on primary — never on the brand pink', () => {
     // The contrast rule as a class-level assertion: primary-fg (white in
     // light theme) may only pair with --color-primary. A variant painting
-    // --color-brand or pink behind primary-fg would fail AA (lib/tokens.ts).
+    // --color-brand behind primary-fg would fail AA (lib/tokens.ts).
     for (const variant of ['primary', 'secondary', 'ghost'] as const) {
       const classes = buttonClasses(variant);
       if (classes.includes('text-[var(--color-primary-fg)]')) {
         expect(classes).toContain('bg-[var(--color-primary)]');
         expect(classes).not.toContain('var(--color-brand)');
-        expect(classes).not.toContain('var(--color-accent-pink)');
       }
     }
+  });
+});
+
+describe('Badge', () => {
+  it('never carries primary-fg on a brand or amber fill', () => {
+    // Both are bright fills. White on either fails AA, so they take the dark
+    // plum ink — the same rule lib/contrast.test.ts asserts numerically.
+    for (const tone of ['brand', 'amber'] as const) {
+      render(<Badge tone={tone}>3</Badge>);
+      const badge = screen.getByText('3');
+      expect(badge.className).toContain('text-[var(--color-accent-fg)]');
+      expect(badge.className).not.toContain('text-[var(--color-primary-fg)]');
+      document.body.innerHTML = '';
+    }
+  });
+});
+
+describe('fields', () => {
+  it('holds the touch floor and stays legible when disabled', () => {
+    render(<Input aria-label="Alias" disabled />);
+    const input = screen.getByLabelText('Alias');
+    expect(input.className).toContain('min-h-[var(--size-touch)]');
+    // 60% rather than the browser default, which on a pink ground washes the
+    // text out to roughly nothing.
+    expect(input.className).toContain('disabled:opacity-60');
+  });
+
+  it('gives inputs and textareas the same shape', () => {
+    render(
+      <>
+        <Input aria-label="Judul" />
+        <Textarea aria-label="Cerita" />
+      </>,
+    );
+    expect(screen.getByLabelText('Judul').className).toBe(
+      screen.getByLabelText('Cerita').className,
+    );
   });
 });
 
