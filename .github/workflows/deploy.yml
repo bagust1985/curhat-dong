@@ -33,6 +33,9 @@ concurrency:
 
 permissions:
   contents: read
+  # The repo is private, so its GHCR packages are too: the VPS cannot pull
+  # without credentials.
+  packages: read
 
 jobs:
   guard:
@@ -66,15 +69,27 @@ jobs:
         uses: appleboy/ssh-action@v1
         env:
           IMAGE_TAG: ${{ steps.target.outputs.sha }}
+          # Short-lived and scoped to this run: it expires when the job ends,
+          # so nothing long-lived is left sitting on the VPS. A personal access
+          # token pasted into `docker login` once by hand would work today and
+          # break silently the month it expires.
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: IMAGE_TAG
+          envs: IMAGE_TAG,REGISTRY_USER,REGISTRY_TOKEN
           script_stop: true
           script: |
             set -euo pipefail
             cd /home/selsipad/curhat-dong
+
+            # Private repo, private packages. The credential is removed again
+            # on the way out — including on failure, which is exactly when a
+            # forgotten `docker logout` would leave one behind.
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
 
             # Compose membaca `.env` dari direktori file compose-nya, bukan dari
             # root repo. Jadi state IMAGE_TAG tinggal di `infrastructure/.env`,
