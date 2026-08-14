@@ -1,22 +1,35 @@
 'use client';
 
+import {
+  BellIcon,
+  ChatIcon,
+  CompassIcon,
+  HeartIcon,
+  HomeIcon,
+  PersonIcon,
+  SearchIcon,
+  UsersIcon,
+} from './icons';
+
 /**
- * Bottom navigation and the "+ Curhat" FAB — E15-T03.
+ * Primary navigation — E15-T03, made responsive in E18-T02.
  *
  * ## Why this shape
  *
- * The five slots follow the brand mock (Beranda · Chat · Komunitas · Notifikasi
- * · Akun), decided 12 Aug 2026. That differs from PRD §23 and DESIGN-REF §1,
- * which specify HOME · EXPLORE · [+ CURHAT] · LISTEN · PROFILE, so two things
- * are handled deliberately rather than dropped:
+ * One list of destinations rendered two ways: the floating five-slot bar on a
+ * phone (the brand mock, 12 Aug 2026) and the left rail on desktop that
+ * DESIGN-REF §1 always specified.
  *
  *  - **Komunitas is Phase 2.** `communities.enabled` defaults to false (PRD §16)
  *    and there is no backend behind it. It renders disabled with an honest
  *    label rather than as a live tab leading nowhere;
- *  - **Explore, Listen and + Curhat lost their slots.** `+ Curhat` becomes the
- *    FAB the mock already shows, and Explore and Listen are reached from Beranda.
- *    Leaving them unreachable would have quietly removed MVP features, which is
- *    a different decision from changing a navigation bar.
+ *  - **Explore, Listen and Cari only fit on desktop.** A phone bar holds five,
+ *    so on a phone those three are reached from the Beranda tiles instead —
+ *    which is why those tiles exist, and why they disappear at `lg` where the
+ *    rail already lists them. Leaving them unreachable anywhere would have
+ *    quietly removed MVP features;
+ *  - **+ Curhat has no slot in either.** It is the FAB on a phone and the
+ *    rail's full-width CTA on desktop: one button, one accessible name.
  */
 
 export type NavKey =
@@ -33,7 +46,12 @@ export interface NavItem {
   key: NavKey;
   href: string;
   label: string;
-  glyph: string;
+  /**
+   * Monochrome, `currentColor` — E18-T03. Not an emoji: every platform draws
+   * its own, they bring colours into a palette that uses colour to mean things,
+   * and at 18px they turn to mud.
+   */
+  Icon: (props: { className?: string }) => React.ReactElement;
   /**
    * Whether this destination appears in the phone bar — E18-T02.
    *
@@ -57,14 +75,20 @@ export interface NavItem {
  * drift the first time somebody added a screen to only one of them.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { key: 'beranda', href: '/home', label: 'Beranda', glyph: '🏠', onPhone: true },
-  { key: 'ai', href: '/ai', label: 'DONG AI', glyph: '💬', onPhone: true },
-  { key: 'komunitas', href: '', label: 'Komunitas', glyph: '👥', onPhone: true },
-  { key: 'notifikasi', href: '/notifications', label: 'Notifikasi', glyph: '🔔', onPhone: true },
-  { key: 'listener', href: '/listener/request', label: 'Cari Listener', glyph: '🤍', onPhone: false },
-  { key: 'explore', href: '/explore', label: 'Jelajah', glyph: '🧭', onPhone: false },
-  { key: 'cari', href: '/search', label: 'Cari', glyph: '🔍', onPhone: false },
-  { key: 'akun', href: '/profile', label: 'Akun', glyph: '👤', onPhone: true },
+  { key: 'beranda', href: '/home', label: 'Beranda', Icon: HomeIcon, onPhone: true },
+  { key: 'ai', href: '/ai', label: 'DONG AI', Icon: ChatIcon, onPhone: true },
+  { key: 'komunitas', href: '', label: 'Komunitas', Icon: UsersIcon, onPhone: true },
+  { key: 'notifikasi', href: '/notifications', label: 'Notifikasi', Icon: BellIcon, onPhone: true },
+  {
+    key: 'listener',
+    href: '/listener/request',
+    label: 'Cari Listener',
+    Icon: HeartIcon,
+    onPhone: false,
+  },
+  { key: 'explore', href: '/explore', label: 'Jelajah', Icon: CompassIcon, onPhone: false },
+  { key: 'cari', href: '/search', label: 'Cari', Icon: SearchIcon, onPhone: false },
+  { key: 'akun', href: '/profile', label: 'Akun', Icon: PersonIcon, onPhone: true },
 ];
 
 /** Phase 2 (PRD §16), behind `communities.enabled`. */
@@ -165,8 +189,8 @@ export function BottomNav({
                   : 'text-[var(--color-muted)]'
               } disabled:opacity-45`}
             >
-              <span aria-hidden="true" className="relative text-lg leading-none lg:text-xl">
-                {item.glyph}
+              <span aria-hidden="true" className="relative leading-none">
+                <item.Icon className="size-[22px] lg:size-6" />
                 {badge > 0 ? (
                   <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-[var(--color-brand)] px-1 text-[10px] font-bold text-[var(--color-accent-fg)]">
                     {badge > 9 ? '9+' : badge}
