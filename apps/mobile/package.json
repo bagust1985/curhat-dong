@@ -7,7 +7,7 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "export": "expo export --platform android",
-    "eas-build-post-install": "cd ../.. && pnpm turbo run build --filter='./packages/*'",
+    "eas-build-post-install": "cd ../.. && pnpm turbo run build --filter=@curhat/mobile^...",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
