@@ -95,17 +95,30 @@ jobs:
       # A secret baked into a layer stays in the registry forever, even after a
       # later layer deletes the file. Cheaper to check every build than to
       # rotate every credential once.
+      #
+      # What this looks for is a credential **we shipped**, which is why the
+      # .pem rule is scoped to /app and node_modules is excluded. The first
+      # version matched `\.pem$` anywhere and hit `etc/ssl/cert.pem` — the OS
+      # trust store, a bundle of *public* root certificates every TLS client
+      # needs. That failed every build from the day it was written, and a gate
+      # that always cries wolf is a gate nobody reads: the same failure mode
+      # as the three false FAILs in the E17-T14 security review.
       - name: Fail if a secret got baked in
         run: |
           set -euo pipefail
           image="ghcr.io/${{ github.repository }}/${{ matrix.image }}:${{ github.sha }}"
           docker create --name probe "$image" >/dev/null
-          docker export probe | tar -t 2>/dev/null > /tmp/files.txt || true
+          docker export probe | tar -t 2>/dev/null > /tmp/all-files.txt || true
           docker rm probe >/dev/null
 
-          if grep -Eq '(^|/)\.env(\.|$)|(^|/)id_rsa$|\.pem$' /tmp/files.txt; then
+          # Third-party packages ship test fixtures, certificates included;
+          # those are not ours and not secret.
+          grep -vE '(^|/)node_modules/' /tmp/all-files.txt > /tmp/files.txt || true
+
+          PATTERN='(^|/)\.env(\.|$)|(^|/)id_rsa$|^app/.*\.pem$'
+          if grep -Eq "$PATTERN" /tmp/files.txt; then
             echo "::error::image berisi file kredensial"
-            grep -E '(^|/)\.env(\.|$)|(^|/)id_rsa$|\.pem$' /tmp/files.txt | head
+            grep -E "$PATTERN" /tmp/files.txt | head
             exit 1
           fi
           echo "tidak ada file kredensial di dalam image"
