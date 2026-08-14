@@ -170,7 +170,7 @@ export default function ListenScreen() {
 
         <ScrollView
           accessibilityLabel="Panduan listener"
-          className="my-4 max-h-96 rounded-curhat border border-border bg-surface p-4"
+          className="my-4 max-h-96 rounded-curhat bg-surface p-4"
           onScroll={({ nativeEvent }) => {
             const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
             if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 8) {
@@ -181,7 +181,7 @@ export default function ListenScreen() {
         >
           {(guidelines?.sections ?? []).map((section) => (
             <View key={section.title} className="mb-4">
-              <Text className="text-base font-semibold text-text">{section.title}</Text>
+              <Text className="text-base font-bold text-text">{section.title}</Text>
               <Text className="mt-1 text-sm leading-5 text-muted">{section.body}</Text>
             </View>
           ))}
@@ -211,9 +211,9 @@ export default function ListenScreen() {
       {offer ? (
         <View
           accessibilityViewIsModal
-          className="rounded-curhat border border-border bg-surface p-4"
+          className="rounded-curhat bg-surface p-4"
         >
-          <Text accessibilityRole="header" className="text-base font-semibold text-text">
+          <Text accessibilityRole="header" className="text-base font-bold text-text">
             Ada yang butuh didengar
           </Text>
           {/* Topic, emotion and mood. Nothing that identifies anyone. */}
@@ -230,8 +230,8 @@ export default function ListenScreen() {
       ) : null}
 
       {resting ? (
-        <View className="rounded-curhat border border-border bg-surface-alt p-4">
-          <Text accessibilityRole="header" className="text-base font-semibold text-text">
+        <View className="rounded-curhat bg-tint-amber p-5">
+          <Text accessibilityRole="header" className="text-base font-bold text-text">
             {burnout?.dailyCapReached ? 'Hari ini kamu udah cukup 🤍' : 'Istirahat dulu sebentar'}
           </Text>
           <Text className="mt-1 text-sm text-text">

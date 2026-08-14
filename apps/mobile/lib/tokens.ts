@@ -1,14 +1,21 @@
 /**
- * Design tokens for React Native — E16-T01. DESIGN-REF §0.
+ * Design tokens for React Native — E16-T01, repainted rose in E18-T05.
+ * DESIGN-REF §0.
  *
  * The web keeps these as CSS custom properties and swaps them per theme with a
  * `data-theme` attribute. React Native has no custom properties, so the three
  * themes exist as real objects and the active one is chosen in `lib/theme.ts`.
  *
- * The values are copied from `apps/web/lib/tokens.ts`. `tokens.test.ts` compares
- * the two files and fails when they drift — the alternative is a product whose
- * dark purple differs between the phone and the browser, which nobody notices
- * until both are open side by side.
+ * The values are copied from `apps/web/lib/tokens.ts`, and `tokens.test.ts`
+ * reads that file and fails when the two drift. That test is new: this comment
+ * used to claim it existed while the file did not, which is how the web could
+ * move to a rose palette and leave the phone on lavender with a green suite —
+ * a safety net that lives only in a comment is worse than none, because people
+ * trust it.
+ *
+ * The rule the palette rests on, unchanged from the web: deep rose carries the
+ * actions, bright pink carries the identity. White on the logo pink is 3.30:1,
+ * so `brand` can never be a button fill.
  */
 
 export interface ThemeTokens {
@@ -20,10 +27,17 @@ export interface ThemeTokens {
   muted: string;
   primary: string;
   primaryFg: string;
+  /** The logo pink. Large type, icons and outlines, or a fill taking `accentFg`. */
   brand: string;
-  accentPink: string;
+  /** DONG AI and system actions. */
+  accentLavender: string;
   accentAmber: string;
   accentFg: string;
+  /** Soft fills that tint a surface without becoming a second brand colour. */
+  tintPink: string;
+  tintLavender: string;
+  tintAmber: string;
+  tintRose: string;
   danger: string;
   dangerFg: string;
   focus: string;
@@ -31,60 +45,80 @@ export interface ThemeTokens {
 
 export const THEMES: Record<'light' | 'dark' | 'midnight', ThemeTokens> = {
   light: {
-    bg: '#f7f5ff',
+    bg: '#fff5f8',
     surface: '#ffffff',
-    surfaceAlt: '#eae6ff',
-    border: '#d9d2f2',
-    text: '#1e1240',
-    muted: '#514873',
-    primary: '#5b3be0',
+    surfaceAlt: '#ffe6ee',
+    border: '#f4cfdd',
+    text: '#2b1233',
+    muted: '#6b4257',
+    primary: '#c2185b',
     primaryFg: '#ffffff',
-    brand: '#7c5cfc',
-    accentPink: '#ff688a',
-    accentAmber: '#ffb84d',
-    accentFg: '#1e1240',
-    danger: '#b3261e',
+    brand: '#fa4b7d',
+    accentLavender: '#6d4ae0',
+    accentAmber: '#ffb020',
+    accentFg: '#2b1233',
+    tintPink: '#ffdce7',
+    tintLavender: '#e9e1ff',
+    tintAmber: '#ffebcb',
+    tintRose: '#ffd3e1',
+    danger: '#7e2f0c',
     dangerFg: '#ffffff',
-    focus: '#5b3be0',
+    focus: '#c2185b',
   },
   dark: {
-    bg: '#12101f',
-    surface: '#1b1830',
-    surfaceAlt: '#252140',
-    border: '#332d52',
-    text: '#edeafb',
-    muted: '#b5aed2',
-    primary: '#b9a6ff',
-    primaryFg: '#12101f',
-    brand: '#b9a6ff',
-    accentPink: '#ff9fb4',
+    bg: '#1a1020',
+    surface: '#251729',
+    surfaceAlt: '#33203a',
+    border: '#4a2c46',
+    text: '#f7e9f0',
+    muted: '#c9a9bb',
+    primary: '#ff86bb',
+    primaryFg: '#1a1020',
+    brand: '#ff9fca',
+    accentLavender: '#c4b0ff',
     accentAmber: '#ffc978',
-    accentFg: '#12101f',
-    danger: '#ffb4ab',
-    dangerFg: '#12101f',
-    focus: '#b9a6ff',
+    accentFg: '#1a1020',
+    tintPink: '#3d2138',
+    tintLavender: '#2f2650',
+    tintAmber: '#3d3020',
+    tintRose: '#452133',
+    danger: '#ff9d80',
+    dangerFg: '#1a1020',
+    focus: '#ff86bb',
   },
   midnight: {
-    bg: '#0a0814',
-    surface: '#12101f',
-    surfaceAlt: '#1b1830',
-    border: '#2a2545',
-    text: '#e4e0f5',
-    muted: '#9f98be',
-    primary: '#ae9bf5',
-    primaryFg: '#0a0814',
-    brand: '#ae9bf5',
-    accentPink: '#f58fa6',
+    bg: '#120a16',
+    surface: '#1a1020',
+    surfaceAlt: '#251729',
+    border: '#3a2340',
+    text: '#efdde7',
+    muted: '#b898aa',
+    primary: '#f582b4',
+    primaryFg: '#120a16',
+    brand: '#f596c2',
+    accentLavender: '#b7a2f5',
     accentAmber: '#f0bd72',
-    accentFg: '#0a0814',
-    danger: '#f5aaa2',
-    dangerFg: '#0a0814',
-    focus: '#ae9bf5',
+    accentFg: '#120a16',
+    tintPink: '#301a2c',
+    tintLavender: '#251d40',
+    tintAmber: '#302618',
+    tintRose: '#361a28',
+    danger: '#f0977c',
+    dangerFg: '#120a16',
+    focus: '#f582b4',
   },
 };
 
 /** PRD §23.1 — the floor for anything tappable, in device-independent pixels. */
 export const TOUCH_TARGET = 44;
 
-export const RADIUS = { curhat: 16, action: 20, chip: 999 } as const;
+/**
+ * Shape, matching `RADII` on the web.
+ *
+ * `curhat` is 20px (the top of DESIGN-REF §0's 16–20px) and `action` is a full
+ * pill, both since E18-T01. They were 16 and 20 here, which meant a card and a
+ * button were subtly the wrong shape on the phone against the same screen in a
+ * browser.
+ */
+export const RADIUS = { curhat: 20, action: 999, chip: 999 } as const;
 export const GUTTER = 20;

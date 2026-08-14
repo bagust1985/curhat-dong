@@ -24,12 +24,12 @@ const config: ExpoConfig = {
   // Dark is the primary design target because peak usage is at night
   // (DESIGN-REF §0); the splash follows the dark background rather than
   // flashing white at 2am.
-  backgroundColor: '#12101f',
+  backgroundColor: '#1a1020',
 
   android: {
     package: 'com.curhatdong.app',
     versionCode: 1,
-    adaptiveIcon: { backgroundColor: '#12101f' },
+    adaptiveIcon: { backgroundColor: '#1a1020' },
     // Only what the product actually uses. Every extra permission is a reason
     // for somebody to distrust an app about their private life.
     permissions: ['android.permission.POST_NOTIFICATIONS'],
@@ -47,7 +47,7 @@ const config: ExpoConfig = {
     [
       'expo-notifications',
       {
-        color: '#b9a6ff',
+        color: '#ff86bb',
       },
     ],
   ],

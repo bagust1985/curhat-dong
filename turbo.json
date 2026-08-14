@@ -1,7 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
-  "globalDependencies": ["**/.env.*local", "pnpm-workspace.yaml"],
+  "globalDependencies": [
+    "**/.env.*local",
+    "pnpm-workspace.yaml",
+    "apps/web/lib/tokens.ts",
+    "apps/web/app/globals.css"
+  ],
   "globalEnv": ["NODE_ENV"],
   "tasks": {
     "build": {

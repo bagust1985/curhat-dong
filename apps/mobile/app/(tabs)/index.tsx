@@ -107,10 +107,17 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.4}
         onEndReached={() => void load(tab, 'more')}
         ListHeaderComponent={
-          <View className="gap-4 pb-2">
-            <Text accessibilityRole="header" className="text-xl font-bold text-text">
-              {feedGreeting(new Date())}
-            </Text>
+          <View className="gap-5 pb-3">
+            {/*
+              The greeting is a card of its own, opening the column the way the
+              feed continues it — E18-T06, matching the web.
+            */}
+            <View className="rounded-curhat bg-surface p-5">
+              <Text accessibilityRole="header" className="text-[26px] font-black text-text">
+                {user ? `Hai, ${user.alias}` : 'Hai'}
+              </Text>
+              <Text className="mt-1 text-sm text-muted">{feedGreeting(new Date())}</Text>
+            </View>
 
             <View className="flex-row flex-wrap gap-2">
               {TABS.map((entry) => (
@@ -119,9 +126,12 @@ export default function HomeScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: tab === entry.key }}
                   onPress={() => setTab(entry.key)}
+                  // Filled when active, like the web: with four tabs on a warm
+                  // ground a tint reads as "slightly different" rather than
+                  // "this is the one you are looking at".
                   className={`rounded-chip border px-4 py-2 text-sm ${
                     tab === entry.key
-                      ? 'border-primary bg-surface-alt font-semibold text-text'
+                      ? 'border-primary bg-primary font-bold text-primary-fg'
                       : 'border-border bg-surface text-muted'
                   }`}
                 >
@@ -130,24 +140,29 @@ export default function HomeScreen() {
               ))}
             </View>
 
-            <View className="rounded-curhat border border-border bg-surface-alt p-4">
-              <Text accessibilityRole="header" className="text-base font-semibold text-text">
+            {/*
+              Lavender is DONG AI's colour everywhere in the product — the tile
+              on the web, the AI screen, and this card. The one thing that
+              leads to a person stays rose.
+            */}
+            <View className="rounded-curhat bg-tint-lavender p-5">
+              <Text accessibilityRole="header" className="text-base font-bold text-text">
                 Lagi pengen cerita tapi belum siap ngomong ke orang?
               </Text>
-              <Text className="mt-1 text-sm text-muted">
+              <Text className="mt-1.5 text-sm leading-6 text-text opacity-80">
                 DONG AI bisa nemenin dulu. Dia AI — bukan psikolog.
               </Text>
-              <View className="mt-3">
+              <View className="mt-4">
                 <SecondaryButton label="Ngobrol sama DONG AI" onPress={() => router.push('/ai')} />
               </View>
             </View>
 
             {user?.isListener ? (
-              <View className="rounded-curhat border border-l-4 border-border border-l-accent-amber bg-surface p-4">
-                <Text accessibilityRole="header" className="text-base font-semibold text-text">
+              <View className="rounded-curhat border-l-4 border-l-accent-amber bg-tint-amber p-5">
+                <Text accessibilityRole="header" className="text-base font-bold text-text">
                   Ada orang yang sedang butuh didengar.
                 </Text>
-                <Text className="mt-1 text-sm text-muted">
+                <Text className="mt-1.5 text-sm leading-6 text-text opacity-80">
                   Kalau kamu lagi punya tenaga. Kalau nggak, nggak apa-apa juga.
                 </Text>
               </View>
