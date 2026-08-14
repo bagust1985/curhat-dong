@@ -4,7 +4,7 @@ import { REACTIONS, REACTION_LABELS, REPORT_CATEGORIES } from '@curhat/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BottomNav, NAV_ITEMS } from './bottom-nav';
-import { IntentBadge, IntentSelector, MoodChip, MoodPicker } from './chips';
+import { IntentBadge, IntentSelector, MoodChip, MoodPicker, MoodStrip } from './chips';
 import { ChatBubble, CommentItem, EmptyState, ListenerCard } from './conversation';
 import { CurhatCard } from './curhat-card';
 import { ReactionBar, ReactionPicker } from './reaction-bar';
@@ -246,6 +246,30 @@ describe('conversation pieces (E15-T03)', () => {
   it('offers no action where inventing one would be pushy', () => {
     render(<EmptyState context="butuhDidengar" onAction={() => {}} />);
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('mood strip on beranda (E18-T01)', () => {
+  it('says where each chip goes, not just what it is', () => {
+    // "Sedih" announced bare sounds like a statement about the reader rather
+    // than a control that opens the composer.
+    render(<MoodStrip onPick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Mulai curhat dengan mood Capek' })).toBeTruthy();
+  });
+
+  it('hands back the mood it was tapped with', async () => {
+    const user = userEvent.setup();
+    const onPick = vi.fn();
+    render(<MoodStrip onPick={onPick} />);
+
+    await user.click(screen.getByRole('button', { name: 'Mulai curhat dengan mood Sedih' }));
+    expect(onPick).toHaveBeenCalledWith('sedih');
+  });
+
+  it('offers buttons rather than radios, because tapping navigates away', () => {
+    // A radio group that leaves the page on the first arrow key is a trap.
+    render(<MoodStrip onPick={() => {}} />);
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
   });
 });
 

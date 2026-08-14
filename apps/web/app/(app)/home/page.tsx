@@ -8,6 +8,7 @@ import { feedGreeting } from '../../../lib/midnight';
 import { mergePages, toCardData, type FeedApiItem } from '../../../lib/feed';
 import { useSession } from '../../../lib/session';
 import { CurhatCard } from '../../../components/curhat-card';
+import { MoodStrip } from '../../../components/chips';
 import { EmptyState } from '../../../components/conversation';
 import {
   FEED_TABS,
@@ -175,21 +176,53 @@ export default function HomePage() {
   const cards = state.items.map((item) => toCardData(item, categoryNames));
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col">
+    // `isolate` keeps the ambient wash behind this screen's own content without
+    // it escaping under the nav that the app shell puts below.
+    <div className="relative isolate mx-auto flex min-h-screen max-w-2xl flex-col">
+      {/*
+       * One soft glow behind the top of the screen — the single decorative
+       * flourish in the app. It exists because a flat ground under a greeting
+       * reads as a form; a lit one reads as a room somebody left a lamp on in.
+       */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80"
+        style={{ background: 'var(--wash-top)' }}
+      />
+
       <main className="flex-1 px-[var(--spacing-gutter)] pt-8 pb-28">
         {/*
-         * The mock's opening: a personal greeting, then the one action this
-         * screen exists to offer, then the shelf of features. The feed follows
-         * — it stays on this screen because it *is* the product (E05, PRD §6)
-         * and the North Star depends on people answering each other; a home
-         * screen that only launches features would quietly demote it.
+         * The order is the argument: greet, ask how they are, then offer the
+         * one action this screen exists for. Features come after that, and the
+         * feed after them — it stays on this screen because it *is* the product
+         * (E05, PRD §6) and the North Star depends on people answering each
+         * other; a home screen that only launches features would quietly
+         * demote it.
          */}
-        <h1 className="text-2xl font-extrabold text-[var(--color-text)]">
-          {user ? `Hai, ${user.alias} 👋` : 'Hai 👋'}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">{feedGreeting()}</p>
+        <div className="flex items-center gap-4">
+          <img
+            src="/brand/mascot.png"
+            alt=""
+            width={297}
+            height={232}
+            className="h-auto w-14 shrink-0"
+          />
+          <div className="min-w-0">
+            <h1 className="text-[27px] font-black text-[var(--color-text)]">
+              {user ? `Hai, ${user.alias}` : 'Hai'}
+            </h1>
+            <p className="mt-0.5 text-sm text-[var(--color-muted)]">{feedGreeting()}</p>
+          </div>
+        </div>
 
-        <div className="mt-5 flex flex-col gap-5">
+        <div className="mt-6 flex flex-col gap-6">
+          {/*
+           * Asking before offering. This is the difference between a screen
+           * that hands things out and one somebody wants to sit in — and the
+           * mood carries through to the composer rather than being decorative.
+           */}
+          <MoodStrip onPick={(mood) => router.push(`/curhat/baru?mood=${mood}`)} />
+
           <StartCurhatCard onStart={() => router.push('/curhat/baru')} />
 
           <QuickLinksGrid onOpen={(link) => router.push(link.href)} />
@@ -205,7 +238,7 @@ export default function HomePage() {
           <PrivateAiEntryCard onOpen={() => router.push('/ai')} />
         </div>
 
-        <h2 className="mt-8 text-base font-bold text-[var(--color-text)]">Cerita Terbaru</h2>
+        <h2 className="mt-9 text-xl font-black text-[var(--color-text)]">Cerita Terbaru</h2>
 
         <div className="mt-3">
           <FeedTabs active={tab} onSelect={setTab} />
