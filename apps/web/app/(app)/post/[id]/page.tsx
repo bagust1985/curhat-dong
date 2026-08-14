@@ -12,6 +12,7 @@ import { IntentBadge, MoodChip } from '../../../../components/chips';
 import { CommentItem, EmptyState } from '../../../../components/conversation';
 import { ReactionBar } from '../../../../components/reaction-bar';
 import { BlockDialog, FeltHeardSheet, ReportSheet } from '../../../../components/safety';
+import { Textarea } from '../../../../components/ui';
 
 /**
  * `/post/:id` — E15-T11. DESIGN-REF §2.5, PRD §9.
@@ -265,8 +266,21 @@ export default function PostDetailPage() {
         </div>
       ) : null}
 
-      <article aria-labelledby="post-heading">
-        <header className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-muted)]">
+      {/*
+       * The same object as the feed card, opened. It used to be bare text on
+       * the page ground while the feed showed a lifted card, so tapping a card
+       * appeared to land somewhere else entirely. Mood and intent lead here too.
+       */}
+      <article
+        aria-labelledby="post-heading"
+        className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <MoodChip mood={toMood(post.mood)} />
+          <IntentBadge intent={toIntent(post.intent)} />
+        </div>
+
+        <header className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-muted)]">
           <span>{post.authorAlias}</span>
           <span aria-hidden="true">·</span>
           <span>{post.categoryName}</span>
@@ -274,20 +288,16 @@ export default function PostDetailPage() {
           <time>{relativeTime(post.createdAt)}</time>
         </header>
 
-        <h1 id="post-heading" className="mt-3 text-2xl font-bold text-[var(--color-text)]">
+        <h1 id="post-heading" className="mt-2 text-2xl font-black text-[var(--color-text)]">
           {post.title ?? 'Curhat'}
         </h1>
 
-        <p className="mt-4 leading-relaxed whitespace-pre-wrap text-[var(--color-text)]">
+        {/* ~65ch: this is the one screen on the product people actually read. */}
+        <p className="mt-4 max-w-[65ch] leading-[1.7] whitespace-pre-wrap text-[var(--color-text)]">
           {post.body}
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <MoodChip mood={toMood(post.mood)} />
-          <IntentBadge intent={toIntent(post.intent)} />
-        </div>
-
-        <div className="mt-6">
+        <div className="mt-6 border-t border-[var(--color-border)] pt-5">
           <ReactionBar
             counts={counts}
             mine={mine}
@@ -295,26 +305,31 @@ export default function PostDetailPage() {
             showCounts
           />
         </div>
+      </article>
 
-        <div className="mt-4 flex flex-wrap gap-3">
+      {/*
+       * Report and block sit outside the card and read as page furniture. They
+       * are necessary, not part of the story — putting them inside the card
+       * made them look like actions the story invites.
+       */}
+      <div className="mt-3 flex flex-wrap gap-4 px-1">
+        <button
+          type="button"
+          onClick={() => setSheet('report')}
+          className="min-h-[var(--size-touch)] text-sm text-[var(--color-muted)] underline underline-offset-4"
+        >
+          Laporkan
+        </button>
+        {!post.isOwn ? (
           <button
             type="button"
-            onClick={() => setSheet('report')}
+            onClick={() => setSheet('block')}
             className="min-h-[var(--size-touch)] text-sm text-[var(--color-muted)] underline underline-offset-4"
           >
-            Laporkan
+            Blokir penulisnya
           </button>
-          {!post.isOwn ? (
-            <button
-              type="button"
-              onClick={() => setSheet('block')}
-              className="min-h-[var(--size-touch)] text-sm text-[var(--color-muted)] underline underline-offset-4"
-            >
-              Blokir penulisnya
-            </button>
-          ) : null}
-        </div>
-      </article>
+        ) : null}
+      </div>
 
       {/*
        * Below the content, never over it. The prompt asks about something the
@@ -331,7 +346,7 @@ export default function PostDetailPage() {
       ) : null}
 
       <section aria-labelledby="comments-heading" className="mt-10">
-        <h2 id="comments-heading" className="text-lg font-bold text-[var(--color-text)]">
+        <h2 id="comments-heading" className="text-xl font-black text-[var(--color-text)]">
           Balasan
         </h2>
 
@@ -381,17 +396,18 @@ export default function PostDetailPage() {
           <div className="mt-6">
             <label
               htmlFor="comment-body"
-              className="block text-sm font-semibold text-[var(--color-text)]"
+              className="block text-sm font-bold text-[var(--color-text)]"
             >
               {replyTo ? 'Balas komentar ini' : 'Tulis balasan'}
             </label>
-            <textarea
+            <Textarea
               id="comment-body"
               rows={4}
               value={composer}
               maxLength={2000}
+              placeholder="Nggak harus panjang. Didengerin aja udah banyak."
               onChange={(event) => setComposer(event.target.value)}
-              className="mt-2 w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)]"
+              className="mt-2"
             />
 
             {composerHints.length > 0 ? (

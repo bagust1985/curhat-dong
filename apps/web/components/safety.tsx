@@ -34,12 +34,15 @@ export function FeltHeardSheet({
       role="dialog"
       aria-modal="true"
       aria-labelledby={headingId}
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+      // The one question the whole product is measured on, so it gets the warm
+      // ground rather than another white card — it should read as the app
+      // leaning in, not as a survey that appeared.
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-tint-pink)] p-5"
     >
-      <h2 id={headingId} className="text-base font-semibold text-[var(--color-text)]">
+      <h2 id={headingId} className="text-base font-bold text-[var(--color-text)]">
         Setelah baca balasan yang masuk, kamu merasa didengar?
       </h2>
-      <p className="mt-1 text-sm text-[var(--color-muted)]">
+      <p className="mt-1.5 text-sm text-[var(--color-text)] opacity-80">
         Jawaban kamu cuma buat kami, nggak kelihatan ke siapa pun.
       </p>
 
@@ -55,7 +58,9 @@ export function FeltHeardSheet({
             key={answer}
             type="button"
             onClick={() => onAnswer(answer)}
-            className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-left text-sm font-medium text-[var(--color-text)]"
+            // All three weighted identically. "Belum, sih" styled any quieter
+            // than "Iya" would bend the North Star metric by design.
+            className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-left text-sm font-semibold text-[var(--color-text)] transition-transform active:scale-[0.98]"
           >
             {label}
           </button>

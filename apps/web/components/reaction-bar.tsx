@@ -56,11 +56,11 @@ export function ReactionBar({
               disabled={disabled}
               aria-pressed={given}
               aria-label={label}
-              className={`inline-flex min-h-[var(--size-touch)] items-center gap-1.5 rounded-full border px-3 text-sm ${
+              className={`inline-flex min-h-[var(--size-touch)] items-center gap-1.5 rounded-full border px-3.5 text-sm transition-transform hover:bg-[var(--color-tint-pink)] active:scale-95 ${
                 given
                   ? // Border weight and font weight change too — the filled
                     // background is not the only signal.
-                    'border-[var(--color-primary)] bg-[var(--color-surface-alt)] font-semibold text-[var(--color-text)]'
+                    'border-[var(--color-primary)] bg-[var(--color-tint-pink)] font-bold text-[var(--color-text)]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
               } disabled:opacity-60`}
             >
@@ -131,9 +131,9 @@ export function ReactionPicker({
                 onClick={() => onPick(reaction)}
                 aria-pressed={given}
                 aria-label={`${entry.a11yLabel}${given ? ', sudah kamu beri' : ''}`}
-                className={`flex min-h-[var(--size-touch)] w-full items-center gap-2 rounded-[var(--radius-curhat)] border px-3 text-left text-sm ${
+                className={`flex min-h-[var(--size-touch)] w-full items-center gap-2 rounded-[var(--radius-curhat)] border px-4 text-left text-sm ${
                   given
-                    ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] font-semibold'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)] font-bold'
                     : 'border-[var(--color-border)] bg-[var(--color-surface)]'
                 } text-[var(--color-text)]`}
               >

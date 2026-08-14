@@ -33,31 +33,37 @@ export function CommentItem({
 }: CommentItemProps) {
   return (
     <article
-      className={`rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 ${
-        depth === 1 ? 'ml-4 border-l-2 border-l-[var(--color-brand)]' : ''
+      className={`rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)] ${
+        depth === 1
+          ? // The nested level is indented *and* ruled, so one level of nesting
+            // is legible without a second shade of surface.
+            'ml-4 rounded-l-md border-l-[3px] border-l-[var(--color-brand)]'
+          : ''
       }`}
     >
-      <header className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-muted)]">
-        <span className="font-medium text-[var(--color-text)]">{authorLabel}</span>
+      <header className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-muted)]">
+        <span className="text-sm font-bold text-[var(--color-text)]">{authorLabel}</span>
         <time>{createdAtLabel}</time>
         {isHelpful ? (
           // The badge the author gives. Text plus an icon, never colour alone,
-          // and worded as the author's own voice (DESIGN-REF §2.5).
-          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-accent-amber)] px-2 text-xs text-[var(--color-text)]">
+          // and worded as the author's own voice (DESIGN-REF §2.5). Filled
+          // amber rather than outlined: this is the warmest thing that can
+          // happen to a reply, and an outline made it look like metadata.
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-tint-amber)] px-2.5 py-0.5 font-bold text-[var(--color-text)]">
             <span aria-hidden="true">🤍</span>
             Jawaban ini membantu gue
           </span>
         ) : null}
       </header>
 
-      <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text)]">{body}</p>
+      <p className="mt-2 text-sm leading-relaxed text-[var(--color-text)]">{body}</p>
 
       {canMarkHelpful && !isHelpful && onMarkHelpful ? (
         <button
           type="button"
           onClick={() => onMarkHelpful(commentId)}
           aria-label={`Tandai balasan dari ${authorLabel} sebagai membantu`}
-          className="mt-2 min-h-[var(--size-touch)] rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text)]"
+          className="mt-3 min-h-[var(--size-touch)] rounded-full border border-[var(--color-border)] px-4 text-sm font-semibold text-[var(--color-text)] transition-transform hover:bg-[var(--color-tint-amber)] active:scale-95"
         >
           <span aria-hidden="true">Ini membantu gue</span>
         </button>
@@ -175,9 +181,9 @@ export function ListenerCard({
   onRequest,
 }: ListenerCardProps) {
   return (
-    <article className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <header className="flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-[var(--color-text)]">{alias}</h3>
+    <article className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-[18px] shadow-[var(--shadow-card)]">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-base font-bold text-[var(--color-text)]">{alias}</h3>
 
         {/* Availability says the word as well as showing a dot. */}
         <span className="inline-flex items-center gap-1.5 text-sm text-[var(--color-muted)]">
@@ -213,7 +219,7 @@ export function ListenerCard({
           type="button"
           onClick={() => onRequest(alias)}
           aria-label={`Minta ${alias} jadi pendengar`}
-          className="mt-3 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-4 font-semibold text-[var(--color-primary-fg)]"
+          className="mt-4 min-h-[var(--size-touch)] w-full rounded-[var(--radius-action)] bg-[var(--color-primary)] px-4 font-bold text-[var(--color-primary-fg)]"
         >
           <span aria-hidden="true">Minta didengar</span>
         </button>
@@ -240,15 +246,17 @@ export function EmptyState({
   const copy = EMPTY_STATES[context];
 
   return (
-    <div className="rounded-[var(--radius-curhat)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
-      <p className="text-base font-semibold text-[var(--color-text)]">{copy.title}</p>
-      <p className="mt-1.5 text-sm text-[var(--color-muted)]">{copy.body}</p>
+    <div className="rounded-[var(--radius-curhat)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)] p-7 text-center">
+      <p className="text-base font-bold text-[var(--color-text)]">{copy.title}</p>
+      <p className="mx-auto mt-2 max-w-[38ch] text-sm leading-relaxed text-[var(--color-muted)]">
+        {copy.body}
+      </p>
 
       {copy.action && onAction ? (
         <button
           type="button"
           onClick={onAction}
-          className="mt-4 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+          className="mt-5 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)]"
         >
           {copy.action}
         </button>
