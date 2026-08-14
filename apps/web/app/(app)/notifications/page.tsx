@@ -91,7 +91,7 @@ export default function NotificationsPage() {
   return (
     <main className="mx-auto max-w-2xl px-[var(--spacing-gutter)] py-8">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">Notifikasi</h1>
+        <h1 className="text-[27px] font-black text-[var(--color-text)]">Notifikasi</h1>
         {unread > 0 ? (
           <button
             type="button"
@@ -125,20 +125,30 @@ export default function NotificationsPage() {
               type="button"
               onClick={() => void open(row)}
               aria-label={`${row.title}. ${row.readAt === null ? 'Belum dibaca.' : ''}`}
-              className={`min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border p-4 text-left ${
+              // Unread carries three signals, not one: the tint, the dot, and
+              // the bold title — plus "Belum dibaca" in the accessible name.
+              // A colour-only unread state is invisible to a good chunk of the
+              // people this product exists for.
+              className={`min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border p-4 text-left shadow-[var(--shadow-card)] ${
                 row.readAt === null
-                  ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)]'
+                  ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)]'
+                  : 'border-transparent bg-[var(--color-surface)]'
               }`}
             >
               <span className="flex items-center gap-2">
                 {row.readAt === null ? (
                   <span
                     aria-hidden="true"
-                    className="size-2 rounded-full bg-[var(--color-primary)]"
+                    className="size-2.5 shrink-0 rounded-full bg-[var(--color-primary)]"
                   />
                 ) : null}
-                <span className="font-semibold text-[var(--color-text)]">{row.title}</span>
+                <span
+                  className={`text-[var(--color-text)] ${
+                    row.readAt === null ? 'font-black' : 'font-semibold'
+                  }`}
+                >
+                  {row.title}
+                </span>
               </span>
               <span className="mt-1 block text-sm text-[var(--color-muted)]">{row.body}</span>
               <span className="mt-1 block text-xs text-[var(--color-muted)]">

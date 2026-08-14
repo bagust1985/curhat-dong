@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api } from '../../../lib/api';
 import { EmptyState } from '../../../components/conversation';
+import { Input } from '../../../components/ui';
 
 /**
  * `/explore` — E15-T15. DESIGN-REF §2.12.
@@ -41,7 +42,7 @@ export default function ExplorePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-[var(--spacing-gutter)] py-8">
-      <h1 className="text-2xl font-bold text-[var(--color-text)]">Topik</h1>
+      <h1 className="text-[27px] font-black text-[var(--color-text)]">Topik</h1>
 
       <form
         className="mt-4"
@@ -54,12 +55,11 @@ export default function ExplorePage() {
         <label htmlFor="explore-search" className="sr-only">
           Cari curhat, listener, atau topik
         </label>
-        <input
+        <Input
           id="explore-search"
           name="q"
           type="search"
           placeholder="Cari sesuatu…"
-          className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
         />
       </form>
 
@@ -72,18 +72,25 @@ export default function ExplorePage() {
       <ul className="mt-6 grid grid-cols-2 gap-3">
         {topics.map((topic) => (
           <li key={topic.slug}>
+            {/*
+              Deliberately not tinted per topic. In this palette a tint carries
+              a meaning — lavender is DONG AI — and cycling colours by grid
+              position would invent a meaning that is not there. The icon and
+              the name are the real difference between two topics.
+            */}
             <button
               type="button"
               onClick={() => router.push(`/search?q=${encodeURIComponent(topic.name)}&tab=topik`)}
-              className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-left"
+              className="flex min-h-[var(--size-touch)] w-full flex-col items-start gap-2 rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 text-left shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"
             >
-              <span className="block text-lg" aria-hidden="true">
+              <span
+                aria-hidden="true"
+                className="flex size-11 items-center justify-center rounded-[14px] bg-[var(--color-surface-alt)] text-xl"
+              >
                 {topic.icon ?? '💬'}
               </span>
-              <span className="mt-1 block font-semibold text-[var(--color-text)]">
-                {topic.name}
-              </span>
-              <span className="block text-sm text-[var(--color-muted)]">
+              <span className="block font-bold text-[var(--color-text)]">{topic.name}</span>
+              <span className="block text-sm text-[var(--color-muted)] tabular-nums">
                 {topic.activePosts === 0
                   ? 'Belum ada cerita'
                   : `${topic.activePosts} cerita aktif`}

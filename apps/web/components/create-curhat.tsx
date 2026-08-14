@@ -7,6 +7,7 @@ import { ApiError, api } from '../lib/api';
 import { EMPTY_DRAFT, clearDraft, loadDraft, saveDraft, type Draft } from '../lib/draft';
 import { PERSONAL_DATA_WARNING, detectPersonalData } from '../lib/personal-data';
 import { CategorySheet, IntentSelector, MoodPicker, type CategoryOption } from './chips';
+import { Input, fieldClasses } from './ui';
 import {
   SupportiveIntervention,
   type SupportiveInterventionData,
@@ -227,12 +228,12 @@ export function CreateCurhat({
         >
           Judul <span className="font-normal text-[var(--color-muted)]">(opsional)</span>
         </label>
-        <input
+        <Input
           id="curhat-title"
           value={draft.title}
           maxLength={160}
           onChange={(event) => update('title', event.target.value)}
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-2"
         />
       </div>
 
@@ -291,7 +292,7 @@ export function CreateCurhat({
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-left text-[var(--color-text)]"
+          className={fieldClasses("mt-2 text-left")}
         >
           {categories.find((item) => item.slug === draft.categorySlug)?.name ?? 'Pilih topik'}
         </button>
