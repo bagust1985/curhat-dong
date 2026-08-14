@@ -2,7 +2,7 @@
   "name": "curhat-dong",
   "version": "0.1.0",
   "private": true,
-  "description": "CURHAT DONG — emotional social network (anonymous curhat + human listener + DONG AI)",
+  "description": "CURHAT DONG \u2014 emotional social network (anonymous curhat + human listener + DONG AI)",
   "packageManager": "pnpm@10.30.0",
   "engines": {
     "node": ">=20.19.0 <23"
@@ -29,5 +29,13 @@
     "turbo": "2.10.9",
     "typescript": "5.9.3",
     "typescript-eslint": "8.67.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "react-native-worklets": "0.10.1",
+      "@babel/generator": "^7.29.0",
+      "@babel/traverse": "^7.29.0",
+      "@babel/helper-module-imports": "^7.29.0"
+    }
   }
 }
