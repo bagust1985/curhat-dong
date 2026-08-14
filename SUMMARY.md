@@ -72,9 +72,10 @@ build #7 diluncurkan, resep verifikasi cold-cache di bawah dijalankan ulang di
 Profil `preview` menunjuk ke **API produksi** — curhat dari APK itu masuk
 database asli.
 
-**Yang masih terbuka:** belum ada satu layar mobile pun yang pernah dilihat —
-tidak ada emulator/perangkat di sesi ini. APK-nya ada, tinggal dipasang dan
-dilihat manusia.
+**Diverifikasi di perangkat asli (14 Agu 2026):** product owner memasang APK
+build #7 di HP — aplikasi **tidak crash dan berjalan normal**. Yang masih
+terbuka: **revisi UI/UX mobile**, disepakati dikerjakan di sesi berikutnya
+(hasil pengamatan langsung pertama atas layar-layar hasil restyle rose).
 
 ### Lima kegagalan EAS — semuanya bentuknya sama
 
@@ -240,7 +241,7 @@ landing + Beranda.
 | **E13** | Search | 4/4 | ✅ **Selesai** |
 | **E14** | Admin Panel | 15/15 | ✅ **Selesai** (UI-nya E15/E16) |
 | **E15** | Web UI | 17/17 | ✅ **Selesai** |
-| **E16** | Mobile (Android) | 13/13 | ✅ **Selesai** (kode; verifikasi perangkat tertunda) |
+| **E16** | Mobile (Android) | 13/13 | ✅ **Selesai** (APK build #7 terpasang di perangkat, jalan normal) |
 | E17 | Compliance, Deploy & Observability | 1/14 | 🟡 **Berjalan** — 10 kodenya mendarat, 3 butuh manusia |
 
 **Progres: 167 / 182 task selesai (91,8%).** Sepuluh task E17 lagi berstatus
