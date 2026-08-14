@@ -63,21 +63,34 @@ export function CurhatCard({
   const notice = VARIANT_NOTICE[variant];
 
   return (
+    // Lifted on a soft rose shadow rather than outlined. A column of
+    // identically-hairlined boxes read as one list; separate stories should
+    // look like separate things somebody put down.
     <article
-      className={`rounded-[var(--radius-curhat)] border bg-[var(--color-surface)] p-4 ${
+      className={`rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-[18px] shadow-[var(--shadow-card)] ${
         variant === 'butuh-didengar'
           ? // A left edge plus the notice text below — the accent is never the
             // only thing distinguishing this variant.
-            'border-[var(--color-border)] border-l-4 border-l-[var(--color-accent-amber)]'
+            'rounded-l-md border-l-4 border-l-[var(--color-accent-amber)]'
           : variant === 'held'
-            ? 'border-dashed border-[var(--color-muted)]'
-            : 'border-[var(--color-border)]'
+            ? 'border border-dashed border-[var(--color-muted)] shadow-none'
+            : ''
       }`}
       // Labelled by its own heading, so a screen reader announces the card as a
       // unit rather than a loose run of text.
       aria-labelledby={`curhat-${postId}-heading`}
     >
-      <header className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-muted)]">
+      {/*
+        Mood and intent lead now, byline follows. What a reader decides on is
+        how this person feels and what they are asking for — the alias and the
+        timestamp are the footnote, and they used to be the first thing said.
+      */}
+      <div className="flex flex-wrap items-center gap-2">
+        <MoodChip mood={mood} />
+        <IntentBadge intent={intent} />
+      </div>
+
+      <header className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--color-muted)]">
         <span>
           {isAnonymous ? (
             <>
@@ -96,30 +109,29 @@ export function CurhatCard({
 
       <h3
         id={`curhat-${postId}-heading`}
-        className="mt-2 text-base font-semibold text-[var(--color-text)]"
+        className="mt-2 text-[17px] font-bold text-[var(--color-text)]"
       >
         {title ?? excerpt.slice(0, 60)}
       </h3>
 
-      <p className="mt-1 text-sm leading-relaxed text-[var(--color-text)]">{excerpt}</p>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <MoodChip mood={mood} />
-        <IntentBadge intent={intent} />
-      </div>
+      <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text)] opacity-85">
+        {excerpt}
+      </p>
 
       {notice ? (
         <p
-          className={`mt-3 text-sm ${
-            variant === 'held' ? 'text-[var(--color-muted)]' : 'text-[var(--color-text)]'
+          className={`mt-3 rounded-xl px-3 py-2 text-sm ${
+            variant === 'held'
+              ? 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
+              : 'bg-[var(--color-tint-amber)] text-[var(--color-text)]'
           }`}
         >
           {notice}
         </p>
       ) : null}
 
-      <footer className="mt-3 flex items-center justify-between">
-        <span className="text-sm text-[var(--color-muted)]">
+      <footer className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-3">
+        <span className="text-xs text-[var(--color-muted)]">
           {replyCount === 0 ? (
             'Belum ada balasan'
           ) : (
@@ -136,7 +148,7 @@ export function CurhatCard({
             // The accessible name says which curhat, because a feed of cards
             // otherwise announces "Baca selengkapnya" twenty times.
             aria-label={`Baca curhat: ${title ?? excerpt.slice(0, 40)}`}
-            className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] border border-[var(--color-brand)] px-4 text-sm font-semibold text-[var(--color-text)]"
+            className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] border-[1.5px] border-[var(--color-brand)] px-5 text-sm font-bold text-[var(--color-text)]"
           >
             <span aria-hidden="true">Baca</span>
           </button>

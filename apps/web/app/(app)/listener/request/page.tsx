@@ -5,6 +5,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 
 import { ApiError, api } from '../../../../lib/api';
 import { MatchFailedState, SearchingState } from '../../../../components/room';
+import { Input } from '../../../../components/ui';
 
 /**
  * `/listener/request` — E15-T14. DESIGN-REF §2.10.
@@ -144,12 +145,12 @@ function RequestForm() {
         <label htmlFor="request-topic" className="block text-sm font-semibold text-[var(--color-text)]">
           Ini soal apa?
         </label>
-        <input
+        <Input
           id="request-topic"
           value={topic}
           maxLength={40}
           onChange={(event) => setTopic(event.target.value)}
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-2"
         />
       </div>
 
@@ -160,12 +161,12 @@ function RequestForm() {
         >
           Sekarang rasanya gimana?
         </label>
-        <input
+        <Input
           id="request-emotion"
           value={emotion}
           maxLength={40}
           onChange={(event) => setEmotion(event.target.value)}
-          className="mt-2 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-2"
         />
       </div>
 

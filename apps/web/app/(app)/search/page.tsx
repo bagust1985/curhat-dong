@@ -12,6 +12,7 @@ import {
 } from '../../../lib/recent-searches';
 import { CurhatCard } from '../../../components/curhat-card';
 import { EmptyState, ListenerCard } from '../../../components/conversation';
+import { Input } from '../../../components/ui';
 
 /**
  * `/search` — E15-T15. DESIGN-REF §2.13.
@@ -94,7 +95,7 @@ function SearchView() {
 
   return (
     <main className="mx-auto max-w-2xl px-[var(--spacing-gutter)] py-8">
-      <h1 className="text-2xl font-bold text-[var(--color-text)]">Cari</h1>
+      <h1 className="text-[27px] font-black text-[var(--color-text)]">Cari</h1>
 
       <form
         className="mt-4"
@@ -106,12 +107,12 @@ function SearchView() {
         <label htmlFor="search-input" className="sr-only">
           Kata kunci
         </label>
-        <input
+        <Input
           id="search-input"
           type="search"
           value={query}
+          placeholder="Cari cerita, topik, atau listener…"
           onChange={(event) => setQuery(event.target.value)}
-          className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
         />
       </form>
 
@@ -128,7 +129,7 @@ function SearchView() {
             }}
             className={`min-h-[var(--size-touch)] rounded-[var(--radius-chip)] border px-4 text-sm ${
               tab === entry.key
-                ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] font-semibold text-[var(--color-text)]'
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-[var(--color-primary-fg)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]'
             }`}
           >
@@ -139,7 +140,7 @@ function SearchView() {
 
       {results === null && recent.length > 0 ? (
         <section aria-labelledby="recent-heading" className="mt-6">
-          <h2 id="recent-heading" className="text-base font-semibold text-[var(--color-text)]">
+          <h2 id="recent-heading" className="text-base font-black text-[var(--color-text)]">
             Terakhir kamu cari
           </h2>
           <p className="mt-1 text-sm text-[var(--color-muted)]">

@@ -7,6 +7,7 @@ import { api, getAccessToken } from '../../../lib/api';
 import { relativeTime } from '../../../lib/relative-time';
 import { streamSse } from '../../../lib/sse';
 import { EmptyState } from '../../../components/conversation';
+import { Textarea } from '../../../components/ui';
 import {
   AiDisclaimer,
   BridgeCard,
@@ -237,9 +238,20 @@ export default function DongAiPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-[var(--spacing-gutter)] py-8">
+    <main className="relative isolate mx-auto flex min-h-screen max-w-2xl flex-col px-[var(--spacing-gutter)] py-8">
+      {/*
+       * A lavender wash where Beranda has a rose one. Walking into this screen
+       * should feel like a different room in the same house — DONG AI is not a
+       * person, and the colour says so before the disclaimer has to.
+       */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72"
+        style={{ background: 'var(--wash-ai)' }}
+      />
+
       <header className="flex flex-col gap-3">
-        <h1 className="text-xl font-bold text-[var(--color-text)]">DONG AI</h1>
+        <h1 className="text-2xl font-black text-[var(--color-text)]">DONG AI</h1>
         <AiDisclaimer text={disclaimer} />
         <PersonalityPicker
           options={personalities}
@@ -259,10 +271,10 @@ export default function DongAiPage() {
                   <button
                     type="button"
                     onClick={() => void openConversation(conversation.id)}
-                    className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-left text-[var(--color-text)]"
+                    className="min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] bg-[var(--color-surface)] px-5 py-4 text-left text-[var(--color-text)] shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"
                   >
-                    <span className="block font-semibold">Obrolan sama DONG</span>
-                    <span className="block text-sm text-[var(--color-muted)]">
+                    <span className="block font-bold">Obrolan sama DONG</span>
+                    <span className="mt-0.5 block text-sm text-[var(--color-muted)]">
                       {conversation.lastMessageAt
                         ? relativeTime(conversation.lastMessageAt)
                         : 'Belum ada pesan'}
@@ -276,7 +288,9 @@ export default function DongAiPage() {
           <button
             type="button"
             onClick={() => void startConversation()}
-            className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+            // Lavender: starting a chat with DONG is an action on the AI, not
+            // one among people.
+            className="min-h-[var(--size-touch)] self-start rounded-[var(--radius-action)] bg-[var(--color-accent-lavender)] px-6 font-bold text-[var(--color-primary-fg)]"
           >
             Mulai obrolan baru
           </button>
@@ -317,18 +331,19 @@ export default function DongAiPage() {
                 <label htmlFor="ai-input" className="sr-only">
                   Tulis pesan buat DONG
                 </label>
-                <textarea
+                <Textarea
                   id="ai-input"
                   rows={2}
                   value={draft}
+                  placeholder="Ceritain aja…"
                   onChange={(event) => setDraft(event.target.value)}
-                  className="flex-1 rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)]"
+                  className="flex-1"
                 />
                 <button
                   type="button"
                   onClick={() => void send()}
                   disabled={draft.trim().length === 0 || streaming !== null}
-                  className="min-h-[var(--size-touch)] self-end rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+                  className="min-h-[var(--size-touch)] self-end rounded-[var(--radius-action)] bg-[var(--color-accent-lavender)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
                 >
                   Kirim
                 </button>

@@ -17,6 +17,7 @@ import {
 } from '../../../components/auth';
 import { GoogleSignIn } from '../../../components/google-signin';
 import { Turnstile } from '../../../components/turnstile';
+import { Wordmark } from '../../../components/ui';
 
 /**
  * `/auth` — E15-T06, revised for password login (Revisi 1, Aug 2026).
@@ -257,7 +258,35 @@ export default function AuthPage() {
   }, []);
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-[var(--spacing-gutter)] py-12">
+    /*
+     * Somebody arrives here straight off the landing page's "Mulai Curhat".
+     * It used to be a bare form on the page ground — the brand simply stopped
+     * at the door. The mark, the wash and the card carry it through, so signing
+     * up looks like the same product that just persuaded them.
+     */
+    <main className="relative isolate mx-auto flex min-h-screen max-w-md flex-col justify-center px-[var(--spacing-gutter)] py-12">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80"
+        style={{ background: 'var(--wash-top)' }}
+      />
+
+      <a
+        href="/"
+        aria-label="Kembali ke halaman depan CURHAT DONG"
+        className="mb-8 flex items-center justify-center gap-2.5"
+      >
+        <img
+          src="/brand/logo-96.png"
+          alt=""
+          width={96}
+          height={96}
+          className="size-10 rounded-xl"
+        />
+        <Wordmark />
+      </a>
+
+      <div className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)] sm:p-7">
       {step === 'login' ? (
         <PasswordLoginStep
           onSubmit={(address, password) => void loginWithPassword(address, password)}
@@ -342,6 +371,7 @@ export default function AuthPage() {
       ) : null}
 
       {step === 'blocked' ? <AgeBlocked onHome={() => router.push('/')} /> : null}
+      </div>
     </main>
   );
 }

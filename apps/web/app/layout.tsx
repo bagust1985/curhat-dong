@@ -13,7 +13,10 @@ import { ThemeScript } from '../components/theme-script';
  */
 const nunito = Nunito({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
+  // 900 added in E18-T01: it is the display voice for greetings and headings.
+  // Without it the browser fakes the weight, which on a rounded face smears the
+  // counters and looks like a rendering fault rather than a bold heading.
+  weight: ['400', '600', '700', '800', '900'],
   variable: '--font-nunito',
   display: 'swap',
 });
@@ -31,9 +34,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Must match `--color-bg` in globals.css, or the browser chrome paints a
+  // different colour from the page it is framing.
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fbf9f7' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f1420' },
+    { media: '(prefers-color-scheme: light)', color: '#fff5f8' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1020' },
   ],
 };
 

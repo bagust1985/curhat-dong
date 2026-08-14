@@ -13,13 +13,25 @@ import { AA_NORMAL_TEXT, AA_UI_COMPONENT, contrastRatio } from '../../../lib/con
  * Noindex by default like every route except `/`.
  */
 
-const PAIRS: Array<{ fg: keyof (typeof THEMES)['dark']; bg: 'bg' | 'surface'; need: number }> = [
+type TokenKey = keyof (typeof THEMES)['dark'];
+
+const PAIRS: Array<{ fg: TokenKey; bg: TokenKey; need: number }> = [
   { fg: 'text', bg: 'bg', need: AA_NORMAL_TEXT },
   { fg: 'muted', bg: 'bg', need: AA_NORMAL_TEXT },
   { fg: 'brand', bg: 'bg', need: AA_UI_COMPONENT },
   { fg: 'primary', bg: 'bg', need: AA_UI_COMPONENT },
+  { fg: 'accentLavender', bg: 'bg', need: AA_UI_COMPONENT },
   { fg: 'focus', bg: 'bg', need: AA_UI_COMPONENT },
   { fg: 'danger', bg: 'bg', need: AA_NORMAL_TEXT },
+  // The pairings E18-T01 turns on. `primaryFg` on `primary` is the button; the
+  // two `accentFg` rows are the fills that must never take white.
+  { fg: 'primaryFg', bg: 'primary', need: AA_NORMAL_TEXT },
+  { fg: 'accentFg', bg: 'brand', need: AA_NORMAL_TEXT },
+  { fg: 'accentFg', bg: 'accentAmber', need: AA_NORMAL_TEXT },
+  { fg: 'text', bg: 'tintPink', need: AA_NORMAL_TEXT },
+  { fg: 'text', bg: 'tintLavender', need: AA_NORMAL_TEXT },
+  { fg: 'text', bg: 'tintAmber', need: AA_NORMAL_TEXT },
+  { fg: 'text', bg: 'tintRose', need: AA_NORMAL_TEXT },
 ];
 
 export default function TokensPage() {
@@ -56,12 +68,29 @@ export default function TokensPage() {
                 ))}
               </div>
 
-              <button
-                type="button"
-                className="mt-5 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
-              >
-                Mulai Curhat
-              </button>
+              {/*
+                Side by side on purpose. The hue gap between `primary` and
+                `danger` is asserted in lib/contrast.test.ts, but a number is
+                not the check that matters — this is: do these two read as
+                different colours when a confirm dialog puts them together?
+              */}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+                >
+                  Mulai Curhat
+                </button>
+                <button
+                  type="button"
+                  className="min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-danger)] px-5 font-semibold text-[var(--color-danger-fg)]"
+                >
+                  Hapus akun
+                </button>
+                <span className="inline-flex min-h-[var(--size-touch)] items-center rounded-[var(--radius-chip)] bg-[var(--color-brand)] px-4 text-sm font-bold text-[var(--color-accent-fg)]">
+                  Badge brand
+                </span>
+              </div>
 
               <dl className="mt-5 space-y-1 text-sm text-[var(--color-muted)]">
                 {PAIRS.map(({ fg, bg, need }) => {

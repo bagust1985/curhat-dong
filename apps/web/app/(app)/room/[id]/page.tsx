@@ -7,6 +7,7 @@ import { api } from '../../../../lib/api';
 import { relativeTime } from '../../../../lib/relative-time';
 import { getSocket, type RoomClosedEvent, type RoomMessageEvent, type RoomPresenceEvent, type RoomTypingEvent } from '../../../../lib/socket';
 import { BlockDialog, ReportSheet } from '../../../../components/safety';
+import { Textarea } from '../../../../components/ui';
 import {
   RoomHeader,
   RoomTranscript,
@@ -281,22 +282,23 @@ export default function RoomPage() {
         <label htmlFor="room-input" className="sr-only">
           Tulis pesan
         </label>
-        <textarea
+        <Textarea
           id="room-input"
           rows={2}
           value={draft}
           maxLength={4000}
+          placeholder="Tulis pesan…"
           onChange={(event) => {
             setDraft(event.target.value);
             notifyTyping();
           }}
-          className="flex-1 rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)]"
+          className="flex-1"
         />
         <button
           type="button"
           onClick={() => void send()}
           disabled={draft.trim().length === 0}
-          className="min-h-[var(--size-touch)] self-end rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)] disabled:opacity-60"
+          className="min-h-[var(--size-touch)] self-end rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)] disabled:opacity-60"
         >
           Kirim
         </button>

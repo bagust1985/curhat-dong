@@ -52,7 +52,19 @@ export function AppChrome({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col">
       {/* pb keeps the last line of content above the bar. */}
       <div className="flex-1 pb-24">{children}</div>
-      <div className="sticky bottom-0">
+      {/*
+        The bar floats now (E18-T01), so the strip it sits in is transparent —
+        and content scrolling through that gap looked like a rendering bug. The
+        ground fades in underneath instead: the pill still reads as lifted, and
+        nothing slides out from behind it.
+      */}
+      <div
+        className="sticky bottom-0"
+        style={{
+          background:
+            'linear-gradient(to top, var(--color-bg) 55%, color-mix(in srgb, var(--color-bg) 70%, transparent) 80%, transparent 100%)',
+        }}
+      >
         <BottomNav
           active={activeKeyFor(pathname) ?? 'beranda'}
           onNavigate={(item) => {

@@ -42,7 +42,9 @@ export function MoodChip({ mood, showLabel = true }: { mood: Mood; showLabel?: b
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-sm text-[var(--color-text)] ${shapeClass(entry.shape)}`}
+      // Filled blush against the outlined intent badge beside it, so the pair
+      // reads as two different kinds of fact rather than two of the same chip.
+      className={`inline-flex items-center gap-1.5 bg-[var(--color-tint-pink)] px-2.5 py-1 text-sm font-semibold text-[var(--color-text)] ${shapeClass(entry.shape)}`}
       // The visible label is redundant for sighted readers, so the whole chip
       // gets one accessible name rather than announcing glyph and text twice.
       role="img"
@@ -59,7 +61,7 @@ export function IntentBadge({ intent }: { intent: Intent }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border border-[var(--color-brand)] px-2 py-1 text-sm text-[var(--color-text)] ${shapeClass(entry.shape)}`}
+      className={`inline-flex items-center gap-1.5 border border-[var(--color-border)] px-2.5 py-1 text-sm text-[var(--color-text)] ${shapeClass(entry.shape)}`}
       role="img"
       aria-label={entry.a11yLabel}
     >
@@ -156,6 +158,51 @@ export function MoodPicker({
         })}
       </div>
     </fieldset>
+  );
+}
+
+/**
+ * The mood strip on `/home` — E18-T01.
+ *
+ * Not a picker: nothing is selected and nothing is submitted here. Each chip is
+ * a way *into* the composer with that mood already chosen, which is why these
+ * are plain buttons rather than radios — a radio group that navigates away on
+ * the first arrow key is a trap.
+ *
+ * It exists because the home screen used to only hand things out. Asking first
+ * is the difference between a noticeboard and somewhere you sit down.
+ */
+export function MoodStrip({ onPick }: { onPick: (mood: Mood) => void }) {
+  return (
+    <section aria-labelledby="mood-strip-heading" className="flex flex-col gap-2">
+      <h2 id="mood-strip-heading" className="text-sm font-bold text-[var(--color-muted)]">
+        Lagi ngerasa apa hari ini?
+      </h2>
+
+      {/* -mx/px pair so the rail bleeds to the screen edge while its first and
+          last chips still clear the gutter. */}
+      <ul className="-mx-[var(--spacing-gutter)] flex gap-2 overflow-x-auto px-[var(--spacing-gutter)] pb-1">
+        {MOODS.map((mood) => {
+          const entry = MOOD_VOCABULARY[mood];
+
+          return (
+            <li key={mood} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => onPick(mood)}
+                // Says where it goes, not just what it is: "Sedih" announced
+                // bare sounds like a statement rather than a control.
+                aria-label={`Mulai curhat dengan mood ${MOOD_LABELS[mood]}`}
+                className={`inline-flex min-h-[var(--size-touch)] items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-sm font-semibold text-[var(--color-text)] transition-transform hover:bg-[var(--color-tint-pink)] active:scale-95 ${shapeClass(entry.shape)}`}
+              >
+                <span aria-hidden="true">{entry.glyph}</span>
+                <span aria-hidden="true">{MOOD_LABELS[mood]}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

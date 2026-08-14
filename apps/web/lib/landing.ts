@@ -49,6 +49,13 @@ export interface Feature {
   glyph: string;
   title: string;
   body: string;
+  /**
+   * Tint token for the glyph plate (E18-T01). Assigned by meaning, not by
+   * position: lavender is DONG AI's colour everywhere in the product, so the
+   * AI feature carries it here too. A stranger who signs up meets the same
+   * colour again on the AI screen.
+   */
+  tint: string;
 }
 
 /**
@@ -57,10 +64,30 @@ export interface Feature {
  * dedicated Communities feature is Phase 2 and deliberately not promised here.
  */
 export const FEATURES: readonly Feature[] = [
-  { glyph: '🔒', title: 'Privasi Aman', body: 'Cerita kamu dijaga kerahasiaannya.' },
-  { glyph: '💜', title: 'Didengar AI', body: 'AI siap mendengar dan memahami.' },
-  { glyph: '😊', title: 'Nyaman & Aman', body: 'Lingkungan positif tanpa penilaian.' },
-  { glyph: '👥', title: 'Komunitas', body: 'Kamu bisa berbagi dan terhubung.' },
+  {
+    glyph: '🔒',
+    title: 'Privasi Aman',
+    body: 'Cerita kamu dijaga kerahasiaannya.',
+    tint: 'var(--color-tint-rose)',
+  },
+  {
+    glyph: '💜',
+    title: 'Didengar AI',
+    body: 'AI siap mendengar dan memahami.',
+    tint: 'var(--color-tint-lavender)',
+  },
+  {
+    glyph: '😊',
+    title: 'Nyaman & Aman',
+    body: 'Lingkungan positif tanpa penilaian.',
+    tint: 'var(--color-tint-pink)',
+  },
+  {
+    glyph: '👥',
+    title: 'Komunitas',
+    body: 'Kamu bisa berbagi dan terhubung.',
+    tint: 'var(--color-tint-amber)',
+  },
 ];
 
 export interface ValueProp {
@@ -68,6 +95,8 @@ export interface ValueProp {
   glyph: string;
   title: string;
   body: string;
+  /** Tint token for the glyph plate. Same rule as `Feature.tint`. */
+  tint: string;
 }
 
 /** DESIGN-REF §2.1: anonim, listener manusia, DONG AI, aman. */
@@ -76,21 +105,25 @@ export const VALUE_PROPS: readonly ValueProp[] = [
     glyph: '🫥',
     title: 'Anonim kalau kamu mau',
     body: 'Kamu dapat nama samaran otomatis. Tiap curhat anonim pakai kode yang beda, jadi cerita-ceritamu nggak bisa disambung-sambungin jadi satu orang.',
+    tint: 'var(--color-tint-rose)',
   },
   {
     glyph: '🤍',
     title: 'Didengar manusia beneran',
     body: 'Listener di sini belajar buat dengerin, bukan ngasih ceramah. Kamu yang nentuin kapan mau cerita dan kapan mau berhenti.',
+    tint: 'var(--color-tint-pink)',
   },
   {
     glyph: '🌙',
     title: 'DONG AI nemenin jam 2 pagi',
     body: 'Kalau lagi nggak ada siapa-siapa, DONG siap nemenin ngobrol. DONG itu AI — bukan psikolog, dan nggak akan pura-pura jadi psikolog.',
+    tint: 'var(--color-tint-lavender)',
   },
   {
     glyph: '🛡️',
     title: 'Dijaga, bukan dihakimi',
     body: 'Ada sistem keamanan otomatis dan tim moderasi. Kalau kami lihat tanda kamu lagi nggak aman, yang muncul adalah bantuan — bukan hukuman.',
+    tint: 'var(--color-tint-amber)',
   },
 ];
 

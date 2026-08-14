@@ -4,7 +4,7 @@ import { REACTIONS, REACTION_LABELS, REPORT_CATEGORIES } from '@curhat/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BottomNav, NAV_ITEMS } from './bottom-nav';
-import { IntentBadge, IntentSelector, MoodChip, MoodPicker } from './chips';
+import { IntentBadge, IntentSelector, MoodChip, MoodPicker, MoodStrip } from './chips';
 import { ChatBubble, CommentItem, EmptyState, ListenerCard } from './conversation';
 import { CurhatCard } from './curhat-card';
 import { ReactionBar, ReactionPicker } from './reaction-bar';
@@ -223,6 +223,22 @@ describe('conversation pieces (E15-T03)', () => {
     expect(paragraph.textContent?.startsWith('Aku dengerin')).toBe(true);
   });
 
+  it('never paints a human reply in the AI colour (E18-T01)', () => {
+    // Lavender means "this is not a person" everywhere in the product. A
+    // listener's message rendered in it would be the one visual lie this
+    // design system must not tell, so `human` is the default and has to stay
+    // the default.
+    render(<ChatBubble messageId="m1" body="Aku dengerin" from="other" />);
+    const bubble = screen.getByText('Aku dengerin').parentElement;
+    expect(bubble?.className).not.toContain('tint-lavender');
+  });
+
+  it('paints a DONG AI reply in the AI colour', () => {
+    render(<ChatBubble messageId="m1" body="Aku di sini" from="other" tone="ai" />);
+    const bubble = screen.getByText('Aku di sini').parentElement;
+    expect(bubble?.className).toContain('tint-lavender');
+  });
+
   it('states listener availability in words, not just a dot', () => {
     render(<ListenerCard alias="BayuRanum" topics={['Kerjaan']} isAvailable={false} />);
     expect(screen.getByText('Sedang nggak available')).toBeTruthy();
@@ -246,6 +262,30 @@ describe('conversation pieces (E15-T03)', () => {
   it('offers no action where inventing one would be pushy', () => {
     render(<EmptyState context="butuhDidengar" onAction={() => {}} />);
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('mood strip on beranda (E18-T01)', () => {
+  it('says where each chip goes, not just what it is', () => {
+    // "Sedih" announced bare sounds like a statement about the reader rather
+    // than a control that opens the composer.
+    render(<MoodStrip onPick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Mulai curhat dengan mood Capek' })).toBeTruthy();
+  });
+
+  it('hands back the mood it was tapped with', async () => {
+    const user = userEvent.setup();
+    const onPick = vi.fn();
+    render(<MoodStrip onPick={onPick} />);
+
+    await user.click(screen.getByRole('button', { name: 'Mulai curhat dengan mood Sedih' }));
+    expect(onPick).toHaveBeenCalledWith('sedih');
+  });
+
+  it('offers buttons rather than radios, because tapping navigates away', () => {
+    // A radio group that leaves the page on the first arrow key is a trap.
+    render(<MoodStrip onPick={() => {}} />);
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
   });
 });
 

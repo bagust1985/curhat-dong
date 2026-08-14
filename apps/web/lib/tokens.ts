@@ -1,5 +1,6 @@
 /**
- * Design tokens — E15-T01. DESIGN-REF §0, PRD §23, §23.1.
+ * Design tokens — E15-T01, repainted rose in E18-T01. DESIGN-REF §0, PRD §23,
+ * §23.1.
  *
  * Mirrored from `globals.css` so the contrast test can assert them. If a colour
  * changes in CSS it must change here too; the test is what keeps the two
@@ -8,26 +9,41 @@
  *
  * ## Where these values come from
  *
- * The brand kit in `docs/` is the source of identity: purple `#7C5CFC`, pink
- * `#FF688A`, amber `#FFB84D`, lavender `#EAE6FF`, and the near-white ground.
- * The values below are those hues *tuned until they pass WCGA AA* — which two
- * of them did not, and that is worth stating rather than hiding:
+ * The app icon in `docs/curhatdong_logo_v2.png`: a rose ground, a periwinkle
+ * speech bubble, a pink heart, amber and coral sparks. The previous palette was
+ * lavender-led and had drifted away from the mark it was supposed to belong to
+ * — pink survived in exactly two places in the whole app.
  *
- *  - white on brand purple `#7C5CFC` is **4.38:1** — under the 4.5 needed for
- *    normal text, though fine for large text and UI borders (3:1). The mock's
- *    primary button uses exactly that pairing, so `primary` here is deepened to
- *    `#5B3BE0` (6.67:1) for anything text sits on, and the brand purple is kept
- *    as `brand` for large type, icons and outlines;
- *  - white on brand pink `#FF688A` is **2.76:1**, which fails badly. Pink
- *    therefore never carries white text: it is decoration, or it takes dark ink
- *    (`#1E1240` on pink is 6.25:1).
+ * ## The one rule the palette rests on
  *
- * ## Why pink and purple, given DESIGN-REF §0
+ * **Deep rose carries the actions, bright pink carries the identity.** Not a
+ * style preference — bright pink physically cannot hold white text:
  *
- * §0 warns against dating-app connotations, and purple-pink is that palette's
- * home. Two things keep it on the right side: pink appears as brand punctuation
- * and warmth rather than on hearts, matches or profiles, and the ground stays
- * lavender-neutral rather than saturated. `danger` is the only red.
+ *  - white on the logo pink `#FA4B7D` is **3.30:1**, under the 4.5 that normal
+ *    text needs. So `primary` is the deeper `#C2185B` (white on it: 5.87:1) and
+ *    the logo pink lives on as `brand` for large type, icons, outlines and
+ *    badges, where 3:1 is the bar and it clears it at 3.09:1 against the ground;
+ *  - where `brand` is used as a *fill* it takes dark ink, never white:
+ *    `#2B1233` on `#FA4B7D` is 5.15:1.
+ *
+ * This is the same split the lavender palette used (`primary` #5B3BE0 deep,
+ * `brand` #7C5CFC bright) — only the hue family changed.
+ *
+ * ## Why `danger` is burnt brick and not red
+ *
+ * With a magenta-rose primary, the old `#B3261E` sat 11° of hue away from it:
+ * "Hapus" became a near-twin of "Kirim", which is the kind of resemblance that
+ * gets things deleted by accident. `#7E2F0C` is 42° away and clearly darker.
+ * Red stays reserved for destructive actions and nothing else.
+ *
+ * ## Why rose and lavender, given DESIGN-REF §0
+ *
+ * §0 warns against dating-app connotations, and pink-purple is that palette's
+ * home. What keeps this on the right side: pink sits on the acts of *telling* —
+ * the composer, the curhat card, felt-heard — and never on hearts, matches or
+ * profiles; the ground is a pale blush rather than a saturated pink; and there
+ * is no swipe, no match, no rating anywhere in the product to reinforce the
+ * reading. Lavender drops to a supporting role for DONG AI and system actions.
  */
 
 export type ThemeName = 'light' | 'dark' | 'midnight';
@@ -48,13 +64,24 @@ export interface ThemeTokens {
   /** Fill for primary actions. Text on it is `primaryFg`. */
   primary: string;
   primaryFg: string;
-  /** Brand purple, for large type, icons and outlines (3:1 uses only). */
+  /**
+   * The logo pink. Large type, icons, outlines and badges (3:1 uses), or a fill
+   * that takes `accentFg`. It never carries `primaryFg`.
+   */
   brand: string;
-  /** Warm punctuation. Never carries `primaryFg`. */
-  accentPink: string;
+  /** The supporting hue: DONG AI and system actions. */
+  accentLavender: string;
   accentAmber: string;
-  /** Ink that is legible on pink and amber. */
+  /** Ink that is legible on brand pink and amber. */
   accentFg: string;
+  /**
+   * Soft fills that tint a surface without becoming a second brand colour —
+   * the quick-link tiles, the AI card, chip grounds. All hold `text` at AA.
+   */
+  tintPink: string;
+  tintLavender: string;
+  tintAmber: string;
+  tintRose: string;
   /** The only red in the system, and only for destructive actions. */
   danger: string;
   dangerFg: string;
@@ -64,46 +91,58 @@ export interface ThemeTokens {
 
 export const THEMES: Readonly<Record<ThemeName, ThemeTokens>> = {
   light: {
-    // The brand kit's near-white ground. Its swatch is labelled `#F755FF`,
-    // which is bright magenta and cannot be what the artwork shows — the
-    // rendered chip is almost white. Read as `#F7F5FF`, a one-character
-    // transposition, which matches both the image and the lavender family.
-    bg: '#f7f5ff',
+    // "Pagi Merah Muda". The ground is a warm rose off-white rather than plain
+    // white: this is a room somebody sits in, and a sterile ground is the
+    // hospital §0 rules out. The neutrals carry a red bias for the same reason
+    // — a pure grey beside this much pink reads as an accident.
+    bg: '#fff5f8',
     surface: '#ffffff',
-    surfaceAlt: '#eae6ff',
-    border: '#d9d2f2',
-    text: '#1e1240',
-    muted: '#514873',
-    primary: '#5b3be0',
+    surfaceAlt: '#ffe6ee',
+    border: '#f4cfdd',
+    text: '#2b1233',
+    muted: '#6b4257',
+    primary: '#c2185b',
     primaryFg: '#ffffff',
-    brand: '#7c5cfc',
-    accentPink: '#ff688a',
-    accentAmber: '#ffb84d',
-    accentFg: '#1e1240',
-    danger: '#b3261e',
+    brand: '#fa4b7d',
+    accentLavender: '#6d4ae0',
+    accentAmber: '#ffb020',
+    accentFg: '#2b1233',
+    tintPink: '#ffdce7',
+    tintLavender: '#e9e1ff',
+    tintAmber: '#ffebcb',
+    tintRose: '#ffd3e1',
+    danger: '#7e2f0c',
     dangerFg: '#ffffff',
-    focus: '#5b3be0',
+    focus: '#c2185b',
   },
   dark: {
-    // Deep purple-black rather than neutral charcoal, so the dark theme still
-    // reads as this product and not as a generic dark mode.
-    bg: '#12101f',
-    surface: '#1b1830',
-    surfaceAlt: '#252140',
-    border: '#332d52',
-    text: '#edeafb',
-    muted: '#b5aed2',
-    // Inverted on dark: a light purple fill with dark ink, because a saturated
-    // purple button on a dark ground cannot carry white text at AA.
-    primary: '#b9a6ff',
-    primaryFg: '#12101f',
-    brand: '#b9a6ff',
-    accentPink: '#ff9fb4',
+    // "Malam Plum" — a warm plum-black rather than the blue-purple it used to
+    // be, so night keeps the same temperature as day instead of switching
+    // families after sunset.
+    bg: '#1a1020',
+    surface: '#251729',
+    surfaceAlt: '#33203a',
+    border: '#4a2c46',
+    text: '#f7e9f0',
+    muted: '#c9a9bb',
+    // Inverted on dark: a light rose fill with dark ink, because a saturated
+    // rose button on a dark ground cannot carry white text at AA.
+    primary: '#ff86bb',
+    primaryFg: '#1a1020',
+    brand: '#ff9fca',
+    accentLavender: '#c4b0ff',
     accentAmber: '#ffc978',
-    accentFg: '#12101f',
-    danger: '#ffb4ab',
-    dangerFg: '#12101f',
-    focus: '#b9a6ff',
+    accentFg: '#1a1020',
+    tintPink: '#3d2138',
+    tintLavender: '#2f2650',
+    tintAmber: '#3d3020',
+    tintRose: '#452133',
+    // Pushed towards coral rather than kept red: on a dark ground the light
+    // rose primary and a light red are nearly the same colour, and 40° of hue
+    // is what keeps "Hapus" from looking like "Kirim".
+    danger: '#ff9d80',
+    dangerFg: '#1a1020',
+    focus: '#ff86bb',
   },
   /**
    * Midnight Mode — DESIGN-REF §0, active 21.00–04.00.
@@ -114,21 +153,25 @@ export const THEMES: Readonly<Record<ThemeName, ThemeTokens>> = {
    * theme quietly becomes unreadable.
    */
   midnight: {
-    bg: '#0a0814',
-    surface: '#12101f',
-    surfaceAlt: '#1b1830',
-    border: '#2a2545',
-    text: '#e4e0f5',
-    muted: '#9f98be',
-    primary: '#ae9bf5',
-    primaryFg: '#0a0814',
-    brand: '#ae9bf5',
-    accentPink: '#f58fa6',
+    bg: '#120a16',
+    surface: '#1a1020',
+    surfaceAlt: '#251729',
+    border: '#3a2340',
+    text: '#efdde7',
+    muted: '#b898aa',
+    primary: '#f582b4',
+    primaryFg: '#120a16',
+    brand: '#f596c2',
+    accentLavender: '#b7a2f5',
     accentAmber: '#f0bd72',
-    accentFg: '#0a0814',
-    danger: '#f5aaa2',
-    dangerFg: '#0a0814',
-    focus: '#ae9bf5',
+    accentFg: '#120a16',
+    tintPink: '#301a2c',
+    tintLavender: '#251d40',
+    tintAmber: '#302618',
+    tintRose: '#361a28',
+    danger: '#f0977c',
+    dangerFg: '#120a16',
+    focus: '#f582b4',
   },
 };
 
@@ -142,8 +185,12 @@ export const THEMES: Readonly<Record<ThemeName, ThemeTokens>> = {
 export const RADII = {
   sm: '0.5rem',
   md: '0.75rem',
-  /** Cards, sheets, modals — the 16px the design direction asks for. */
-  lg: '1rem',
+  /**
+   * Cards, sheets, modals. Raised to 20px in E18-T01 — the top of §0's 16–20px
+   * range rather than the bottom, because the feed card is where "this has room
+   * to breathe" is actually felt.
+   */
+  lg: '1.25rem',
   /** Primary buttons and the FAB — full pills since Revisi 2 (brand mock). */
   xl: '999px',
   full: '9999px',

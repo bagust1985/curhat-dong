@@ -48,7 +48,10 @@ export function FeedTabs({
           onClick={() => onSelect(tab.key)}
           className={`min-h-[var(--size-touch)] shrink-0 rounded-[var(--radius-chip)] border px-4 text-sm ${
             active === tab.key
-              ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] font-semibold text-[var(--color-text)]'
+              ? // A filled pill rather than a tinted one: with four tabs on a
+                // blush ground, a tint reads as "slightly different", not as
+                // "this is the one you are looking at".
+                'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-[var(--color-primary-fg)]'
               : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]'
           }`}
         >
@@ -76,7 +79,7 @@ export function FeedSkeleton({ count = 3 }: { count?: number }) {
         {Array.from({ length: count }, (_, index) => (
           <div
             key={index}
-            className="animate-pulse rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+            className="animate-pulse rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-[18px] shadow-[var(--shadow-card)]"
           >
             <div className="h-3 w-1/3 rounded bg-[var(--color-surface-alt)]" />
             <div className="mt-3 h-4 w-3/4 rounded bg-[var(--color-surface-alt)]" />
@@ -89,39 +92,57 @@ export function FeedSkeleton({ count = 3 }: { count?: number }) {
   );
 }
 
-/** DESIGN-REF §2.4 — the way into DONG AI for someone not ready to talk to a person. */
 /**
- * The mock's hero card — Revisi 2. Mascot, one sentence, one pill button.
+ * The hero — Revisi 2, rebuilt as a composer in E18-T01.
  *
- * "+ Curhat" already exists as the FAB, but the FAB is a glyph: it only reads
- * as "write something" to someone who already knows the product. This is the
- * same action stated in words, on the first screen after logging in.
+ * It used to be a card *about* writing: a mascot, a sentence, and a button that
+ * took you somewhere else. Now it looks like the thing it opens. The field is
+ * not a real textarea — the composer is a route (`/curhat/baru`) so a draft
+ * survives a refresh — but it reads as one, and clicking anywhere in it does
+ * what clicking a text box should do.
+ *
+ * The heading stays for screen readers and for the section landmark. Sighted
+ * readers get the placeholder, which says the same thing in the same words.
  */
 export function StartCurhatCard({ onStart }: { onStart: () => void }) {
   return (
     <section
       aria-labelledby="mulai-curhat-heading"
-      className="flex items-center gap-4 rounded-[var(--radius-curhat)] bg-[var(--color-surface-alt)] p-5"
+      className="flex flex-col gap-4 rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]"
     >
-      {/* Decorative: the heading beside it says the same thing in words. */}
-      <img
-        src="/brand/mascot.png"
-        alt=""
-        width={297}
-        height={232}
-        className="h-auto w-16 shrink-0 sm:w-20"
-      />
-      <div className="min-w-0">
-        <h2 id="mulai-curhat-heading" className="text-base font-bold text-[var(--color-text)]">
-          Mulai curhat sekarang
-        </h2>
-        <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted)]">
-          Nggak harus rapi. Tulis apa adanya aja.
-        </p>
+      <h2 id="mulai-curhat-heading" className="sr-only">
+        Mulai curhat sekarang
+      </h2>
+
+      <div className="flex items-start gap-3">
+        {/* Decorative: the button below carries the action in words. */}
+        <img
+          src="/brand/mascot.png"
+          alt=""
+          width={297}
+          height={232}
+          className="h-auto w-12 shrink-0 sm:w-14"
+        />
         <button
           type="button"
           onClick={onStart}
-          className="mt-3 inline-flex min-h-[var(--size-touch)] items-center rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-bold text-[var(--color-primary-fg)]"
+          tabIndex={-1}
+          aria-hidden="true"
+          // A shortcut for the mouse, hidden from the keyboard and screen
+          // reader: the real control is the labelled button underneath, and
+          // two tab stops onto the same action is noise.
+          className="min-h-[3.75rem] flex-1 rounded-[var(--radius-curhat)] border border-dashed border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-left text-[var(--color-muted)]"
+        >
+          Tulis apa adanya aja…
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--color-muted)]">Bisa anonim. Nggak harus rapi.</p>
+        <button
+          type="button"
+          onClick={onStart}
+          className="inline-flex min-h-[var(--size-touch)] items-center rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)]"
         >
           Mulai Curhat
         </button>
@@ -138,6 +159,12 @@ export interface QuickLink {
   href: string;
   /** Announced to screen readers; the tile itself is short by design. */
   description: string;
+  /**
+   * Tint token for the glyph plate. Four identical grey plates made the shelf
+   * read as one undifferentiated block; the tint is a landmark, not decoration,
+   * which is why it is fixed per destination rather than cycled by position.
+   */
+  tint: string;
 }
 
 /**
@@ -161,6 +188,9 @@ export const QUICK_LINKS: readonly QuickLink[] = [
     glyph: '💬',
     href: '/ai',
     description: 'Ngobrol sama DONG AI, teman ngobrol yang selalu ada',
+    // Lavender throughout for DONG AI — the supporting hue is how the AI reads
+    // as a different kind of company from the people.
+    tint: 'var(--color-tint-lavender)',
   },
   {
     key: 'listener',
@@ -168,6 +198,7 @@ export const QUICK_LINKS: readonly QuickLink[] = [
     glyph: '🤍',
     href: '/listener/request',
     description: 'Minta ditemani listener manusia',
+    tint: 'var(--color-tint-pink)',
   },
   {
     key: 'explore',
@@ -175,6 +206,7 @@ export const QUICK_LINKS: readonly QuickLink[] = [
     glyph: '🧭',
     href: '/explore',
     description: 'Lihat cerita dari topik lain',
+    tint: 'var(--color-tint-amber)',
   },
   {
     key: 'search',
@@ -182,6 +214,7 @@ export const QUICK_LINKS: readonly QuickLink[] = [
     glyph: '🔍',
     href: '/search',
     description: 'Cari cerita, topik, atau listener',
+    tint: 'var(--color-tint-rose)',
   },
 ];
 
@@ -199,15 +232,16 @@ export function QuickLinksGrid({ onOpen }: { onOpen: (link: QuickLink) => void }
               type="button"
               onClick={() => onOpen(link)}
               aria-label={link.description}
-              className="flex min-h-[var(--size-touch)] w-full flex-col items-center gap-1.5 rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-3 text-center"
+              className="flex min-h-[var(--size-touch)] w-full flex-col items-center gap-2 rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-3 text-center shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"
             >
               <span
                 aria-hidden="true"
-                className="flex size-11 items-center justify-center rounded-[var(--radius-curhat)] bg-[var(--color-surface-alt)] text-xl"
+                className="flex size-11 items-center justify-center rounded-[var(--radius-curhat)] text-xl"
+                style={{ backgroundColor: link.tint }}
               >
                 {link.glyph}
               </span>
-              <span className="text-xs leading-tight font-semibold text-[var(--color-text)]">
+              <span className="text-xs leading-tight font-bold text-[var(--color-text)]">
                 {link.label}
               </span>
             </button>
@@ -220,21 +254,24 @@ export function QuickLinksGrid({ onOpen }: { onOpen: (link: QuickLink) => void }
 
 export function PrivateAiEntryCard({ onOpen }: { onOpen: () => void }) {
   return (
+    // Lavender ground, matching the DONG AI tile above it: the AI is a
+    // different kind of company from the people on this screen, and the colour
+    // is what says so before the copy does.
     <section
       aria-labelledby="ai-entry-heading"
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4"
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-tint-lavender)] p-5"
     >
-      <h2 id="ai-entry-heading" className="text-base font-semibold text-[var(--color-text)]">
+      <h2 id="ai-entry-heading" className="text-base font-bold text-[var(--color-text)]">
         Lagi pengen cerita tapi belum siap ngomong ke orang?
       </h2>
-      <p className="mt-1 text-sm text-[var(--color-muted)]">
+      <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-text)] opacity-80">
         DONG AI bisa nemenin dulu. Dia AI — bukan psikolog, dan nggak akan pura-pura jadi
         psikolog.
       </p>
       <button
         type="button"
         onClick={onOpen}
-        className="mt-3 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+        className="mt-4 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-accent-lavender)] px-5 font-bold text-[var(--color-primary-fg)]"
       >
         Ngobrol sama DONG AI
       </button>
@@ -262,9 +299,9 @@ export function ListenerNudgeBanner({
   return (
     <section
       aria-labelledby="nudge-heading"
-      className="rounded-[var(--radius-curhat)] border border-l-4 border-[var(--color-border)] border-l-[var(--color-accent-amber)] bg-[var(--color-surface)] p-4"
+      className="rounded-[var(--radius-curhat)] border-l-4 border-l-[var(--color-accent-amber)] bg-[var(--color-surface)] p-[18px] shadow-[var(--shadow-card)]"
     >
-      <h2 id="nudge-heading" className="text-base font-semibold text-[var(--color-text)]">
+      <h2 id="nudge-heading" className="text-base font-bold text-[var(--color-text)]">
         Ada orang yang sedang butuh didengar.
       </h2>
       <p className="mt-1 text-sm text-[var(--color-muted)]">
@@ -294,9 +331,9 @@ export function OfflineBanner({ onRetry }: { onRetry: () => void }) {
   return (
     <div
       role="alert"
-      className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+      className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-[18px] shadow-[var(--shadow-card)]"
     >
-      <p className="text-sm font-semibold text-[var(--color-text)]">
+      <p className="text-sm font-bold text-[var(--color-text)]">
         Koneksinya lagi putus-putus.
       </p>
       <p className="mt-1 text-sm text-[var(--color-muted)]">

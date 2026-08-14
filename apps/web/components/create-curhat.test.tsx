@@ -43,6 +43,44 @@ function renderCreate(overrides: Partial<Parameters<typeof CreateCurhat>[0]> = {
 /**
  * Create curhat — E15-T09. DESIGN-REF §2.6, PRD §7, §15.
  */
+describe('mood carried in from the home strip (E18-T01)', () => {
+  it('opens with that mood already chosen', () => {
+    renderCreate({ initialMood: 'capek' });
+    expect(screen.getByRole('radio', { name: 'Mood: capek' }).getAttribute('aria-checked')).toBe(
+      'true',
+    );
+  });
+
+  it('never lets the mood tap overwrite a saved draft', () => {
+    // The failure this guards against is expensive and silent: somebody comes
+    // back to a half-written curhat, taps a mood on the way in, and the
+    // paragraph they finally managed to write is gone.
+    saveDraft({
+      ...EMPTY_DRAFT,
+      body: 'Udah nulis panjang lebar dan belum sempat kirim.',
+      mood: 'sedih',
+      savedAt: Date.now(),
+    });
+
+    renderCreate({ initialMood: 'senang' });
+
+    expect(screen.getByLabelText('Ceritamu')).toHaveProperty(
+      'value',
+      'Udah nulis panjang lebar dan belum sempat kirim.',
+    );
+    expect(screen.getByRole('radio', { name: 'Mood: sedih' }).getAttribute('aria-checked')).toBe(
+      'true',
+    );
+  });
+
+  it('opens blank when no mood was passed', () => {
+    renderCreate();
+    for (const mood of ['Mood: capek', 'Mood: sedih']) {
+      expect(screen.getByRole('radio', { name: mood }).getAttribute('aria-checked')).toBe('false');
+    }
+  });
+});
+
 describe('anti-doxxing warning', () => {
   it('spots the patterns the server spots', () => {
     expect(detectPersonalData('hubungi aku di 081234567890').map((h) => h.id)).toContain(

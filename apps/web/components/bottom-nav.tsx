@@ -61,7 +61,10 @@ export function BottomNav({
   onCreate: () => void;
 }) {
   return (
-    <div className="relative">
+    // Floating pill rather than a bar welded to the bottom edge — E18-T01. The
+    // gutter around it is what stops the nav reading as the browser's chrome
+    // and starts it reading as part of the room.
+    <div className="relative px-[var(--spacing-gutter)] pt-3 pb-5">
       {/*
         The FAB sits above the bar rather than in it. "+ Curhat" is the single
         most important action in the product (PRD §23) and the mock's five slots
@@ -73,14 +76,16 @@ export function BottomNav({
         aria-label="Tulis curhat baru"
         // `min-h`/`min-w` with `aspect-square` rather than a fixed 56px box:
         // at 200% text scaling a fixed circle clips its own glyph (E15-T17).
-        className="absolute -top-7 left-1/2 z-10 flex min-h-14 min-w-14 -translate-x-1/2 aspect-square items-center justify-center rounded-full bg-[var(--color-primary)] p-2 text-2xl font-bold text-[var(--color-primary-fg)] shadow-lg"
+        // The ring is the page ground, so the FAB punches through the pill
+        // instead of sitting on top of it.
+        className="absolute -top-4 left-1/2 z-10 flex min-h-14 min-w-14 -translate-x-1/2 aspect-square items-center justify-center rounded-full border-4 border-[var(--color-bg)] bg-[var(--color-primary)] p-2 text-2xl font-bold text-[var(--color-primary-fg)] shadow-lg"
       >
         <span aria-hidden="true">+</span>
       </button>
 
       <nav
         aria-label="Navigasi utama"
-        className="flex items-stretch justify-around border-t border-[var(--color-border)] bg-[var(--color-surface)] pt-1"
+        className="flex items-stretch justify-around gap-1 rounded-[var(--radius-chip)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-nav)]"
       >
         {NAV_ITEMS.map((item) => {
           const isPhaseTwo = PHASE_TWO_KEYS.includes(item.key);
@@ -104,17 +109,20 @@ export function BottomNav({
                     ? `${item.label}, ${badge} belum dibaca`
                     : item.label
               }
-              className={`flex min-h-[var(--size-touch)] flex-1 flex-col items-center justify-center gap-0.5 px-1 pb-1 text-xs ${
+              className={`flex min-h-[var(--size-touch)] flex-1 flex-col items-center justify-center gap-0.5 rounded-[var(--radius-chip)] px-1 py-1 text-[11px] ${
                 isActive
-                  ? // Weight and a top rule, not just colour.
-                    'border-t-2 border-t-[var(--color-primary)] font-semibold text-[var(--color-text)]'
+                  ? // A filled pill plus the weight change. `aria-current` is
+                    // what actually announces it, so this is never the only
+                    // signal — but on a floating bar a top rule has no edge to
+                    // sit against, so the fill replaces it.
+                    'bg-[var(--color-primary)] font-bold text-[var(--color-primary-fg)]'
                   : 'text-[var(--color-muted)]'
               } disabled:opacity-45`}
             >
               <span aria-hidden="true" className="relative text-lg leading-none">
                 {item.glyph}
                 {badge > 0 ? (
-                  <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-[var(--color-accent-pink)] px-1 text-[10px] font-bold text-[var(--color-accent-fg)]">
+                  <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-[var(--color-brand)] px-1 text-[10px] font-bold text-[var(--color-accent-fg)]">
                     {badge > 9 ? '9+' : badge}
                   </span>
                 ) : null}

@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
+import { THEMES, type ThemeName } from '../../../lib/tokens';
+import { Input, Textarea } from '../../../components/ui';
 
 /**
  * `/settings` — E15-T16. DESIGN-REF §2.16.
@@ -42,6 +44,24 @@ interface NotificationSettings {
 }
 
 type Theme = 'light' | 'dark' | 'system';
+
+/**
+ * The three choices, each previewed with the palettes it can actually produce.
+ *
+ * `system` shows light *and* midnight because that is what it does: the OS
+ * preference by day, Midnight Mode after 21.00 (lib/tokens.ts `themeForHour`).
+ * Showing it as a single swatch would misrepresent the one option that changes
+ * on its own.
+ */
+const THEME_CHOICES: readonly {
+  value: Theme;
+  label: string;
+  preview: readonly ThemeName[];
+}[] = [
+  { value: 'system', label: 'Ikut sistem', preview: ['light', 'midnight'] },
+  { value: 'light', label: 'Terang', preview: ['light'] },
+  { value: 'dark', label: 'Gelap', preview: ['dark'] },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -129,44 +149,45 @@ export default function SettingsPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-[var(--spacing-gutter)] py-8">
-      <h1 className="text-2xl font-bold text-[var(--color-text)]">Pengaturan</h1>
+      <h1 className="text-[27px] font-black text-[var(--color-text)]">Pengaturan</h1>
 
       <p role="status" aria-live="polite" className="mt-2 min-h-5 text-sm text-[var(--color-muted)]">
         {notice}
       </p>
 
       <section aria-labelledby="account-heading" className="mt-6">
-        <h2 id="account-heading" className="text-lg font-bold text-[var(--color-text)]">
+        <h2 id="account-heading" className="text-xl font-black text-[var(--color-text)]">
           Akun
         </h2>
 
         <label htmlFor="settings-alias" className="mt-3 block text-sm font-semibold text-[var(--color-text)]">
           Nama samaran
         </label>
-        <input
+        <Input
           id="settings-alias"
           value={alias}
           maxLength={24}
           onChange={(event) => setAlias(event.target.value)}
-          className="mt-1 min-h-[var(--size-touch)] w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text)]"
+          className="mt-1.5"
         />
 
         <label htmlFor="settings-bio" className="mt-3 block text-sm font-semibold text-[var(--color-text)]">
           Bio
         </label>
-        <textarea
+        <Textarea
           id="settings-bio"
           value={bio}
           rows={3}
           maxLength={280}
+          placeholder="Boleh dikosongin."
           onChange={(event) => setBio(event.target.value)}
-          className="mt-1 w-full rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)]"
+          className="mt-1.5"
         />
 
         <button
           type="button"
           onClick={() => void saveProfile()}
-          className="mt-3 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-primary-fg)]"
+          className="mt-3 min-h-[var(--size-touch)] rounded-[var(--radius-action)] bg-[var(--color-primary)] px-6 font-bold text-[var(--color-primary-fg)]"
         >
           Simpan
         </button>
@@ -199,7 +220,7 @@ export default function SettingsPage() {
       </section>
 
       <section aria-labelledby="notif-heading" className="mt-10">
-        <h2 id="notif-heading" className="text-lg font-bold text-[var(--color-text)]">
+        <h2 id="notif-heading" className="text-xl font-black text-[var(--color-text)]">
           Notifikasi
         </h2>
 
@@ -211,7 +232,7 @@ export default function SettingsPage() {
             return (
               <li
                 key={type}
-                className="rounded-[var(--radius-curhat)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+                className="rounded-[var(--radius-curhat)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]"
               >
                 <p className="font-semibold text-[var(--color-text)]">{TYPE_LABELS[type]}</p>
                 {locked ? (
@@ -229,7 +250,7 @@ export default function SettingsPage() {
                           type="checkbox"
                           checked={value[channel]}
                           onChange={(event) => void toggle(type, channel, event.target.checked)}
-                          className="size-5"
+                          className="size-5 accent-[var(--color-primary)]"
                         />
                         <span>{channel === 'push' ? 'Push' : 'Di dalam app'}</span>
                       </label>
@@ -243,40 +264,76 @@ export default function SettingsPage() {
       </section>
 
       <section aria-labelledby="theme-heading" className="mt-10">
-        <h2 id="theme-heading" className="text-lg font-bold text-[var(--color-text)]">
+        <h2 id="theme-heading" className="text-xl font-black text-[var(--color-text)]">
           Tampilan
         </h2>
-        <div role="radiogroup" aria-label="Tema" className="mt-3 flex gap-2">
-          {(
-            [
-              ['system', 'Ikut sistem'],
-              ['light', 'Terang'],
-              ['dark', 'Gelap'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={theme === value}
-              onClick={() => applyTheme(value)}
-              className={`min-h-[var(--size-touch)] rounded-[var(--radius-chip)] border px-4 text-sm ${
-                theme === value
-                  ? 'border-[var(--color-primary)] bg-[var(--color-surface-alt)] font-semibold text-[var(--color-text)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+
+        {/*
+         * The swatches come from lib/tokens.ts, the same source globals.css
+         * mirrors — so a preview can never show a palette the app does not
+         * actually have. A picker for three real palettes that renders as three
+         * identical text pills is asking somebody to choose blind.
+         */}
+        <div role="radiogroup" aria-label="Tema" className="mt-4 grid gap-3 sm:grid-cols-3">
+          {THEME_CHOICES.map((choice) => {
+            const active = theme === choice.value;
+
+            return (
+              <button
+                key={choice.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => applyTheme(choice.value)}
+                className={`flex min-h-[var(--size-touch)] flex-col gap-3 rounded-[var(--radius-curhat)] border p-3 text-left ${
+                  active
+                    ? 'border-[var(--color-primary)] bg-[var(--color-tint-pink)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)]'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-14 overflow-hidden rounded-xl border border-[var(--color-border)]"
+                >
+                  {choice.preview.map((name) => {
+                    const t = THEMES[name];
+                    return (
+                      <span
+                        key={name}
+                        className="flex flex-1 items-end gap-1 p-2"
+                        style={{ backgroundColor: t.bg }}
+                      >
+                        <span
+                          className="h-4 flex-1 rounded"
+                          style={{ backgroundColor: t.surface }}
+                        />
+                        <span
+                          className="size-4 shrink-0 rounded-full"
+                          style={{ backgroundColor: t.primary }}
+                        />
+                      </span>
+                    );
+                  })}
+                </span>
+
+                <span
+                  className={`text-sm text-[var(--color-text)] ${active ? 'font-bold' : ''}`}
+                >
+                  {choice.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
-          "Ikut sistem" juga yang bikin Midnight Mode nyala sendiri jam 21.00–04.00.
+
+        <p className="mt-3 text-sm text-[var(--color-muted)]">
+          “Ikut sistem” juga yang bikin Midnight Mode nyala sendiri jam 21.00–04.00 — itu tema
+          ketiga di preview paling kiri.
         </p>
       </section>
 
       <section aria-labelledby="more-heading" className="mt-10">
-        <h2 id="more-heading" className="text-lg font-bold text-[var(--color-text)]">
+        <h2 id="more-heading" className="text-xl font-black text-[var(--color-text)]">
           Data, privasi & lainnya
         </h2>
         <ul className="mt-3 flex flex-col gap-2">
