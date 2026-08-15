@@ -6,7 +6,8 @@ North Star Metric: **Felt Heard Rate**. Domain: curhatdong.com / api.curhatdong.
 ## Dokumen acuan (WAJIB dibaca sebelum implementasi)
 - `.agents/1-PRD.md` — Master PRD v1.0 + catatan review (compliance PSE/UU PDP, crisis protocol L3, listener guidelines, AI cost guard)
 - `.agents/2-TECH-SPEC.md` — Tech Spec v1.1 (LOCKED, source of truth teknis)
-- `.agents/3-DESIGN-REFERENCE.md` — semua pages, functions, dan shared components
+- `.agents/3-DESIGN-REFERENCE.md` — semua pages, functions, dan shared components (**niat/spec**)
+- `.agents/4-DESIGN-SYSTEM.md` — design system & fitur **as-built**: token, komponen, kosakata, peta layar, celah mobile. Kalau bertentangan dengan dokumen 3, yang ini yang menggambarkan kode yang berjalan
 - `.agents/tasks/` — task breakdown (generate via workflow di bawah jika masih kosong)
 
 ## Stack LOCKED (jangan diganti tanpa update tech spec)
