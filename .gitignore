@@ -50,3 +50,6 @@ apps/mobile/.expo/
 apps/mobile/dist/
 apps/mobile/android/
 apps/mobile/ios/
+
+# Generated design-system bundle for claude.ai/design (see docs/DESIGN-SYNC.md)
+.design-bundle/
