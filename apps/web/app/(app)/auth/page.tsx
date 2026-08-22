@@ -276,12 +276,13 @@ export default function AuthPage() {
         aria-label="Kembali ke halaman depan CURHAT DONG"
         className="mb-8 flex items-center justify-center gap-2.5"
       >
+        {/* Mark yang sama dengan beranda (E18): maskot, bukan ubin ikon. */}
         <img
-          src="/brand/logo-96.png"
+          src="/brand/mascot-96.png"
           alt=""
           width={96}
-          height={96}
-          className="size-10 rounded-xl"
+          height={75}
+          className="h-auto w-10"
         />
         <Wordmark />
       </a>

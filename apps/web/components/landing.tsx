@@ -36,19 +36,27 @@ export function LandingNavbar() {
     >
       <a href="#beranda" className="flex min-h-[var(--size-touch)] items-center gap-2.5">
         {/*
-          The app icon, not the mascot cutout: this slot is the logo, and it
-          should be the same mark somebody sees on their home screen after
-          installing. Decorative next to the wordmark, which carries the name.
+          Maskot, bukan ubin ikon — mark yang sama dengan beranda dan komposer,
+          jadi identitas di dalam produk cuma satu.
+
+          Ini membalik keputusan sebelumnya ("slot ini logo, harus sama dengan
+          yang orang lihat di home screen setelah install"). Argumen itu tidak
+          salah, dan sekarang jadi utang yang kelihatan: ikon launcher masih
+          ubin rose, jadi header web dan ikon aplikasi belum satu wajah. Yang
+          menutupnya adalah mengganti set ikon juga — butuh maskot resolusi
+          tinggi, karena mascot.png cuma 297×232.
+
+          96px untuk slot 36px: cukup buat layar 2x, dan 13 KB di satu-satunya
+          halaman yang waktu muatnya menentukan orang asing bertahan atau tidak.
+          Tanpa `rounded`: seni transparan tidak punya sisi untuk dibulatkan,
+          dan `h-auto` menjaga rasio 297:232 supaya tidak gepeng.
         */}
-        {/* 96px source for a 36px slot: enough for 2x screens, and 17 KB
-            instead of the 344 KB full-size mark on the one page whose load
-            time decides whether a stranger stays. */}
         <img
-          src="/brand/logo-96.png"
+          src="/brand/mascot-96.png"
           alt=""
           width={96}
-          height={96}
-          className="size-9 rounded-[10px]"
+          height={75}
+          className="h-auto w-9"
         />
         <Wordmark />
       </a>
