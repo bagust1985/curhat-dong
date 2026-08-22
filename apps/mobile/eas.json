@@ -11,7 +11,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3101"
+        "_comment": "10.0.2.2 alias emulator untuk localhost host; di HP fisik tidak menuju ke mana pun. Dev build dipasang di perangkat asli. Belum ada staging, jadi data uji masuk ke database produksi.",
+        "EXPO_PUBLIC_API_URL": "https://api.curhatdong.com"
       }
     },
     "preview": {
